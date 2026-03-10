@@ -51,7 +51,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased pwa-root">
-        {children}
+        <div className="app-shell">
+          {children}
+        </div>
         <Analytics />
       </body>
     </html>
