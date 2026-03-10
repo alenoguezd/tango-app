@@ -12,8 +12,8 @@ export function SplashScreen({ onStart }: SplashScreenProps) {
       className="flex flex-col w-full select-none"
       style={{ height: "100dvh", background: "#FFFFFF", overflow: "hidden" }}
     >
-      {/* Illustration — top ~55% */}
-      <div className="relative w-full flex-shrink-0" style={{ height: "55dvh" }}>
+      {/* Illustration — top ~45% */}
+      <div className="relative w-full flex-shrink-0" style={{ height: "45dvh" }}>
         <Image
           src="/splash-illustration.jpg"
           alt="Hands holding a Japanese flashcard binder on a train"
