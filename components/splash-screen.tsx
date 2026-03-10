@@ -12,8 +12,8 @@ export function SplashScreen({ onStart }: SplashScreenProps) {
       className="flex flex-col w-full select-none"
       style={{ height: "100dvh", background: "#FFFFFF", overflow: "hidden" }}
     >
-      {/* Illustration — max 280px height to ensure button visibility */}
-      <div className="relative w-full flex-shrink-0" style={{ height: "min(50dvh, 280px)" }}>
+      {/* Illustration — max 45% height */}
+      <div className="relative w-full flex-shrink-0" style={{ height: "clamp(200px, 45dvh, 350px)" }}>
         <Image
           src="/splash-illustration.jpg"
           alt="Hands holding a Japanese flashcard binder on a train"
@@ -24,12 +24,12 @@ export function SplashScreen({ onStart }: SplashScreenProps) {
         />
       </div>
 
-      {/* Bottom content */}
+      {/* Bottom content with justify-between to push button to bottom */}
       <div
-        className="flex flex-col items-center justify-center gap-6 flex-1 px-6"
+        className="flex flex-col items-center justify-between flex-1 px-6"
         style={{
-          paddingTop: "clamp(20px, 4dvh, 36px)",
-          paddingBottom: "max(28px, env(safe-area-inset-bottom, 16px) + 16px)",
+          paddingTop: "clamp(24px, 5dvh, 40px)",
+          paddingBottom: "max(32px, env(safe-area-inset-bottom, 16px) + 16px)",
         }}
       >
         <div className="flex flex-col items-center gap-3">

@@ -151,6 +151,7 @@ body {
   position: fixed;
   /* Prevent iOS Safari rubber-band scroll on the root */
   touch-action: manipulation;
+  background: #F7F6F3;
 }
 
 .pwa-root {
