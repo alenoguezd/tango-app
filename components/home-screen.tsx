@@ -109,6 +109,21 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     setTimeout(() => setToast(null), 2000);
   };
 
+  // Handle logout
+  const handleLogoutClick = async () => {
+    if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        localStorage.clear();
+        window.location.href = "/";
+      } catch (error) {
+        console.error("Logout error:", error);
+        showToast("Error al cerrar sesión");
+      }
+    }
+  };
+
   // Share set: copy link to clipboard
   const handleShare = async (setId: string) => {
     const supabase = createClient();
@@ -135,7 +150,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   };
 
   // Toggle favorite
-  const handleToggleFavorite = (setId: string) => {
+  const handleToggleFavorite = async (setId: string) => {
     setLocalSets((prev) => {
       const updated = prev.map((set) =>
         set.id === setId ? { ...set, favorite: !set.favorite } : set
@@ -143,16 +158,64 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       localStorage.setItem("vocab_sets", JSON.stringify(updated));
       return updated;
     });
+
+    // Sync to Supabase
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const set = localSets.find(s => s.id === setId);
+        const newFavoriteStatus = !set?.favorite;
+
+        await supabase
+          .from("sets")
+          .update({ is_favorite: newFavoriteStatus })
+          .eq("id", setId)
+          .eq("user_id", user.id);
+
+        console.log("[Favorite] Updated in Supabase");
+      }
+    } catch (err) {
+      console.error("[Favorite] Supabase sync failed:", err);
+      showToast("Error al guardar favorito en la nube");
+    }
   };
 
   // Delete set
-  const handleDeleteSet = (setId: string) => {
+  const handleDeleteSet = async (setId: string) => {
     if (confirm("¿Eliminar este set? Esta acción no se puede deshacer")) {
+      // Remove from localStorage immediately for UI feedback
       setLocalSets((prev) => {
         const updated = prev.filter((set) => set.id !== setId);
         localStorage.setItem("vocab_sets", JSON.stringify(updated));
         return updated;
       });
+
+      // Delete from Supabase
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { error } = await supabase
+            .from("sets")
+            .delete()
+            .eq("id", setId)
+            .eq("user_id", user.id);
+
+          if (error) {
+            console.error("[Delete] Supabase delete failed:", error);
+            showToast("Error al eliminar de la nube");
+          } else {
+            console.log("[Delete] Deleted from Supabase");
+            showToast("Set eliminado");
+          }
+        }
+      } catch (err) {
+        console.error("[Delete] Error:", err);
+        showToast("Error al eliminar el set");
+      }
     }
   };
 
@@ -455,6 +518,44 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         <NavItem label="Inicio"  active       icon={<SmileIcon />} onClick={() => {}} />
         <NavItem label="Crear"   active={false} icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("crear")} />
         <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
+        <button
+          onClick={handleLogoutClick}
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "3px",
+            minHeight: "48px",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            fontFamily: FONT,
+            fontSize: "11px",
+            fontWeight: 400,
+            color: TEXT_RED,
+          }}
+          aria-label="Cerrar sesión"
+        >
+          <div style={{
+            width: "44px",
+            height: "32px",
+            borderRadius: "16px",
+            background: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: TEXT_RED,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </div>
+          <span>Salir</span>
+        </button>
       </nav>
 
       {/* iOS home indicator */}
@@ -557,6 +658,51 @@ function SetCard({
   onToggleFavorite: () => void;
   onDelete: () => void;
 }) {
+  const handleResetProgress = async () => {
+    if (confirm("¿Reiniciar el progreso de este set? Esta acción no se puede deshacer")) {
+      try {
+        // Reset in localStorage
+        const savedSets = localStorage.getItem("vocab_sets");
+        if (savedSets) {
+          const sets = JSON.parse(savedSets);
+          const updatedSets = sets.map((s: any) =>
+            s.id === set.id
+              ? {
+                  ...s,
+                  progress: 0,
+                  cards: (s.cards || []).map((card: any) => ({ ...card, known: false })),
+                }
+              : s
+          );
+          localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
+        }
+
+        // Reset in Supabase
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const resetCards = (set.cards || []).map(card => ({ ...card, known: false }));
+          const { error } = await supabase
+            .from("sets")
+            .update({ progress: 0, cards: resetCards })
+            .eq("id", set.id)
+            .eq("user_id", user.id);
+
+          if (error) {
+            console.error("[ResetProgress] Supabase update failed:", error);
+            // Toast will be handled in parent scope
+          } else {
+            console.log("[ResetProgress] Progress reset in Supabase");
+            showToastFromParent("¡Progreso reiniciado!");
+          }
+        }
+      } catch (err) {
+        console.error("[ResetProgress] Error:", err);
+        showToastFromParent("Error al reiniciar progreso");
+      }
+    }
+  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -578,9 +724,9 @@ function SetCard({
     setMenuOpen(false);
   };
 
-  const saveName = () => {
+  const saveName = async () => {
     if (editedName.trim()) {
-      // Update localStorage
+      // Update localStorage first for immediate UI feedback
       const savedSets = localStorage.getItem("vocab_sets");
       if (savedSets) {
         const sets = JSON.parse(savedSets);
@@ -590,6 +736,28 @@ function SetCard({
         localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
       }
       set.title = editedName.trim();
+
+      // Sync to Supabase
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { error } = await supabase
+            .from("sets")
+            .update({ title: editedName.trim() })
+            .eq("id", set.id)
+            .eq("user_id", user.id);
+
+          if (error) {
+            console.error("[Rename] Supabase update failed:", error);
+          } else {
+            console.log("[Rename] Updated in Supabase");
+          }
+        }
+      } catch (err) {
+        console.error("[Rename] Error:", err);
+      }
     } else {
       setEditedName(set.title);
     }
@@ -816,6 +984,23 @@ function SetCard({
                 }}
               >
                 Favorito
+              </button>
+              <button
+                onClick={() => handleMenuAction(handleResetProgress)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  color: TEXT_PRI,
+                  borderBottom: `1px solid ${CARD_BORDER}`,
+                }}
+              >
+                Reiniciar progreso
               </button>
               <button
                 onClick={() => handleMenuAction(onDelete)}

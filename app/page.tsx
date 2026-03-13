@@ -142,6 +142,30 @@ export default function Home() {
     setError("");
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Por favor ingresa tu email");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+      if (error) {
+        setError(error.message || "Error al enviar correo de recuperación");
+        setLoading(false);
+        return;
+      }
+
+      setError("Enviamos un link de recuperación a tu email. Revisa tu bandeja de entrada.");
+      setLoading(false);
+    } catch (err) {
+      setError("Error al enviar correo de recuperación");
+      setLoading(false);
+    }
+  };
+
   if (!mounted) {
     return null;
   }
@@ -449,17 +473,20 @@ export default function Home() {
             {/* Forgot password link */}
             <button
               type="button"
+              onClick={handleForgotPassword}
+              disabled={loading}
               style={{
                 background: "none",
                 border: "none",
                 color: LINK_BLUE,
-                cursor: "pointer",
+                cursor: loading ? "not-allowed" : "pointer",
                 fontFamily: FONT,
                 fontSize: "14px",
                 fontWeight: 600,
                 padding: "0",
                 width: "100%",
                 textAlign: "center",
+                opacity: loading ? 0.7 : 1,
               }}
             >
               ¿Olvidaste tu contraseña?
