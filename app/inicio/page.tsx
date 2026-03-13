@@ -64,8 +64,8 @@ export default function InicioPage() {
   const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
     if (tab === "progreso") {
       router.push("/progreso");
-    } else {
-      router.push("/");
+    } else if (tab === "crear") {
+      router.push("/crear");
     }
   };
 

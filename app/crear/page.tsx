@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ProgresoScreen } from "@/components/progreso-screen";
+import { CrearScreen } from "@/components/crear-screen";
 import { createClient } from "@/lib/supabase";
 
-export default function ProgresoPage() {
+export default function CrearPage() {
   const router = useRouter();
   const supabase = createClient();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -33,12 +33,10 @@ export default function ProgresoPage() {
   };
 
   const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
-    if (tab === "inicio") {
+    if (tab === "progreso") {
+      router.push("/progreso");
+    } else {
       router.push("/inicio");
-    } else if (tab === "crear") {
-      router.push("/crear");
-    } else if (tab === "progreso") {
-      // Already on progreso page
     }
   };
 
@@ -62,5 +60,5 @@ export default function ProgresoPage() {
     return null;
   }
 
-  return <ProgresoScreen onNavigate={handleNavigate} />;
+  return <CrearScreen onNavigate={handleNavigate} />;
 }

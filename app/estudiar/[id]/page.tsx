@@ -157,8 +157,10 @@ export default function EstudiarPage() {
   const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
     if (tab === "progreso") {
       router.push("/progreso");
+    } else if (tab === "crear") {
+      router.push("/crear");
     } else {
-      router.push("/");
+      router.push("/inicio");
     }
   };
 
