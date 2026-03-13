@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Check, FolderOpen, Play, ImagePlus } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { createClient } from "@/lib/supabase";
@@ -49,6 +50,7 @@ function useWindowSize() {
 }
 
 export function CrearScreen({ onNavigate }: CrearScreenProps) {
+  const router = useRouter();
   const [imageUrl, setImageUrl]         = useState<string | null>(null);
   const [setName, setSetName]           = useState("");
   const [state, setState]               = useState<CrearState>("idle");
@@ -171,10 +173,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   function handleStudyNew() {
     if (createdId) {
-      // Save current set ID and navigate to home
-      localStorage.setItem("currentSetId", createdId);
-      handleReset();
-      onNavigate("inicio");
+      router.push(`/estudiar/${createdId}`);
     }
   }
 
