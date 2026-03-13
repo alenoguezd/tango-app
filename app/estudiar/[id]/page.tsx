@@ -13,6 +13,7 @@ interface StudySet {
   progress: number;
   lastStudied: string;
   cards: VocabCard[];
+  userId?: string;
 }
 
 function useWindowSize() {
@@ -45,7 +46,9 @@ export default function EstudiarPage() {
   const isMobile = windowWidth < 1024;
 
   const [set, setSet] = useState<StudySet | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuthAndLoadSet();
@@ -60,35 +63,67 @@ export default function EstudiarPage() {
         return;
       }
 
+      setCurrentUserId(user.id);
       loadSetData();
     } catch (error) {
       router.push("/");
     }
   };
 
-  const loadSetData = () => {
-    // Load set from localStorage and migrate if needed
-    const savedSets = localStorage.getItem("vocab_sets");
-    if (savedSets) {
-      try {
-        let sets: StudySet[] = JSON.parse(savedSets);
-        let found = sets.find((s) => s.id === setId);
+  const loadSetData = async () => {
+    try {
+      console.log("[Estudiar] Loading set:", setId);
 
-        if (found) {
-          // Migrate cards if they don't have IDs
-          if (found.cards && !found.cards[0]?.id) {
-            found.cards = migrateCards(found.cards);
-            // Save migrated sets back to localStorage
-            sets = sets.map((s) => s.id === setId ? found : s);
-            localStorage.setItem("vocab_sets", JSON.stringify(sets));
-          }
-          setSet(found);
+      // Try to load from Supabase first
+      const { data, error } = await supabase
+        .from("sets")
+        .select("*")
+        .eq("id", setId)
+        .single();
+
+      if (!error && data) {
+        console.log("[Estudiar] Set loaded from Supabase:", data);
+        const found: StudySet = {
+          id: data.id,
+          title: data.title,
+          cardCount: data.card_count,
+          progress: 0,
+          lastStudied: data.updated_at || new Date().toISOString(),
+          cards: data.cards || [],
+          userId: data.user_id,
+        };
+
+        // Migrate cards if needed
+        if (found.cards && !found.cards[0]?.id) {
+          found.cards = migrateCards(found.cards);
         }
-      } catch (error) {
-        console.error("Error loading set:", error);
+
+        setSet(found);
+      } else {
+        // Fallback to localStorage
+        console.log("[Estudiar] Supabase load failed, trying localStorage");
+        const savedSets = localStorage.getItem("vocab_sets");
+        if (savedSets) {
+          let sets: StudySet[] = JSON.parse(savedSets);
+          let found = sets.find((s) => s.id === setId);
+
+          if (found) {
+            console.log("[Estudiar] Set loaded from localStorage:", found);
+            // Migrate cards if they don't have IDs
+            if (found.cards && !found.cards[0]?.id) {
+              found.cards = migrateCards(found.cards);
+              sets = sets.map((s) => s.id === setId ? found : s);
+              localStorage.setItem("vocab_sets", JSON.stringify(sets));
+            }
+            setSet(found);
+          }
+        }
       }
+    } catch (error) {
+      console.error("[Estudiar] Error loading set:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCardSwiped = async (card: VocabCard, direction: "left" | "right") => {
@@ -154,6 +189,48 @@ export default function EstudiarPage() {
     router.push("/inicio");
   };
 
+  const handleSaveSet = async () => {
+    if (!set || !currentUserId) return;
+
+    console.log("[Estudiar] Saving set to user account. Set ID:", setId, "Current User:", currentUserId);
+
+    try {
+      const newSetId = Date.now().toString();
+
+      // Create a copy of the set with the new user as owner
+      const newSet = {
+        id: newSetId,
+        user_id: currentUserId,
+        title: set.title,
+        card_count: set.cardCount,
+        cards: set.cards,
+        is_public: false,
+      };
+
+      console.log("[Estudiar] Inserting new set:", newSet);
+
+      // Save to Supabase
+      const { error } = await supabase
+        .from("sets")
+        .insert(newSet);
+
+      if (error) {
+        console.error("[Estudiar] Error saving set:", error);
+        setSaveMessage("Error al guardar el set");
+        setTimeout(() => setSaveMessage(null), 3000);
+        return;
+      }
+
+      console.log("[Estudiar] Set saved successfully with ID:", newSetId);
+      setSaveMessage("¡Set guardado en tu cuenta!");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      console.error("[Estudiar] Error saving set:", err);
+      setSaveMessage("Error al guardar el set");
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
+  };
+
   const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
     if (tab === "progreso") {
       router.push("/progreso");
@@ -213,17 +290,65 @@ export default function EstudiarPage() {
 
   // ===== MOBILE LAYOUT (< 1024px) =====
   if (isMobile) {
+    const isSharedSet = set.userId && set.userId !== currentUserId;
+
     return (
-      <Flashcard
-        cards={set.cards}
-        title={set.title}
-        onBack={handleBack}
-        onCardSwiped={handleCardSwiped}
-      />
+      <div style={{ height: "100dvh", display: "flex", flexDirection: "column" }}>
+        {isSharedSet && (
+          <div style={{
+            backgroundColor: "#E3F2FD",
+            padding: "12px 16px",
+            display: "flex",
+            gap: "12px",
+            alignItems: "center",
+            borderBottom: "1px solid #B3E5FC",
+          }}>
+            <button
+              onClick={handleSaveSet}
+              style={{
+                flex: 1,
+                padding: "10px 16px",
+                backgroundColor: "#1A6B8A",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: "8px",
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Guardar en mi cuenta
+            </button>
+          </div>
+        )}
+        {saveMessage && (
+          <div style={{
+            backgroundColor: "#E8F5E9",
+            color: "#2E7D32",
+            padding: "10px 16px",
+            fontFamily: "var(--font-sans)",
+            fontSize: "14px",
+            textAlign: "center",
+          }}>
+            {saveMessage}
+          </div>
+        )}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Flashcard
+            cards={set.cards}
+            title={set.title}
+            onBack={handleBack}
+            onCardSwiped={handleCardSwiped}
+          />
+        </div>
+      </div>
     );
   }
 
   // ===== DESKTOP LAYOUT (≥ 1024px) =====
+  const isSharedSet = set.userId && set.userId !== currentUserId;
+
   return (
     <div
       style={{
@@ -246,12 +371,50 @@ export default function EstudiarPage() {
           background: "#F7F6F3",
         }}
       >
-        <Flashcard
-          cards={set.cards}
-          title={set.title}
-          onBack={handleBack}
-          onCardSwiped={handleCardSwiped}
-        />
+        {isSharedSet && (
+          <div style={{
+            backgroundColor: "#E3F2FD",
+            padding: "12px 20px",
+            display: "flex",
+            gap: "12px",
+            alignItems: "center",
+            borderBottom: "1px solid #B3E5FC",
+          }}>
+            <button
+              onClick={handleSaveSet}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#1A6B8A",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: "8px",
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Guardar en mi cuenta
+            </button>
+            {saveMessage && (
+              <div style={{
+                color: "#2E7D32",
+                fontFamily: "var(--font-sans)",
+                fontSize: "14px",
+              }}>
+                {saveMessage}
+              </div>
+            )}
+          </div>
+        )}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <Flashcard
+            cards={set.cards}
+            title={set.title}
+            onBack={handleBack}
+            onCardSwiped={handleCardSwiped}
+          />
+        </div>
       </div>
     </div>
   );

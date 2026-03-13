@@ -127,6 +127,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           const sets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
           sets.push(newSet);
           localStorage.setItem("vocab_sets", JSON.stringify(sets));
+          console.log("[Crear] Set saved to localStorage with ID:", id);
 
           // Try to save to Supabase
           try {
@@ -134,7 +135,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-              await supabase.from("sets").insert({
+              console.log("[Crear] Saving set to Supabase. User ID:", user.id, "Set ID:", id);
+              const { error } = await supabase.from("sets").insert({
                 id: id,
                 user_id: user.id,
                 title: finalName,
@@ -142,9 +144,15 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 cards: cardsWithIds,
                 is_public: false,
               });
+
+              if (error) {
+                console.error("[Crear] Supabase save error:", error);
+              } else {
+                console.log("[Crear] Set saved to Supabase successfully");
+              }
             }
           } catch (err) {
-            console.log("Supabase save failed, using localStorage fallback");
+            console.error("[Crear] Supabase save failed:", err);
           }
 
           setCreatedCount(cards.length);

@@ -35,6 +35,7 @@ export default function InicioPage() {
 
   const loadSets = async (userId: string) => {
     try {
+      console.log("[Inicio] Loading sets for user:", userId);
       // Load from Supabase
       const { data, error } = await supabase
         .from("sets")
@@ -42,6 +43,8 @@ export default function InicioPage() {
         .eq("user_id", userId);
 
       if (error) throw error;
+
+      console.log("[Inicio] Sets loaded from Supabase:", data);
 
       const supabaseSets = (data || []).map((set: any) => ({
         id: set.id,
@@ -53,9 +56,10 @@ export default function InicioPage() {
         favorite: set.is_favorite || false,
       }));
 
+      console.log("[Inicio] Sets mapped to state:", supabaseSets);
       setSets(supabaseSets);
     } catch (error) {
-      console.error("Error loading sets:", error);
+      console.error("[Inicio] Error loading sets:", error);
     } finally {
       setLoading(false);
     }
