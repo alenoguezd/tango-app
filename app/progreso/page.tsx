@@ -20,13 +20,13 @@ export default function ProgresoPage() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/login");
+        router.push("/");
         return;
       }
 
       setIsAuthenticated(true);
     } catch (error) {
-      router.push("/login");
+      router.push("/");
     } finally {
       setLoading(false);
     }

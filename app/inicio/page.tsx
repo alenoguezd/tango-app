@@ -22,14 +22,14 @@ export default function InicioPage() {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        router.push("/login");
+        router.push("/");
         return;
       }
 
       setIsAuthenticated(true);
       loadSets(user.id);
     } catch (error) {
-      router.push("/login");
+      router.push("/");
     }
   };
 
