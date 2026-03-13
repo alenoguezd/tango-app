@@ -1,91 +1,216 @@
 "use client";
 
-import { Flashcard, type VocabCard } from "@/components/flashcard";
-import { useRouter, useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getSet, updateProgress, markStudied } from "@/lib/storage";
+import { Flashcard, type VocabCard } from "@/components/flashcard";
+import { AppSidebar } from "@/components/app-sidebar";
 
-export default function Page() {
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+interface StudySet {
+  id: string;
+  title: string;
+  cardCount: number;
+  progress: number;
+  lastStudied: string;
+  cards: VocabCard[];
+}
 
-  const [cards, setCards] = useState<VocabCard[]>([]);
-  const [title, setTitle] = useState("");
-  const [mounted, setMounted] = useState(false);
-  const [notFound, setNotFound] = useState(false);
+function useWindowSize() {
+  const [windowWidth, setWindowWidth] = useState<number>(1024);
 
   useEffect(() => {
-    setMounted(true);
-    if (!id) return;
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-    const set = getSet(id);
-    if (!set) {
-      setNotFound(true);
-      return;
+  return windowWidth;
+}
+
+// Migrate cards without IDs
+function migrateCards(cards: VocabCard[]): VocabCard[] {
+  return cards.map((card, index) => ({
+    ...card,
+    id: card.id || index.toString(),
+  }));
+}
+
+export default function EstudiarPage() {
+  const params = useParams();
+  const router = useRouter();
+  const setId = params.id as string;
+  const windowWidth = useWindowSize();
+  const isMobile = windowWidth < 1024;
+
+  const [set, setSet] = useState<StudySet | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Load set from localStorage and migrate if needed
+    const savedSets = localStorage.getItem("vocab_sets");
+    if (savedSets) {
+      try {
+        let sets: StudySet[] = JSON.parse(savedSets);
+        let found = sets.find((s) => s.id === setId);
+
+        if (found) {
+          // Migrate cards if they don't have IDs
+          if (found.cards && !found.cards[0]?.id) {
+            found.cards = migrateCards(found.cards);
+            // Save migrated sets back to localStorage
+            sets = sets.map((s) => s.id === setId ? found : s);
+            localStorage.setItem("vocab_sets", JSON.stringify(sets));
+          }
+          setSet(found);
+        }
+      } catch (error) {
+        console.error("Error loading set:", error);
+      }
     }
+    setLoading(false);
+  }, [setId]);
 
-    setCards(set.cards);
-    setTitle(set.name);
-  }, [id]);
+  const handleCardSwiped = (card: VocabCard, direction: "left" | "right") => {
+    // Save progress to localStorage using card.id
+    const savedSets = localStorage.getItem("vocab_sets");
+    if (savedSets && set) {
+      try {
+        const sets: StudySet[] = JSON.parse(savedSets);
+        const setIndex = sets.findIndex((s) => s.id === set.id);
+        if (setIndex !== -1) {
+          // Initialize progress if not exists
+          if (!Array.isArray(sets[setIndex].progress)) {
+            sets[setIndex].progress = 0;
+          }
 
-  const handleSwipeRight = (card: VocabCard) => {
-    if (!id) return;
-    updateProgress(id, card.kana, true);
-    markStudied(id);
+          // Update last studied timestamp
+          sets[setIndex].lastStudied = new Date().toISOString();
+
+          // Track individual card progress using card.id
+          if (direction === "right") {
+            // Mark card as known
+            const cardIndex = sets[setIndex].cards.findIndex((c) => c.id === card.id);
+            if (cardIndex !== -1) {
+              sets[setIndex].cards[cardIndex].known = true;
+            }
+            sets[setIndex].progress = Math.min(100, (sets[setIndex].progress as number) + 5);
+          } else if (direction === "left") {
+            // Mark card as not known (needs review)
+            const cardIndex = sets[setIndex].cards.findIndex((c) => c.id === card.id);
+            if (cardIndex !== -1) {
+              sets[setIndex].cards[cardIndex].known = false;
+            }
+          }
+
+          localStorage.setItem("vocab_sets", JSON.stringify(sets));
+        }
+      } catch (error) {
+        console.error("Error saving progress:", error);
+      }
+    }
   };
 
-  const handleSwipeLeft = (card: VocabCard) => {
-    if (!id) return;
-    updateProgress(id, card.kana, false);
-    markStudied(id);
+  const handleBack = () => {
+    router.push("/inicio");
   };
 
-  if (!mounted) return null;
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+    if (tab === "progreso") {
+      router.push("/progreso");
+    } else {
+      router.push("/");
+    }
+  };
 
-  if (notFound) {
+  if (loading) {
     return (
-      <div style={{
-        height: "100dvh",
-        width: "100%",
-        maxWidth: "375px",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "16px",
-        padding: "20px",
-        textAlign: "center",
-      }}>
-        <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: 0 }}>Set no encontrado</h1>
-        <p style={{ color: "#666", margin: 0 }}>El set que buscas no existe o fue eliminado.</p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100dvh",
+          background: "#FFFFFF",
+        }}
+      >
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!set) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100dvh",
+          background: "#FFFFFF",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <h1>Set no encontrado</h1>
         <button
-          onClick={() => router.push("/inicio")}
+          onClick={handleBack}
           style={{
-            marginTop: "20px",
-            padding: "12px 24px",
+            padding: "10px 20px",
             background: "#1A6B8A",
-            color: "#fff",
+            color: "#FFFFFF",
             border: "none",
             borderRadius: "8px",
             cursor: "pointer",
-            fontWeight: "600",
           }}
         >
-          Volver al inicio
+          Volver
         </button>
       </div>
     );
   }
 
+  // ===== MOBILE LAYOUT (< 1024px) =====
+  if (isMobile) {
+    return (
+      <Flashcard
+        cards={set.cards}
+        title={set.title}
+        onBack={handleBack}
+        onCardSwiped={handleCardSwiped}
+      />
+    );
+  }
+
+  // ===== DESKTOP LAYOUT (≥ 1024px) =====
   return (
-    <Flashcard
-      cards={cards}
-      title={title || "単語カード"}
-      onBack={() => router.push("/inicio")}
-      onSwipeRight={handleSwipeRight}
-      onSwipeLeft={handleSwipeLeft}
-    />
+    <div
+      style={{
+        height: "100dvh",
+        background: "#F7F6F3",
+        display: "flex",
+        flexDirection: "row",
+        overflow: "hidden",
+      }}
+    >
+      <AppSidebar activeTab="inicio" onNavigate={handleNavigate} />
+
+      {/* Main content area */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "#F7F6F3",
+        }}
+      >
+        <Flashcard
+          cards={set.cards}
+          title={set.title}
+          onBack={handleBack}
+          onCardSwiped={handleCardSwiped}
+        />
+      </div>
+    </div>
   );
 }

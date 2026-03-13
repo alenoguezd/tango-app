@@ -4,18 +4,19 @@ import { useState, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, Shuffle, RotateCcw, X, Check, ArrowLeft } from "lucide-react";
 
 export interface VocabCard {
+  id?: string;
   kana: string;
   kanji: string;
   spanish: string;
   example_usage: string;
+  known?: boolean;
 }
 
 interface FlashcardProps {
   cards: VocabCard[];
   title?: string;
   onBack?: () => void;
-  onSwipeRight?: (card: VocabCard, index: number) => void;
-  onSwipeLeft?: (card: VocabCard, index: number) => void;
+  onCardSwiped?: (card: VocabCard, direction: "left" | "right") => void;
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -41,7 +42,7 @@ const MAX_ROTATION = 15;
 // How much drag distance maps to full rotation
 const DRAG_ROTATION_FACTOR = 0.06;
 
-export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRight, onSwipeLeft }: FlashcardProps) {
+export function Flashcard({ cards, title = "単語カード", onBack, onCardSwiped }: FlashcardProps) {
   const [deck, setDeck]         = useState<VocabCard[]>(cards);
   const [index, setIndex]       = useState(0);
   const [flipped, setFlipped]   = useState(false);
@@ -81,13 +82,9 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
 
   // Advance the deck after a fly-off
   const advance = useCallback((dir: "left" | "right") => {
-    const card = deck[index];
-
-    // Call the swipe callback if provided
-    if (dir === "right" && onSwipeRight) {
-      onSwipeRight(card, index);
-    } else if (dir === "left" && onSwipeLeft) {
-      onSwipeLeft(card, index);
+    const cardSwiped = current;
+    if (onCardSwiped && cardSwiped) {
+      onCardSwiped(cardSwiped, dir);
     }
 
     const next = dir === "right"
@@ -99,7 +96,7 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
     setIsFlying(null);
     setIsSnapping(false);
     setBounceKey((k) => k + 1);
-  }, [index, total, deck, onSwipeRight, onSwipeLeft]);
+  }, [index, total, current, onCardSwiped]);
 
   // Trigger a programmatic fly
   const triggerFly = useCallback((dir: "left" | "right") => {
@@ -232,12 +229,12 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
     setFlipped(false);
     setDragX(0);
     setTimeout(() => {
-      setDeck(shuffle(cards));
+      setDeck((currentDeck) => shuffle(currentDeck));
       setIndex(0);
       setShuffled(true);
       setBounceKey((k) => k + 1);
     }, 100);
-  }, [cards]);
+  }, []);
 
   const handleReset = useCallback(() => {
     setFlipped(false);
@@ -373,7 +370,8 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
               transition: getCardTransition(),
               cursor: isDragging ? "grabbing" : "grab",
               willChange: "transform",
-              touchAction: "none", // Let us handle touch ourselves
+              touchAction: "none",
+              perspective: "1000px",
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -390,16 +388,16 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
             aria-label={flipped ? "Tarjeta: traducción. Presiona para ver japonés." : "Tarjeta: japonés. Presiona para revelar."}
             aria-pressed={flipped}
           >
-            {/* 3D flip inner */}
+            {/* ---- FRONT FACE ---- */}
             <div
               className="absolute inset-0"
               style={{
-                transformStyle: "preserve-3d",
                 transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                transition: (isDragging || isFlying) ? "none" : "transform 520ms cubic-bezier(0.4, 0.2, 0.2, 1)",
+                transition: (isDragging || isFlying) ? "none" : "transform 400ms ease",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
               }}
             >
-              {/* ---- FRONT FACE ---- */}
               <CardFace
                 side="front"
                 tintColor={tintColor}
@@ -437,8 +435,18 @@ export function Flashcard({ cards, title = "単語カード", onBack, onSwipeRig
                   {current?.kana}
                 </p>
               </CardFace>
+            </div>
 
-              {/* ---- BACK FACE ---- */}
+            {/* ---- BACK FACE ---- */}
+            <div
+              className="absolute inset-0"
+              style={{
+                transform: flipped ? "rotateY(0deg)" : "rotateY(180deg)",
+                transition: (isDragging || isFlying) ? "none" : "transform 400ms ease",
+                backfaceVisibility: "hidden",
+                WebkitBackfaceVisibility: "hidden",
+              }}
+            >
               <CardFace
                 side="back"
                 tintColor={tintColor}
@@ -570,9 +578,6 @@ function CardFace({ side, tintColor, showIcon, swipeDir, iconOpacity, children }
     <div
       className="absolute inset-0 flex flex-col items-center justify-center px-8 py-10 overflow-hidden"
       style={{
-        backfaceVisibility: "hidden",
-        WebkitBackfaceVisibility: "hidden",
-        transform: isBack ? "rotateY(180deg)" : undefined,
         background: CARD_BG,
         border: CARD_BORDER,
         borderRadius: "24px",
@@ -593,8 +598,6 @@ function CardFace({ side, tintColor, showIcon, swipeDir, iconOpacity, children }
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          // The back face is mirrored in 3D, so compensate the icon
-          transform: isBack ? "scaleX(-1)" : undefined,
         }}
       >
         {showIcon && swipeDir === "right" && (

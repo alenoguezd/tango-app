@@ -1,29 +1,20 @@
 "use client";
 
-import { ProgresoScreen, type SetProgress } from "@/components/progreso-screen";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getSets, storedSetToProgress } from "@/lib/storage";
+import { ProgresoScreen } from "@/components/progreso-screen";
 
-export default function Page() {
+export default function ProgresoPage() {
   const router = useRouter();
-  const [sets, setSets] = useState<SetProgress[]>([]);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const storedSets = getSets();
-    const progressSets = storedSets.map(storedSetToProgress);
-    setSets(progressSets);
-  }, []);
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+    if (tab === "inicio") {
+      router.push("/");
+    } else if (tab === "crear") {
+      router.push("/");
+    } else if (tab === "progreso") {
+      // Already on progreso page
+    }
+  };
 
-  if (!mounted) return null;
-
-  return (
-    <ProgresoScreen
-      sets={sets}
-      onGoHome={() => router.push("/inicio")}
-      onGoCrear={() => router.push("/crear")}
-    />
-  );
+  return <ProgresoScreen onNavigate={handleNavigate} />;
 }

@@ -1,7 +1,9 @@
 "use client";
 
-import { Upload, ArrowRight, FolderOpen, Play } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Upload, ArrowRight, FolderOpen, Play, MoreVertical, Star } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
+import { AppSidebar } from "@/components/app-sidebar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -12,15 +14,15 @@ export interface DeckSet {
   lastStudied: string;
   cards: VocabCard[];
   color?: "blue" | "pink";
+  favorite?: boolean;
 }
 
 interface HomeScreenProps {
-  sets: DeckSet[];
+  sets?: DeckSet[];
   recent?: DeckSet | null;
-  onContinue: (set: DeckSet) => void;
+  onContinue?: (set: DeckSet) => void;
   onStudy: (set: DeckSet) => void;
-  onGoCrear?: () => void;
-  onGoProgreso?: () => void;
+  onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
 }
 
 // ── Design tokens — exact Figma values ────────────────────────────────────────
@@ -32,6 +34,7 @@ const FONT        = "var(--font-sans)";          // Roboto
 const TEXT_PRI    = "#111111";
 const TEXT_SEC    = "#555555";
 const TEXT_MUT    = "#9A9A9A";
+const TEXT_RED    = "#D0312D";
 
 // Accent (Continuar / Todos links)
 const LINK_BLUE   = "#1565C0";
@@ -66,163 +69,263 @@ const COL_GAP     = 12;          // px between columns
 const H_PAD       = 16;          // px page horizontal padding
 const SECTION_GAP = 24;          // px between sections
 
+// ── useWindowSize Hook ────────────────────────────────────────────────────────
+function useWindowSize() {
+  const [windowWidth, setWindowWidth] = useState<number>(1024);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return windowWidth;
+}
+
 // ── HomeScreen ────────────────────────────────────────────────────────────────
-export function HomeScreen({ sets, recent, onContinue, onStudy, onGoCrear, onGoProgreso }: HomeScreenProps) {
-  const recentItem = recent ?? sets[0] ?? null;
+export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavigate }: HomeScreenProps) {
+  const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
+  const [toast, setToast] = useState<string | null>(null);
 
-  return (
-    <div style={{
-      height: "100dvh",
-      width: "100%",
-      maxWidth: "375px",
-      margin: "0 auto",
-      background: BG_PAGE,
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
-    }}>
-      {/* Safe-area top spacer */}
-      <div aria-hidden style={{
-        flexShrink: 0,
-        height: "max(16px, env(safe-area-inset-top, 0px))",
-        background: BG_PAGE,
-      }} />
+  // Load sets from localStorage on mount
+  useEffect(() => {
+    const savedSets = localStorage.getItem("vocab_sets");
+    if (savedSets) {
+      try {
+        setLocalSets(JSON.parse(savedSets));
+      } catch (error) {
+        console.error("Error loading sets from localStorage:", error);
+        setLocalSets([]);
+      }
+    }
+  }, []);
 
-      {/* ── Scrollable body ── */}
-      <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
-        <div style={{ padding: `0 ${H_PAD}px` }}>
+  // Show toast notification
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 2000);
+  };
 
-          {/* ── Title ── */}
-          <h1 style={{
-            fontFamily: FONT,
-            fontSize: "36px",
-            fontWeight: 500,
-            color: "#1D1B20",
-            letterSpacing: "0",
-            lineHeight: "44px",
-            margin: `8px 0 ${SECTION_GAP}px`,
-          }}>
-            Explorar
-          </h1>
+  // Share set: copy link to clipboard
+  const handleShare = (setId: string) => {
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/estudiar/${setId}`;
+    navigator.clipboard.writeText(url);
+    showToast("¡Link copiado!");
+  };
 
-          {/* ── Upload banner ── */}
+  // Toggle favorite
+  const handleToggleFavorite = (setId: string) => {
+    setLocalSets((prev) => {
+      const updated = prev.map((set) =>
+        set.id === setId ? { ...set, favorite: !set.favorite } : set
+      );
+      localStorage.setItem("vocab_sets", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Delete set
+  const handleDeleteSet = (setId: string) => {
+    if (confirm("¿Eliminar este set? Esta acción no se puede deshacer")) {
+      setLocalSets((prev) => {
+        const updated = prev.filter((set) => set.id !== setId);
+        localStorage.setItem("vocab_sets", JSON.stringify(updated));
+        return updated;
+      });
+    }
+  };
+
+  // Sort sets: favorites first
+  const sortedSets = [...localSets].sort((a, b) => {
+    if (a.favorite && !b.favorite) return -1;
+    if (!a.favorite && b.favorite) return 1;
+    return 0;
+  });
+
+  // Get the most recently studied set, or most recently created if none studied
+  const recentItem = localSets.length > 0
+    ? localSets.reduce((prev, current) => {
+        const prevDate = new Date(prev.lastStudied || "");
+        const currentDate = new Date(current.lastStudied || "");
+        return currentDate > prevDate ? current : prev;
+      })
+    : null;
+  const windowWidth = useWindowSize();
+  const isMobile = windowWidth < 1024;
+
+  // Shared content component (reusable across layouts)
+  const ContentArea = () => (
+    <>
+      {/* ── Title ── */}
+      <h1 style={{
+        fontFamily: FONT,
+        fontSize: "36px",
+        fontWeight: 500,
+        color: "#1D1B20",
+        letterSpacing: "0",
+        lineHeight: "44px",
+        margin: `8px 0 ${SECTION_GAP}px`,
+      }}>
+        Inicio
+      </h1>
+
+      {/* ── Upload banner ── */}
+      <button
+        onClick={() => onNavigate("crear")}
+        style={{
+          background: BANNER_BG,
+          borderRadius: "14px",
+          padding: "18px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
+          marginBottom: `${SECTION_GAP}px`,
+          border: "none",
+          cursor: "pointer",
+          width: "100%",
+        }}
+      >
+        <p style={{
+          fontFamily: FONT,
+          fontSize: "15px",
+          fontWeight: 400,
+          color: TEXT_PRI,
+          lineHeight: 1.4,
+          flex: 1,
+          margin: 0,
+          textAlign: "left",
+        }}>
+          Sube una imagen para crear un set
+        </p>
+        <Upload
+          aria-hidden
+          style={{
+            flexShrink: 0,
+            width: "22px",
+            height: "22px",
+            color: TEXT_PRI,
+            strokeWidth: 1.8,
+          }}
+        />
+      </button>
+
+      {/* ── Recientes section ── */}
+      <h2 style={{
+        fontFamily: FONT,
+        fontSize: "20px",
+        fontWeight: 500,
+        color: "#1D1B20",
+        letterSpacing: "0",
+        lineHeight: "28px",
+        margin: `0 0 14px`,
+      }}>
+        Recientes
+      </h2>
+
+      {recentItem ? (
+        <button
+          onClick={() => onStudy(recentItem)}
+          style={{
+            display: "block",
+            width: "100%",
+            textAlign: "left",
+            background: W,
+            border: `1px solid ${CARD_BORDER}`,
+            borderRadius: "16px",
+            padding: "18px 18px 16px",
+            cursor: "pointer",
+            marginBottom: `${SECTION_GAP}px`,
+          }}
+        >
           <div style={{
-            background: BANNER_BG,
-            borderRadius: "14px",
-            padding: "18px 16px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "12px",
-            marginBottom: `${SECTION_GAP}px`,
+            marginBottom: "14px",
           }}>
-            <p style={{
+            <span style={{
               fontFamily: FONT,
-              fontSize: "15px",
-              fontWeight: 400,
-              color: TEXT_PRI,
-              lineHeight: 1.4,
-              flex: 1,
-              margin: 0,
+              fontSize: "20px",
+              fontWeight: 500,
+              color: "#1D1B20",
+              letterSpacing: "0",
+              lineHeight: "28px",
             }}>
-              Sube una imagen para crear un set
-            </p>
-            <Upload
-              aria-hidden
-              style={{
-                flexShrink: 0,
-                width: "22px",
-                height: "22px",
-                color: TEXT_PRI,
-                strokeWidth: 1.8,
-              }}
-            />
+              {recentItem.title}
+            </span>
+            <span style={{
+              fontFamily: FONT,
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#016D9E",
+              letterSpacing: "0.1px",
+              lineHeight: "20px",
+              display: "flex",
+              alignItems: "center",
+              gap: "2px",
+            }}>
+              Continuar
+              <ArrowRight style={{ width: "14px", height: "14px", strokeWidth: 2.5 }} />
+            </span>
           </div>
+          <p style={{
+            fontFamily: FONT,
+            fontSize: "13px",
+            color: TEXT_SEC,
+            margin: "0 0 10px",
+          }}>
+            {recentItem.cardCount} Tarjetas
+          </p>
+          <ProgressBar value={recentItem.progress} showDot />
+        </button>
+      ) : (
+        <div style={{
+          borderRadius: "16px",
+          border: `1.5px dashed ${CARD_BORDER}`,
+          color: TEXT_MUT,
+          fontFamily: FONT,
+          fontSize: "14px",
+          padding: "28px",
+          textAlign: "center",
+          marginBottom: `${SECTION_GAP}px`,
+        }}>
+          Sin actividad reciente
+        </div>
+      )}
 
-          {/* ── Recientes section ── */}
+      {/* ── Empty state ── */}
+      {localSets.length === 0 ? (
+        <div style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+          minHeight: "300px",
+          gap: "16px",
+        }}>
           <h2 style={{
             fontFamily: FONT,
             fontSize: "20px",
             fontWeight: 500,
-            color: "#1D1B20",
-            letterSpacing: "0",
-            lineHeight: "28px",
-            margin: `0 0 14px`,
+            color: TEXT_PRI,
+            margin: 0,
           }}>
-            Recientes
+            Aún no tienes sets
           </h2>
-
-          {recentItem ? (
-            <button
-              onClick={() => onContinue(recentItem)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                background: W,
-                border: `1px solid ${CARD_BORDER}`,
-                borderRadius: "16px",
-                padding: "18px 18px 16px",
-                cursor: "pointer",
-                marginBottom: `${SECTION_GAP}px`,
-              }}
-            >
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "14px",
-              }}>
-                <span style={{
-                  fontFamily: FONT,
-                  fontSize: "20px",
-                  fontWeight: 500,
-                  color: "#1D1B20",
-                  letterSpacing: "0",
-                  lineHeight: "28px",
-                }}>
-                  {recentItem.title}
-                </span>
-                <span style={{
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  color: "#016D9E",
-                  letterSpacing: "0.1px",
-                  lineHeight: "20px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "2px",
-                }}>
-                  Continuar
-                  <ArrowRight style={{ width: "14px", height: "14px", strokeWidth: 2.5 }} />
-                </span>
-              </div>
-              <p style={{
-                fontFamily: FONT,
-                fontSize: "13px",
-                color: TEXT_SEC,
-                margin: "0 0 10px",
-              }}>
-                {recentItem.cardCount} Tarjetas
-              </p>
-              <ProgressBar value={recentItem.progress} showDot />
-            </button>
-          ) : (
-            <div style={{
-              borderRadius: "16px",
-              border: `1.5px dashed ${CARD_BORDER}`,
-              color: TEXT_MUT,
-              fontFamily: FONT,
-              fontSize: "14px",
-              padding: "28px",
-              textAlign: "center",
-              marginBottom: `${SECTION_GAP}px`,
-            }}>
-              Sin actividad reciente
-            </div>
-          )}
-
+          <p style={{
+            fontFamily: FONT,
+            fontSize: "15px",
+            color: TEXT_SEC,
+            margin: 0,
+          }}>
+            Ve a Crear para subir tu primera foto
+          </p>
+        </div>
+      ) : (
+        <>
           {/* ── Sets header ── */}
           <div style={{
             display: "flex",
@@ -260,26 +363,57 @@ export function HomeScreen({ sets, recent, onContinue, onStudy, onGoCrear, onGoP
             </button>
           </div>
 
-          {/* ── Sets grid ──
+          {/* ── Sets grid ––
               paddingTop = TAB_H so the overflowing SVG tab has room */}
           <div style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             columnGap: `${COL_GAP}px`,
-            rowGap: `${ROW_GAP + TAB_H}px`,   // row gap + tab height so tabs don't overlap card below
+            rowGap: `${ROW_GAP + TAB_H}px`,
             paddingTop: `${TAB_H + 4}px`,
             paddingBottom: "24px",
           }}>
-            {sets.map((set, i) => (
+            {sortedSets.map((set, i) => (
               <SetCard
                 key={set.id}
                 set={set}
                 color={set.color ?? (i % 2 === 0 ? "blue" : "pink")}
                 onClick={() => onStudy(set)}
+                onShare={() => handleShare(set.id)}
+                onToggleFavorite={() => handleToggleFavorite(set.id)}
+                onDelete={() => handleDeleteSet(set.id)}
               />
             ))}
           </div>
+        </>
+      )}
+    </>
+  );
 
+  return (
+    <>
+      {/* ===== MOBILE LAYOUT (< 1024px) ===== */}
+      {isMobile && (
+      <div style={{
+        height: "100dvh",
+        maxWidth: "375px",
+        margin: "0 auto",
+        background: BG_PAGE,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}>
+      {/* Safe-area top spacer */}
+      <div aria-hidden style={{
+        flexShrink: 0,
+        height: "max(16px, env(safe-area-inset-top, 0px))",
+        background: BG_PAGE,
+      }} />
+
+      {/* ── Scrollable body ── */}
+      <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ padding: `0 ${H_PAD}px` }}>
+          <ContentArea />
         </div>
       </div>
 
@@ -298,9 +432,9 @@ export function HomeScreen({ sets, recent, onContinue, onStudy, onGoCrear, onGoP
           paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
         }}
       >
-        <NavItem label="Home"    active       icon={<SmileIcon />} onClick={() => {}} />
-        <NavItem label="Crear"   active={false} icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => onGoCrear?.()} />
-        <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onGoProgreso?.()} />
+        <NavItem label="Inicio"  active       icon={<SmileIcon />} onClick={() => {}} />
+        <NavItem label="Crear"   active={false} icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("crear")} />
+        <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
       </nav>
 
       {/* iOS home indicator */}
@@ -319,7 +453,71 @@ export function HomeScreen({ sets, recent, onContinue, onStudy, onGoCrear, onGoP
           background: "#111",
         }} />
       </div>
-    </div>
+      </div>
+      )}
+
+      {/* ===== DESKTOP LAYOUT (≥ 1024px) ===== */}
+      {!isMobile && (
+      <div style={{
+        height: "100dvh",
+        background: "#F7F6F3",
+        display: "flex",
+        flexDirection: "row",
+        overflow: "hidden",
+      }}>
+        <AppSidebar activeTab="inicio" onNavigate={onNavigate} />
+
+        {/* Main content area */}
+        <div style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          background: "#F7F6F3",
+        }}>
+          {/* Safe-area top spacer */}
+          <div aria-hidden style={{
+            flexShrink: 0,
+            height: "max(16px, env(safe-area-inset-top, 0px))",
+          }} />
+
+          {/* Scrollable content */}
+          <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+            <div style={{
+              maxWidth: "680px",
+              margin: "0 auto",
+              padding: `0 ${H_PAD}px`,
+              width: "100%",
+            }}>
+              <ContentArea />
+            </div>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: TEXT_PRI,
+            color: W,
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontFamily: FONT,
+            fontSize: "14px",
+            zIndex: 100,
+            animation: "fadeInOut 2s ease-in-out",
+          }}
+        >
+          {toast}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -328,13 +526,64 @@ function SetCard({
   set,
   color,
   onClick,
+  onShare,
+  onToggleFavorite,
+  onDelete,
 }: {
   set: DeckSet;
   color: "blue" | "pink";
   onClick: () => void;
+  onShare: () => void;
+  onToggleFavorite: () => void;
+  onDelete: () => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedName, setEditedName] = useState(set.title);
+  const windowWidth = useWindowSize();
+  const isMobile = windowWidth < 1024;
+  const showMenuButton = isMobile || isHovering;
+
   const cardBg = color === "blue" ? BLUE_CARD : PINK_CARD;
   const tabFill = color === "blue" ? BLUE_TAB  : PINK_TAB;
+
+  const handleMenuAction = (action: () => void) => {
+    action();
+    setMenuOpen(false);
+  };
+
+  const handleRename = () => {
+    setIsEditing(true);
+    setMenuOpen(false);
+  };
+
+  const saveName = () => {
+    if (editedName.trim()) {
+      // Update localStorage
+      const savedSets = localStorage.getItem("vocab_sets");
+      if (savedSets) {
+        const sets = JSON.parse(savedSets);
+        const updatedSets = sets.map((s: any) =>
+          s.id === set.id ? { ...s, title: editedName.trim() } : s
+        );
+        localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
+      }
+      set.title = editedName.trim();
+    } else {
+      setEditedName(set.title);
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      saveName();
+    } else if (e.key === "Escape") {
+      setEditedName(set.title);
+      setIsEditing(false);
+    }
+  };
 
   return (
     <div style={{ position: "relative" }}>
@@ -375,30 +624,56 @@ function SetCard({
           />
         </svg>
         {/* Tab label — vertically centered within the tab shape height */}
-        <span style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: `${TAB_H}px`,
-          display: "flex",
-          alignItems: "center",
-          paddingLeft: "10px",
-          fontFamily: FONT,
-          fontSize: "11px",
-          fontWeight: 500,
-          color: TEXT_SEC,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}>
-          {set.title}
-        </span>
+        {isEditing ? (
+          <input
+            autoFocus
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={handleKeyDown}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: `${TAB_H}px`,
+              paddingLeft: "10px",
+              paddingRight: "10px",
+              fontFamily: FONT,
+              fontSize: "11px",
+              fontWeight: 500,
+              border: "none",
+              background: "transparent",
+              color: TEXT_SEC,
+            }}
+          />
+        ) : (
+          <span style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: `${TAB_H}px`,
+            display: "flex",
+            alignItems: "center",
+            paddingLeft: "10px",
+            fontFamily: FONT,
+            fontSize: "11px",
+            fontWeight: 500,
+            color: TEXT_SEC,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}>
+            {set.title}
+          </span>
+        )}
       </div>
 
       {/* Card body — top-left corner is flat (0) where tab connects */}
-      <button
-        onClick={onClick}
+      <div
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
         style={{
           display: "flex",
           flexDirection: "column",
@@ -407,34 +682,191 @@ function SetCard({
           height: `${CARD_H}px`,
           textAlign: "left",
           background: cardBg,
-          border: "none",
           borderRadius: `0 ${CARD_RADIUS}px ${CARD_RADIUS}px ${CARD_RADIUS}px`,
           padding: `16px ${CARD_PAD_X}px 14px`,
-          cursor: "pointer",
+          position: "relative",
         }}
-        aria-label={`Estudiar ${set.title}`}
       >
-        <span style={{
-          fontFamily: FONT,
-          fontSize: "42px",
-          fontWeight: 700,
-          color: TEXT_PRI,
-          lineHeight: 1,
-          display: "block",
-        }}>
-          {set.cardCount}
-        </span>
-        <span style={{
-          fontFamily: FONT,
-          fontSize: "14px",
-          fontWeight: 400,
-          color: TEXT_SEC,
-          display: "block",
-          marginTop: "4px",
-        }}>
-          Tarjetas
-        </span>
-      </button>
+        {/* Menu button — only visible on hover (desktop) or always on mobile */}
+        {showMenuButton && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(!menuOpen);
+          }}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            width: "32px",
+            height: "32px",
+            padding: "0",
+            background: "rgba(255,255,255,0.6)",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: TEXT_PRI,
+          }}
+          aria-label="Más opciones"
+        >
+          <MoreVertical style={{ width: "18px", height: "18px" }} />
+        </button>
+        )}
+
+        {/* Dropdown menu */}
+        {menuOpen && (
+          <>
+            {/* Backdrop to close menu */}
+            <div
+              onClick={() => setMenuOpen(false)}
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                zIndex: 10,
+              }}
+            />
+            {/* Menu items */}
+            <div
+              style={{
+                position: "absolute",
+                top: "40px",
+                right: "0",
+                background: W,
+                border: `1px solid ${CARD_BORDER}`,
+                borderRadius: "8px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                zIndex: 20,
+                minWidth: "140px",
+                overflow: "hidden",
+              }}
+            >
+              <button
+                onClick={() => handleMenuAction(onShare)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  color: TEXT_PRI,
+                  borderBottom: `1px solid ${CARD_BORDER}`,
+                }}
+              >
+                Compartir
+              </button>
+              <button
+                onClick={() => handleMenuAction(handleRename)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  color: TEXT_PRI,
+                  borderBottom: `1px solid ${CARD_BORDER}`,
+                }}
+              >
+                Renombrar
+              </button>
+              <button
+                onClick={() => handleMenuAction(onToggleFavorite)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  color: TEXT_PRI,
+                  borderBottom: `1px solid ${CARD_BORDER}`,
+                }}
+              >
+                Favorito
+              </button>
+              <button
+                onClick={() => handleMenuAction(onDelete)}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  color: TEXT_RED,
+                }}
+              >
+                Eliminar
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Card content */}
+        <button
+          onClick={onClick}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "0",
+            font: "inherit",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+            <div>
+              <span style={{
+                fontFamily: FONT,
+                fontSize: "42px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                lineHeight: 1,
+                display: "block",
+              }}>
+                {set.cardCount}
+              </span>
+              <span style={{
+                fontFamily: FONT,
+                fontSize: "14px",
+                fontWeight: 400,
+                color: TEXT_SEC,
+                display: "block",
+                marginTop: "4px",
+              }}>
+                Tarjetas
+              </span>
+            </div>
+            {set.favorite && (
+              <Star
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  fill: "#FFD700",
+                  color: "#FFD700",
+                  marginBottom: "4px",
+                }}
+              />
+            )}
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

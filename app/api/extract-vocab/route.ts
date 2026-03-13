@@ -7,9 +7,15 @@ const client = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { image, mediaType } = await request.json();
+    const body = await request.json();
+    const { image, mediaType } = body;
+
+    console.log("📥 API request received");
+    console.log("Image data length:", image?.length);
+    console.log("Media type:", mediaType);
 
     if (!image) {
+      console.error("❌ No image data provided");
       return NextResponse.json(
         { error: "Image data is required" },
         { status: 400 }
@@ -35,7 +41,15 @@ export async function POST(request: NextRequest) {
       model: "claude-haiku-4-5-20251001",
       max_tokens: 2048,
       system:
-        "You are a vocabulary extractor. Analyze this Japanese language textbook image and extract all vocabulary as a JSON array with fields: kana, kanji, spanish, example_usage. Return ONLY valid JSON, no markdown.",
+        `You are a Japanese vocabulary extractor. Analyze this textbook image and extract each vocabulary item as a SEPARATE object in the JSON array. Each card must contain EXACTLY ONE word or phrase. Never combine multiple words into a single card.
+
+Return ONLY a valid JSON array with no markdown, no extra text.
+
+Each object must have these exact fields:
+- kana: the hiragana or katakana reading
+- kanji: the kanji or katakana spelling
+- spanish: the Spanish translation of THIS word only
+- example_usage: a short example sentence using this word`,
       messages: [
         {
           role: "user",
@@ -86,7 +100,11 @@ export async function POST(request: NextRequest) {
 
     const vocabulary = JSON.parse(rawText);
 
-    return NextResponse.json({ vocabulary });
+    // Ensure we're returning an array of cards
+    const cards = Array.isArray(vocabulary) ? vocabulary : (vocabulary.cards || []);
+
+    console.log(`✅ Returning ${cards.length} cards`);
+    return NextResponse.json({ cards });
   } catch (error) {
     console.error("Error processing image:", error);
 

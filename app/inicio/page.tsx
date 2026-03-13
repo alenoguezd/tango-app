@@ -1,34 +1,31 @@
 "use client";
 
-import { HomeScreen, type DeckSet } from "@/components/home-screen";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getSets, storedSetToDeckSet } from "@/lib/storage";
+import { HomeScreen } from "@/components/home-screen";
+import type { DeckSet } from "@/components/home-screen";
 
-export default function Page() {
+export default function InicioPage() {
   const router = useRouter();
-  const [sets, setSets] = useState<DeckSet[]>([]);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-    const storedSets = getSets();
-    const deckSets = storedSets.map(storedSetToDeckSet);
-    setSets(deckSets);
-  }, []);
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+    if (tab === "progreso") {
+      router.push("/progreso");
+    } else {
+      router.push("/");
+    }
+  };
 
-  if (!mounted) return null;
-
-  const recent = sets.length > 0 ? sets[0] : null;
+  const handleStudy = (set: DeckSet) => {
+    router.push(`/estudiar/${set.id}`);
+  };
 
   return (
     <HomeScreen
-      sets={sets}
-      recent={recent}
-      onContinue={(set: DeckSet) => router.push(`/estudiar/${set.id}`)}
-      onStudy={(set: DeckSet) => router.push(`/estudiar/${set.id}`)}
-      onGoCrear={() => router.push("/crear")}
-      onGoProgreso={() => router.push("/progreso")}
+      sets={[]}
+      recent={null}
+      onContinue={() => {}}
+      onStudy={handleStudy}
+      onNavigate={handleNavigate}
     />
   );
 }
