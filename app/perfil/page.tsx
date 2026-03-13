@@ -396,6 +396,28 @@ export default function PerfilPage() {
               Cuenta
             </h2>
 
+            {/* Email */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "16px",
+                background: "#F7F6F3",
+                borderRadius: "12px",
+                marginBottom: "12px",
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUT }}>
+                  Correo electrónico
+                </span>
+                <span style={{ fontFamily: FONT, fontSize: "14px", color: TEXT_PRI, fontWeight: 500 }}>
+                  {email}
+                </span>
+              </div>
+            </div>
+
             {/* Change password */}
             <div
               style={{
@@ -618,20 +640,7 @@ export default function PerfilPage() {
               <ArrowRight size={18} color={TEXT_MUT} />
             </div>
 
-            {/* Danger zone */}
-            <h2
-              style={{
-                fontFamily: FONT,
-                fontSize: "15px",
-                fontWeight: 600,
-                color: TEXT_RED,
-                margin: "0 0 12px",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Zona peligrosa
-            </h2>
+            {/* Delete account */}
             <div
               style={{
                 display: "flex",
@@ -667,10 +676,10 @@ export default function PerfilPage() {
             paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
           }}
         >
-          <NavItem label="Inicio" active={false} icon="😊" onClick={() => handleNavigate("inicio")} />
-          <NavItem label="Crear" active={false} icon="📁" onClick={() => handleNavigate("crear")} />
-          <NavItem label="Progreso" active={false} icon="▶" onClick={() => handleNavigate("progreso")} />
-          <NavItem label="Perfil" active icon="👤" onClick={() => {}} />
+          <NavItem label="Inicio" active={false} icon={<SmileIcon />} onClick={() => handleNavigate("inicio")} />
+          <NavItem label="Crear" active={false} icon={<FolderOpenIcon />} onClick={() => handleNavigate("crear")} />
+          <NavItem label="Progreso" active={false} icon={<PlayIcon />} onClick={() => handleNavigate("progreso")} />
+          <NavItem label="Perfil" active icon={<PersonIcon />} onClick={() => {}} />
         </nav>
 
         {/* iOS home indicator */}
@@ -888,6 +897,26 @@ export default function PerfilPage() {
             </h2>
 
             <div style={{ background: "#FFFFFF", borderRadius: "12px", border: `1px solid ${DIVIDER}`, marginBottom: "24px", overflow: "hidden" }}>
+              {/* Email */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px",
+                  borderBottom: `1px solid ${DIVIDER}`,
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <span style={{ fontFamily: FONT, fontSize: "12px", color: TEXT_MUT }}>
+                    Correo electrónico
+                  </span>
+                  <span style={{ fontFamily: FONT, fontSize: "15px", color: TEXT_PRI, fontWeight: 500 }}>
+                    {email}
+                  </span>
+                </div>
+              </div>
+
               {/* Change password */}
               <div
                 style={{
@@ -1099,20 +1128,7 @@ export default function PerfilPage() {
               </div>
             </div>
 
-            {/* Danger zone */}
-            <h2
-              style={{
-                fontFamily: FONT,
-                fontSize: "15px",
-                fontWeight: 600,
-                color: TEXT_RED,
-                margin: "0 0 16px",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
-              Zona peligrosa
-            </h2>
+            {/* Delete account */}
             <div
               style={{
                 display: "flex",
@@ -1146,7 +1162,7 @@ function NavItem({
   onClick,
 }: {
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   active: boolean;
   onClick: () => void;
 }) {
@@ -1188,5 +1204,45 @@ function NavItem({
       </div>
       <span>{label}</span>
     </button>
+  );
+}
+
+function SmileIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="2" y="2" width="20" height="20" rx="6"
+        stroke="currentColor" strokeWidth="1.9" />
+      <circle cx="8.5" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
+      <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FolderOpenIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M3 6h7.5L13 3h8a2 2 0 012 2v12a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2z"
+        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <polygon points="5 3 19 12 5 21 5 3"
+        stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
