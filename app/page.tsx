@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { SplashScreen } from "@/components/splash-screen";
 import { HomeScreen } from "@/components/home-screen";
 import { CrearScreen } from "@/components/crear-screen";
+import { createClient } from "@/lib/supabase";
 import type { DeckSet } from "@/components/home-screen";
 
 export default function Home() {
   const router = useRouter();
+  const supabase = createClient();
   const [showSplash, setShowSplash] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<"inicio" | "crear" | "progreso">("inicio");
   const [mounted, setMounted] = useState(false);
@@ -22,9 +24,23 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  const handleSplashStart = () => {
-    localStorage.setItem("hasSeenSplash", "true");
-    setShowSplash(false);
+  const handleSplashStart = async () => {
+    try {
+      // Check if user is logged in
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // User is logged in, go to inicio
+        localStorage.setItem("hasSeenSplash", "true");
+        setShowSplash(false);
+      } else {
+        // User not logged in, go to login
+        router.push("/login");
+      }
+    } catch (error) {
+      // If error checking auth, go to login
+      router.push("/login");
+    }
   };
 
   const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {

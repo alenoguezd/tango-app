@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Upload, ArrowRight, FolderOpen, Play, MoreVertical, Star } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
+import { createClient } from "@/lib/supabase";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -23,6 +24,7 @@ interface HomeScreenProps {
   onContinue?: (set: DeckSet) => void;
   onStudy: (set: DeckSet) => void;
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
+  onLogout?: () => void;
 }
 
 // ── Design tokens — exact Figma values ────────────────────────────────────────
@@ -84,7 +86,7 @@ function useWindowSize() {
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────
-export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavigate }: HomeScreenProps) {
+export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
   const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -108,8 +110,26 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   };
 
   // Share set: copy link to clipboard
-  const handleShare = (setId: string) => {
-    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/estudiar/${setId}`;
+  const handleShare = async (setId: string) => {
+    const supabase = createClient();
+
+    // Try to set is_public in Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        await supabase
+          .from("sets")
+          .update({ is_public: true })
+          .eq("id", setId)
+          .eq("user_id", user.id);
+      }
+    } catch (err) {
+      console.log("Could not set public status in Supabase");
+    }
+
+    // Copy public study link
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${setId}`;
     navigator.clipboard.writeText(url);
     showToast("¡Link copiado!");
   };
@@ -465,7 +485,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         flexDirection: "row",
         overflow: "hidden",
       }}>
-        <AppSidebar activeTab="inicio" onNavigate={onNavigate} />
+        <AppSidebar activeTab="inicio" onNavigate={onNavigate} onLogout={onLogout} />
 
         {/* Main content area */}
         <div style={{

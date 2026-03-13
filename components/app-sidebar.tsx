@@ -5,9 +5,10 @@ import { FolderOpen, Play } from "lucide-react";
 interface AppSidebarProps {
   activeTab: "inicio" | "crear" | "progreso";
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
+  onLogout?: () => void;
 }
 
-export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
+export function AppSidebar({ activeTab, onNavigate, onLogout }: AppSidebarProps) {
   return (
     <div style={{
       width: "220px",
@@ -34,7 +35,7 @@ export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
       </h1>
 
       {/* Navigation */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
         <SidebarNavItem
           label="Inicio"
           icon={<SmileIcon />}
@@ -54,6 +55,29 @@ export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
           onClick={() => onNavigate("progreso")}
         />
       </nav>
+
+      {/* Logout button */}
+      {onLogout && (
+        <button
+          onClick={onLogout}
+          style={{
+            padding: "12px 14px",
+            borderRadius: "10px",
+            background: "#F0F0F0",
+            border: "none",
+            cursor: "pointer",
+            width: "100%",
+            fontFamily: "var(--font-sans)",
+            fontSize: "15px",
+            fontWeight: 500,
+            color: "#D0312D",
+            transition: "background 0.15s ease",
+            marginTop: "auto",
+          }}
+        >
+          Cerrar sesión
+        </button>
+      )}
     </div>
   );
 }

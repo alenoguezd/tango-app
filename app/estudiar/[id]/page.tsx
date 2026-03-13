@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Flashcard, type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
+import { createClient } from "@/lib/supabase";
 
 interface StudySet {
   id: string;
@@ -38,6 +39,7 @@ function migrateCards(cards: VocabCard[]): VocabCard[] {
 export default function EstudiarPage() {
   const params = useParams();
   const router = useRouter();
+  const supabase = createClient();
   const setId = params.id as string;
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -46,6 +48,25 @@ export default function EstudiarPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    checkAuthAndLoadSet();
+  }, [setId]);
+
+  const checkAuthAndLoadSet = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      loadSetData();
+    } catch (error) {
+      router.push("/login");
+    }
+  };
+
+  const loadSetData = () => {
     // Load set from localStorage and migrate if needed
     const savedSets = localStorage.getItem("vocab_sets");
     if (savedSets) {
@@ -68,9 +89,9 @@ export default function EstudiarPage() {
       }
     }
     setLoading(false);
-  }, [setId]);
+  };
 
-  const handleCardSwiped = (card: VocabCard, direction: "left" | "right") => {
+  const handleCardSwiped = async (card: VocabCard, direction: "left" | "right") => {
     // Save progress to localStorage using card.id
     const savedSets = localStorage.getItem("vocab_sets");
     if (savedSets && set) {
@@ -103,6 +124,25 @@ export default function EstudiarPage() {
           }
 
           localStorage.setItem("vocab_sets", JSON.stringify(sets));
+
+          // Try to save to Supabase
+          try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+              await supabase
+                .from("sets")
+                .update({
+                  cards: sets[setIndex].cards,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", set.id)
+                .eq("user_id", user.id);
+            }
+          } catch (err) {
+            console.log("Supabase progress save failed, using localStorage fallback");
+          }
         }
       } catch (error) {
         console.error("Error saving progress:", error);

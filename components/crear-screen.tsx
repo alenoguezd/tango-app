@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Check, FolderOpen, Play, ImagePlus } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
+import { createClient } from "@/lib/supabase";
 
 // ── Design tokens ─────────────────────────────────────────────────────────
 const FONT        = "var(--font-sans)";
@@ -120,9 +121,29 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             cards: cardsWithIds,
           };
 
+          // Save to localStorage
           const sets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
           sets.push(newSet);
           localStorage.setItem("vocab_sets", JSON.stringify(sets));
+
+          // Try to save to Supabase
+          try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+              await supabase.from("sets").insert({
+                id: id,
+                user_id: user.id,
+                title: finalName,
+                card_count: cards.length,
+                cards: cardsWithIds,
+                is_public: false,
+              });
+            }
+          } catch (err) {
+            console.log("Supabase save failed, using localStorage fallback");
+          }
 
           setCreatedCount(cards.length);
           setCreatedId(id);
