@@ -3,12 +3,11 @@
 import { FolderOpen, Play } from "lucide-react";
 
 interface AppSidebarProps {
-  activeTab: "inicio" | "crear" | "progreso";
-  onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
-  onLogout?: () => void;
+  activeTab: "inicio" | "crear" | "progreso" | "perfil";
+  onNavigate: (tab: "inicio" | "crear" | "progreso" | "perfil") => void;
 }
 
-export function AppSidebar({ activeTab, onNavigate, onLogout }: AppSidebarProps) {
+export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
   return (
     <div style={{
       width: "220px",
@@ -54,30 +53,13 @@ export function AppSidebar({ activeTab, onNavigate, onLogout }: AppSidebarProps)
           active={activeTab === "progreso"}
           onClick={() => onNavigate("progreso")}
         />
+        <SidebarNavItem
+          label="Perfil"
+          icon={<PersonIcon />}
+          active={activeTab === "perfil"}
+          onClick={() => onNavigate("perfil")}
+        />
       </nav>
-
-      {/* Logout button */}
-      {onLogout && (
-        <button
-          onClick={onLogout}
-          style={{
-            padding: "12px 14px",
-            borderRadius: "10px",
-            background: "#F0F0F0",
-            border: "none",
-            cursor: "pointer",
-            width: "100%",
-            fontFamily: "var(--font-sans)",
-            fontSize: "15px",
-            fontWeight: 500,
-            color: "#D0312D",
-            transition: "background 0.15s ease",
-            marginTop: "auto",
-          }}
-        >
-          Cerrar sesión
-        </button>
-      )}
     </div>
   );
 }
@@ -130,6 +112,15 @@ function SmileIcon() {
       <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
       <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

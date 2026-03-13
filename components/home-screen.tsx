@@ -109,20 +109,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     setTimeout(() => setToast(null), 2000);
   };
 
-  // Handle logout
-  const handleLogoutClick = async () => {
-    if (confirm("¿Estás seguro de que quieres cerrar sesión?")) {
-      try {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        localStorage.clear();
-        window.location.href = "/";
-      } catch (error) {
-        console.error("Logout error:", error);
-        showToast("Error al cerrar sesión");
-      }
-    }
-  };
 
   // Share set: copy link to clipboard
   const handleShare = async (setId: string) => {
@@ -518,44 +504,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         <NavItem label="Inicio"  active       icon={<SmileIcon />} onClick={() => {}} />
         <NavItem label="Crear"   active={false} icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("crear")} />
         <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
-        <button
-          onClick={handleLogoutClick}
-          style={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "3px",
-            minHeight: "48px",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 0,
-            fontFamily: FONT,
-            fontSize: "11px",
-            fontWeight: 400,
-            color: TEXT_RED,
-          }}
-          aria-label="Cerrar sesión"
-        >
-          <div style={{
-            width: "44px",
-            height: "32px",
-            borderRadius: "16px",
-            background: "transparent",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: TEXT_RED,
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </div>
-          <span>Salir</span>
-        </button>
+        <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
       </nav>
 
       {/* iOS home indicator */}
@@ -1180,6 +1129,15 @@ function SmileIcon() {
       <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
       <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }

@@ -32,9 +32,11 @@ export default function CrearPage() {
     }
   };
 
-  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso" | "perfil") => {
     if (tab === "progreso") {
       router.push("/progreso");
+    } else if (tab === "perfil") {
+      router.push("/perfil");
     } else {
       router.push("/inicio");
     }

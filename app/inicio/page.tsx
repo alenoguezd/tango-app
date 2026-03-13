@@ -65,25 +65,18 @@ export default function InicioPage() {
     }
   };
 
-  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso" | "perfil") => {
     if (tab === "progreso") {
       router.push("/progreso");
     } else if (tab === "crear") {
       router.push("/crear");
+    } else if (tab === "perfil") {
+      router.push("/perfil");
     }
   };
 
   const handleStudy = (set: DeckSet) => {
     router.push(`/estudiar/${set.id}`);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-      router.push("/");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
   };
 
   if (loading) {
@@ -109,7 +102,6 @@ export default function InicioPage() {
       onContinue={() => {}}
       onStudy={handleStudy}
       onNavigate={handleNavigate}
-      onLogout={handleLogout}
     />
   );
 }

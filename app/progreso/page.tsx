@@ -32,11 +32,13 @@ export default function ProgresoPage() {
     }
   };
 
-  const handleNavigate = (tab: "inicio" | "crear" | "progreso") => {
+  const handleNavigate = (tab: "inicio" | "crear" | "progreso" | "perfil") => {
     if (tab === "inicio") {
       router.push("/inicio");
     } else if (tab === "crear") {
       router.push("/crear");
+    } else if (tab === "perfil") {
+      router.push("/perfil");
     } else if (tab === "progreso") {
       // Already on progreso page
     }
