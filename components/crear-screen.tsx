@@ -201,7 +201,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       background: BG_PAGE,
       display: "flex",
       flexDirection: "column",
-      overflow: "hidden",
       position: "relative",
     }}>
       {/* Safe-area top spacer */}
@@ -523,7 +522,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       background: "#F7F6F3",
       display: "flex",
       flexDirection: "row",
-      overflow: "hidden",
     }}>
       <AppSidebar activeTab="crear" onNavigate={onNavigate} />
 
@@ -532,7 +530,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
         background: "#F7F6F3",
       }}>
         <div aria-hidden style={{

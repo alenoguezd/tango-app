@@ -470,7 +470,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         background: BG_PAGE,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
       }}>
       {/* Safe-area top spacer */}
       <div aria-hidden style={{
@@ -533,7 +532,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         background: "#F7F6F3",
         display: "flex",
         flexDirection: "row",
-        overflow: "hidden",
       }}>
         <AppSidebar activeTab="inicio" onNavigate={onNavigate} onLogout={onLogout} />
 
@@ -542,7 +540,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
           background: "#F7F6F3",
         }}>
           {/* Safe-area top spacer */}

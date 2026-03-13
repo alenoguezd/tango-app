@@ -229,7 +229,6 @@ export default function PerfilPage() {
           background: "#FFFFFF",
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
         }}
       >
         {/* Safe-area top spacer */}
@@ -327,7 +326,6 @@ export default function PerfilPage() {
                 fontWeight: 600,
                 color: TEXT_PRI,
                 margin: "0 0 12px",
-                textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
             >
@@ -389,7 +387,6 @@ export default function PerfilPage() {
                 fontWeight: 600,
                 color: TEXT_PRI,
                 margin: "0 0 12px",
-                textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
             >
@@ -708,7 +705,6 @@ export default function PerfilPage() {
         background: "#F7F6F3",
         display: "flex",
         flexDirection: "row",
-        overflow: "hidden",
       }}
     >
       <AppSidebar activeTab="perfil" onNavigate={handleNavigate} />
@@ -719,7 +715,6 @@ export default function PerfilPage() {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
           background: "#F7F6F3",
         }}
       >
@@ -826,7 +821,6 @@ export default function PerfilPage() {
                 fontWeight: 600,
                 color: TEXT_PRI,
                 margin: "0 0 16px",
-                textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
             >
@@ -889,7 +883,6 @@ export default function PerfilPage() {
                 fontWeight: 600,
                 color: TEXT_PRI,
                 margin: "0 0 16px",
-                textTransform: "uppercase",
                 letterSpacing: "0.5px",
               }}
             >

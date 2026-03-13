@@ -267,7 +267,6 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             background: BG_PAGE,
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden",
           }}
         >
           {/* Safe-area top spacer */}
@@ -360,7 +359,6 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             background: "#F7F6F3",
             display: "flex",
             flexDirection: "row",
-            overflow: "hidden",
           }}
         >
           <AppSidebar activeTab="progreso" onNavigate={onNavigate} />
@@ -371,7 +369,6 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden",
               background: "#F7F6F3",
             }}
           >
