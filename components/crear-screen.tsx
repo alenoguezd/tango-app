@@ -408,6 +408,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         <NavItem label="Inicio" active={false} icon={<SmileIcon />} onClick={() => onNavigate("inicio")} />
         <NavItem label="Crear" active icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => {}} />
         <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
+        <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
       </nav>
 
       {/* iOS home indicator */}
@@ -863,6 +864,15 @@ function SmileIcon() {
       <circle cx="8.5" cy="10" r="1.25" fill="currentColor" />
       <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
       <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
