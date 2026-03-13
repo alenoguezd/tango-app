@@ -281,7 +281,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
           />
 
           {/* ── Scrollable body ── */}
-          <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+          <div className="scroll-area" style={{ flex: 1, minHeight: 0, paddingBottom: "80px" }}>
             <div style={{ padding: `0 ${H_PAD}px` }}>
               <ContentArea />
             </div>

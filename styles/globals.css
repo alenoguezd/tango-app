@@ -123,3 +123,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Scrollable content area */
+.scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}

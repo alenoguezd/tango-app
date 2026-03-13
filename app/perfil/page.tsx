@@ -236,7 +236,7 @@ export default function PerfilPage() {
         <div aria-hidden style={{ flexShrink: 0, height: "max(16px, env(safe-area-inset-top, 0px))" }} />
 
         {/* Scrollable body */}
-        <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+        <div className="scroll-area" style={{ flex: 1, minHeight: 0, paddingBottom: "80px" }}>
           <div style={{ padding: "0 16px" }}>
             {/* Title */}
             <h1
