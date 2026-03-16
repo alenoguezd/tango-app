@@ -58,6 +58,10 @@ export default function InicioPage() {
 
       console.log("[Inicio] Sets mapped to state:", supabaseSets);
       setSets(supabaseSets);
+
+      // Save to localStorage so they're available offline and in other tabs
+      localStorage.setItem("vocab_sets", JSON.stringify(supabaseSets));
+      console.log("[Inicio] Sets saved to localStorage for offline access");
     } catch (error) {
       console.error("[Inicio] Error loading sets:", error);
     } finally {

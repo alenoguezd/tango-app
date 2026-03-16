@@ -235,7 +235,13 @@ export default function PerfilPage() {
         <div aria-hidden style={{ flexShrink: 0, height: "max(16px, env(safe-area-inset-top, 0px))" }} />
 
         {/* Scrollable body */}
-        <div className="scroll-area" style={{ flex: 1, minHeight: 0, paddingBottom: "80px" }}>
+        <div style={{
+          flex: 1,
+          overflowY: 'scroll',
+          WebkitOverflowScrolling: 'touch',
+          height: '0',
+          paddingBottom: "100px"
+        }}>
           <div style={{ padding: "0 16px" }}>
             {/* Title */}
             <h1
@@ -722,7 +728,13 @@ export default function PerfilPage() {
         <div aria-hidden style={{ flexShrink: 0, height: "max(16px, env(safe-area-inset-top, 0px))" }} />
 
         {/* Scrollable content */}
-        <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{
+          flex: 1,
+          overflowY: 'scroll',
+          WebkitOverflowScrolling: 'touch',
+          height: '100vh',
+          paddingBottom: "40px"
+        }}>
           <div
             style={{
               maxWidth: "680px",

@@ -210,7 +210,13 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       }} />
 
       {/* Scrollable body */}
-      <div className="scroll-area" style={{ flex: 1, minHeight: 0, paddingBottom: "80px" }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'scroll',
+        WebkitOverflowScrolling: 'touch',
+        height: '0',
+        paddingBottom: "100px"
+      }}>
         <div style={{ padding: `0 ${H_PAD}px` }}>
           <h1 style={{
             fontFamily: FONT,
@@ -537,7 +543,13 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           height: "max(16px, env(safe-area-inset-top, 0px))",
         }} />
 
-        <div className="scroll-area" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{
+          flex: 1,
+          overflowY: 'scroll',
+          WebkitOverflowScrolling: 'touch',
+          height: '100vh',
+          paddingBottom: "40px"
+        }}>
           <div style={{
             maxWidth: "680px",
             margin: "0 auto",
