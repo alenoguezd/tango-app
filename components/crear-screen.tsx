@@ -113,7 +113,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             ...card,
           }));
 
-          // Save to localStorage
+          // Create new set with all required properties
           const newSet: DeckSet = {
             id,
             title: finalName,
@@ -121,13 +121,23 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             progress: 0,
             lastStudied: new Date().toISOString(),
             cards: cardsWithIds,
+            favorite: false,  // New sets default to not favorite
           };
 
-          // Save to localStorage
-          const sets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
-          sets.push(newSet);
-          localStorage.setItem("vocab_sets", JSON.stringify(sets));
-          console.log("[Crear] Set saved to localStorage with ID:", id);
+          // Save to localStorage immediately so HomeScreen/Progreso see it
+          try {
+            const existingSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
+            const updatedSets = [...existingSets, newSet];
+            localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
+            console.log("[Crear] Set saved to localStorage:", {
+              setId: id,
+              setTitle: finalName,
+              totalSets: updatedSets.length,
+              localStorageSize: JSON.stringify(updatedSets).length + " bytes"
+            });
+          } catch (err) {
+            console.error("[Crear] Failed to save to localStorage:", err);
+          }
 
           // Try to save to Supabase
           try {

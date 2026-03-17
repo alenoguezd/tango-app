@@ -56,12 +56,32 @@ export default function InicioPage() {
         favorite: set.is_favorite || false,
       }));
 
-      console.log("[Inicio] Sets mapped to state:", supabaseSets);
+      console.log("[Inicio] Sets mapped from Supabase:", supabaseSets);
       setSets(supabaseSets);
 
-      // Save to localStorage so they're available offline and in other tabs
-      localStorage.setItem("vocab_sets", JSON.stringify(supabaseSets));
-      console.log("[Inicio] Sets saved to localStorage for offline access");
+      // Merge with localStorage to preserve any newly created sets not yet in Supabase
+      try {
+        const localSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
+
+        // Find sets that are in localStorage but not in Supabase (newly created)
+        const newLocalSets = localSets.filter((localSet: any) =>
+          !supabaseSets.some((remoteSet) => remoteSet.id === localSet.id)
+        );
+
+        // Merge: Supabase sets (source of truth) + local-only sets (not yet synced)
+        const mergedSets = [...supabaseSets, ...newLocalSets];
+
+        localStorage.setItem("vocab_sets", JSON.stringify(mergedSets));
+        console.log("[Inicio] Sets merged with localStorage:", {
+          fromSupabase: supabaseSets.length,
+          newLocalSets: newLocalSets.length,
+          total: mergedSets.length
+        });
+      } catch (err) {
+        console.error("[Inicio] Failed to merge with localStorage:", err);
+        // Fallback: just save Supabase sets
+        localStorage.setItem("vocab_sets", JSON.stringify(supabaseSets));
+      }
     } catch (error) {
       console.error("[Inicio] Error loading sets:", error);
     } finally {
