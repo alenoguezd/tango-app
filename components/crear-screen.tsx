@@ -2,24 +2,23 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Check, FolderOpen, Play, ImagePlus } from "lucide-react";
+import { Check, FolderOpen, Play, ChevronLeft, Edit2, Plus } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
 
 // ── Design tokens ─────────────────────────────────────────────────────────
-const FONT        = "var(--font-sans)";
-const BG_PAGE     = tokens.color.page;
-const TEXT_PRI    = tokens.color.ink;
-const TEXT_SEC    = tokens.color.muted;
-const TEXT_MUT    = tokens.color.muted;
-const NAV_PILL    = tokens.color.border;
-const PRIMARY_BTN = tokens.color.ink;
-const PRIMARY_BTN_SH = "#0F0F0F";
-const UPLOAD_BG   = tokens.color.sky;
-const UPLOAD_DASH = tokens.color.sky;
-const H_PAD       = 16;
+const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+const BG_PAGE = "#FAFAF8";
+const TEXT_PRI = "#1A1A1A";
+const TEXT_SEC = "#B0A898";
+const SAGE = "#A8C87A";
+const ROSE = "#F2B8CD";
+const SKY = "#B8CEEA";
+const BORDER = "#EEEBE6";
+const H_PAD = 16;
 const SECTION_GAP = 24;
+const CARD_RADIUS = 14;
 
 type CrearState = "idle" | "loading" | "success";
 
@@ -29,7 +28,7 @@ export interface DeckSet {
   cardCount: number;
   progress: number;
   lastStudied: string;
-  cards: Array<{ kana: string; kanji: string; spanish: string; example_usage: string }>;
+  cards: Array<{ id?: string; kana: string; kanji: string; spanish: string; example_usage: string }>;
 }
 
 interface CrearScreenProps {
@@ -49,18 +48,19 @@ function useWindowSize() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Return desktop width (1024) during SSR/hydration, then switch to actual width
   return mounted ? windowWidth : 1024;
 }
 
 export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const router = useRouter();
-  const [imageUrl, setImageUrl]         = useState<string | null>(null);
-  const [setName, setSetName]           = useState("");
-  const [state, setState]               = useState<CrearState>("idle");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [setName, setSetName] = useState("");
+  const [state, setState] = useState<CrearState>("idle");
   const [createdCount, setCreatedCount] = useState(0);
-  const [createdId, setCreatedId]       = useState<string | null>(null);
-  const [error, setError]               = useState<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [createdCards, setCreatedCards] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -80,7 +80,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
     setError(null);
 
     try {
-      // Convert image to base64
       const img = new Image();
       img.onload = async () => {
         const canvas = document.createElement("canvas");
@@ -95,7 +94,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         ctx.drawImage(img, 0, 0);
         const base64 = canvas.toDataURL("image/jpeg").split(",")[1];
 
-        // Call API
         try {
           const response = await fetch("/api/extract-vocab", {
             method: "POST",
@@ -103,21 +101,17 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             body: JSON.stringify({ image: base64 }),
           });
 
-          if (!response.ok) {
-            throw new Error("API error");
-          }
+          if (!response.ok) throw new Error("API error");
 
           const data = await response.json();
           const cards = data.cards || [];
           const id = crypto.randomUUID();
 
-          // Add unique IDs to each card
           const cardsWithIds = cards.map((card, index) => ({
             id: index.toString(),
             ...card,
           }));
 
-          // Create new set with all required properties
           const newSet: DeckSet = {
             id,
             title: finalName,
@@ -125,34 +119,24 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             progress: 0,
             lastStudied: new Date().toISOString(),
             cards: cardsWithIds,
-            favorite: false,  // New sets default to not favorite
+            favorite: false,
           };
 
-          // Save to localStorage immediately so HomeScreen/Progreso see it
           try {
             const existingSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
             const updatedSets = [...existingSets, newSet];
             localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
-            console.log("[Crear] Set saved to localStorage:", {
-              setId: id,
-              setTitle: finalName,
-              totalSets: updatedSets.length,
-              localStorageSize: JSON.stringify(updatedSets).length + " bytes"
-            });
           } catch (err) {
             console.error("[Crear] Failed to save to localStorage:", err);
           }
 
-          // Try to save to Supabase
           try {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-              console.log("[Crear] Attempting Supabase save. User ID:", user.id, "Set ID:", id);
-
               try {
-                const { error, data } = await supabase.from("sets").insert({
+                const { error } = await supabase.from("sets").insert({
                   id: id,
                   user_id: user.id,
                   name: finalName,
@@ -163,21 +147,11 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 });
 
                 if (error) {
-                  console.error("[Crear] Supabase insert error:", {
-                    message: error.message,
-                    code: error.code,
-                    details: error.details,
-                    hint: error.hint,
-                    fullError: JSON.stringify(error)
-                  });
-                } else {
-                  console.log("[Crear] Set saved to Supabase successfully", { data });
+                  console.error("[Crear] Supabase insert error:", error);
                 }
               } catch (insertErr) {
                 console.error("[Crear] Supabase insert threw exception:", insertErr);
               }
-            } else {
-              console.log("[Crear] No authenticated user found - Supabase save skipped");
             }
           } catch (err) {
             console.error("[Crear] Supabase auth check failed:", err);
@@ -185,6 +159,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
           setCreatedCount(cards.length);
           setCreatedId(id);
+          setCreatedCards(cardsWithIds);
           setState("success");
         } catch (err) {
           setError("Error al procesar imagen");
@@ -203,11 +178,16 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
     setSetName("");
     setState("idle");
     setCreatedCount(0);
+    setCreatedCards([]);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handleStudyNew() {
+  function handleGoBack() {
+    handleReset();
+  }
+
+  function handleSaveSet() {
     if (createdId) {
       router.push(`/estudiar/${createdId}`);
     }
@@ -220,7 +200,541 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   const canCreate = !!imageUrl && state === "idle";
 
-  // ===== MOBILE LAYOUT (< 1024px) =====
+  // ===== PASO 1: UPLOAD IMAGE =====
+  const Step1Content = () => (
+    <div style={{ padding: `0 ${H_PAD}px` }}>
+      {/* Progress bar */}
+      <div style={{
+        display: "flex",
+        gap: "4px",
+        marginBottom: "24px",
+      }}>
+        <div style={{
+          flex: 1,
+          height: "3px",
+          background: TEXT_PRI,
+          borderRadius: "2px",
+        }} />
+        <div style={{
+          flex: 1,
+          height: "3px",
+          background: BORDER,
+          borderRadius: "2px",
+        }} />
+      </div>
+
+      {/* Title and subtitle */}
+      <h1 style={{
+        fontFamily: FONT_UI,
+        fontSize: "28px",
+        fontWeight: 800,
+        letterSpacing: "-0.02em",
+        color: TEXT_PRI,
+        margin: "0 0 8px 0",
+      }}>
+        Crear set
+      </h1>
+      <p style={{
+        fontFamily: FONT_UI,
+        fontSize: "13px",
+        fontWeight: 400,
+        color: TEXT_SEC,
+        margin: "0 0 24px 0",
+      }}>
+        Paso 1 de 2 • Sube tu imagen
+      </p>
+
+      {/* Upload zone */}
+      <div style={{
+        border: `2px dashed ${SKY}`,
+        borderRadius: CARD_RADIUS,
+        padding: "32px 16px",
+        textAlign: "center",
+        marginBottom: SECTION_GAP,
+        background: "#F0F5FF",
+        cursor: "pointer",
+      }} onClick={() => fileInputRef.current?.click()}>
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          marginBottom: "16px",
+        }}>
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ stroke: SKY, strokeWidth: 1.5 }}>
+            <rect x="3" y="3" width="18" height="18" rx="4" />
+            <circle cx="9" cy="9" r="2" fill="currentColor" />
+            <path d="M21 15l-5-5-11 11" />
+          </svg>
+        </div>
+        <h3 style={{
+          fontFamily: FONT_UI,
+          fontSize: "16px",
+          fontWeight: 700,
+          color: TEXT_PRI,
+          margin: "0 0 8px 0",
+        }}>
+          Toca para subir foto
+        </h3>
+        <p style={{
+          fontFamily: FONT_UI,
+          fontSize: "11px",
+          fontWeight: 400,
+          color: TEXT_SEC,
+          margin: "0 0 6px 0",
+        }}>
+          JPG, PNG • hasta 10 MB
+        </p>
+        <p style={{
+          fontFamily: FONT_UI,
+          fontSize: "11px",
+          fontWeight: 400,
+          color: TEXT_SEC,
+          margin: 0,
+        }}>
+          Luz clara • texto legible
+        </p>
+      </div>
+
+      {/* Image preview */}
+      {imageUrl && (
+        <div style={{
+          background: "#F5F5F5",
+          border: `0.5px solid ${BORDER}`,
+          borderRadius: CARD_RADIUS,
+          padding: "16px",
+          marginBottom: SECTION_GAP,
+          display: "flex",
+          gap: "12px",
+          alignItems: "flex-start",
+        }}>
+          <div style={{ position: "relative", flexShrink: 0 }}>
+            <img
+              src={imageUrl}
+              alt="Preview"
+              style={{
+                width: "60px",
+                height: "60px",
+                objectFit: "cover",
+                borderRadius: "8px",
+              }}
+            />
+            <div style={{
+              position: "absolute",
+              top: "-6px",
+              right: "-6px",
+              width: "20px",
+              height: "20px",
+              borderRadius: "50%",
+              background: SAGE,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "2px solid #fff",
+            }}>
+              <Check style={{ width: "10px", height: "10px", color: "#fff", strokeWidth: 3 }} />
+            </div>
+          </div>
+          <div>
+            <h4 style={{
+              fontFamily: FONT_UI,
+              fontSize: "13px",
+              fontWeight: 700,
+              color: TEXT_PRI,
+              margin: "0 0 4px 0",
+            }}>
+              Tu foto debe verse así
+            </h4>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: TEXT_SEC,
+              margin: 0,
+            }}>
+              Lista visible, bien iluminada y sin sombras
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Add manually link */}
+      <button
+        onClick={() => {}}
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: FONT_UI,
+          fontSize: "13px",
+          fontWeight: 600,
+          color: TEXT_SEC,
+          padding: "8px 0",
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          marginBottom: SECTION_GAP,
+        }}
+      >
+        <Plus style={{ width: "16px", height: "16px" }} />
+        Agregar palabras manualmente
+      </button>
+
+      {/* Set name input */}
+      <label style={{
+        fontFamily: FONT_UI,
+        fontSize: "13px",
+        fontWeight: 700,
+        color: TEXT_PRI,
+        display: "block",
+        marginBottom: "8px",
+      }}>
+        Nombre del set
+      </label>
+      <div style={{
+        position: "relative",
+        marginBottom: SECTION_GAP,
+      }}>
+        <input
+          type="text"
+          value={setName}
+          onChange={(e) => setSetName(e.target.value)}
+          placeholder="Ej. Biología · Cap. 3"
+          style={{
+            width: "100%",
+            fontFamily: FONT_UI,
+            fontSize: "13px",
+            padding: "12px 12px",
+            border: `0.5px solid ${BORDER}`,
+            borderRadius: "8px",
+            boxSizing: "border-box",
+            background: "#F5F5F5",
+          }}
+        />
+        <Edit2 style={{
+          position: "absolute",
+          right: "12px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: "16px",
+          height: "16px",
+          color: TEXT_SEC,
+          pointerEvents: "none",
+        }} />
+      </div>
+
+      {/* Checklist */}
+      <div style={{
+        background: "#F5F5F5",
+        border: `0.5px solid ${BORDER}`,
+        borderRadius: CARD_RADIUS,
+        padding: "16px",
+        marginBottom: SECTION_GAP,
+      }}>
+        <p style={{
+          fontFamily: FONT_UI,
+          fontSize: "11px",
+          fontWeight: 700,
+          color: TEXT_SEC,
+          margin: "0 0 12px 0",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px",
+        }}>
+          Para continuar necesitas:
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <label style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            fontFamily: FONT_UI,
+            fontSize: "13px",
+            color: imageUrl ? TEXT_PRI : TEXT_SEC,
+          }}>
+            <input
+              type="checkbox"
+              checked={!!imageUrl}
+              readOnly
+              style={{
+                width: "16px",
+                height: "16px",
+                cursor: "pointer",
+                accentColor: SAGE,
+              }}
+            />
+            Subir una imagen
+          </label>
+          <label style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            cursor: "pointer",
+            fontFamily: FONT_UI,
+            fontSize: "13px",
+            color: setName ? TEXT_PRI : TEXT_SEC,
+          }}>
+            <input
+              type="checkbox"
+              checked={!!setName}
+              readOnly
+              style={{
+                width: "16px",
+                height: "16px",
+                cursor: "pointer",
+                accentColor: SAGE,
+              }}
+            />
+            Nombrar el set
+          </label>
+        </div>
+      </div>
+
+      {/* Continue button */}
+      <button
+        onClick={handleCreate}
+        disabled={!canCreate || state === "loading"}
+        style={{
+          width: "100%",
+          background: canCreate ? TEXT_PRI : BORDER,
+          border: "none",
+          borderRadius: "9999px",
+          padding: "14px 20px",
+          fontFamily: FONT_UI,
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "#fff",
+          cursor: canCreate ? "pointer" : "not-allowed",
+          opacity: canCreate ? 1 : 0.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+        }}
+      >
+        {state === "loading" ? "Procesando..." : "Continuar →"}
+      </button>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+      />
+    </div>
+  );
+
+  // ===== PASO 2: REVIEW CARDS =====
+  const Step2Content = () => (
+    <div style={{ padding: `0 ${H_PAD}px` }}>
+      {/* Back button and progress */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "24px",
+      }}>
+        <button
+          onClick={handleGoBack}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "4px 0",
+            fontFamily: FONT_UI,
+            fontSize: "13px",
+            fontWeight: 600,
+            color: TEXT_SEC,
+          }}
+        >
+          <ChevronLeft style={{ width: "18px", height: "18px" }} />
+          Volver
+        </button>
+
+        {/* Progress bar */}
+        <div style={{ display: "flex", gap: "4px", flex: 1, marginLeft: "16px" }}>
+          <div style={{
+            flex: 1,
+            height: "3px",
+            background: TEXT_PRI,
+            borderRadius: "2px",
+          }} />
+          <div style={{
+            flex: 1,
+            height: "3px",
+            background: TEXT_PRI,
+            borderRadius: "2px",
+          }} />
+        </div>
+      </div>
+
+      {/* Title and subtitle */}
+      <h1 style={{
+        fontFamily: FONT_UI,
+        fontSize: "28px",
+        fontWeight: 800,
+        letterSpacing: "-0.02em",
+        color: TEXT_PRI,
+        margin: "0 0 8px 0",
+      }}>
+        Revisar set
+      </h1>
+      <p style={{
+        fontFamily: FONT_UI,
+        fontSize: "13px",
+        fontWeight: 400,
+        color: TEXT_SEC,
+        margin: "0 0 24px 0",
+      }}>
+        Paso 2 de 2 • Confirma tus tarjetas
+      </p>
+
+      {/* Set name badge */}
+      <div style={{
+        background: SKY,
+        borderRadius: "8px",
+        padding: "8px 12px",
+        fontFamily: FONT_UI,
+        fontSize: "12px",
+        fontWeight: 700,
+        color: TEXT_PRI,
+        marginBottom: "16px",
+        display: "inline-block",
+      }}>
+        {setName || "Sin nombre"}
+      </div>
+
+      {/* Cards detected header */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "16px",
+      }}>
+        <h2 style={{
+          fontFamily: FONT_UI,
+          fontSize: "14px",
+          fontWeight: 700,
+          color: TEXT_PRI,
+          margin: 0,
+        }}>
+          Tarjetas detectadas
+        </h2>
+        <div style={{
+          background: SAGE,
+          borderRadius: "9999px",
+          padding: "4px 10px",
+          fontFamily: FONT_UI,
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#fff",
+        }}>
+          {createdCount} tarjetas
+        </div>
+      </div>
+
+      {/* Cards list */}
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+        marginBottom: SECTION_GAP,
+      }}>
+        {createdCards.map((card, idx) => (
+          <div
+            key={card.id || idx}
+            onClick={() => setEditingCardId(card.id || idx.toString())}
+            style={{
+              background: editingCardId === (card.id || idx.toString()) ? ROSE : "#fff",
+              border: `0.5px solid ${BORDER}`,
+              borderRadius: CARD_RADIUS,
+              padding: "12px 14px",
+              cursor: "pointer",
+            }}
+          >
+            <h4 style={{
+              fontFamily: FONT_UI,
+              fontSize: "14px",
+              fontWeight: 700,
+              color: editingCardId === (card.id || idx.toString()) ? "#7A3550" : TEXT_PRI,
+              margin: "0 0 4px 0",
+            }}>
+              {card.spanish || card.kanji || "Sin título"}
+            </h4>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: editingCardId === (card.id || idx.toString()) ? "#7A3550" : TEXT_SEC,
+              margin: 0,
+            }}>
+              {card.example_usage || "Sin descripción"}
+            </p>
+            {editingCardId === (card.id || idx.toString()) && (
+              <p style={{
+                fontFamily: FONT_UI,
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "#7A3550",
+                margin: "6px 0 0 0",
+              }}>
+                Toca para editar
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add manually link */}
+      <button
+        onClick={() => {}}
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          fontFamily: FONT_UI,
+          fontSize: "13px",
+          fontWeight: 600,
+          color: TEXT_SEC,
+          padding: "8px 0",
+          display: "flex",
+          alignItems: "center",
+          gap: "4px",
+          marginBottom: SECTION_GAP,
+        }}
+      >
+        <Plus style={{ width: "16px", height: "16px" }} />
+        Agregar tarjeta manualmente
+      </button>
+
+      {/* Save button */}
+      <button
+        onClick={handleSaveSet}
+        style={{
+          width: "100%",
+          background: TEXT_PRI,
+          border: "none",
+          borderRadius: "9999px",
+          padding: "14px 20px",
+          fontFamily: FONT_UI,
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "#fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+        }}
+      >
+        Guardar set →
+      </button>
+    </div>
+  );
+
+  // ===== MOBILE LAYOUT =====
   const mobileContent = (
     <div style={{
       height: "100dvh",
@@ -229,342 +743,75 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       background: BG_PAGE,
       display: "flex",
       flexDirection: "column",
-      position: "relative",
     }}>
-      {/* Safe-area top spacer */}
+      {/* Safe-area top */}
       <div aria-hidden style={{
         flexShrink: 0,
         height: "max(16px, env(safe-area-inset-top, 0px))",
       }} />
 
-      {/* Scrollable body */}
+      {/* Scrollable content */}
       <div style={{
         flex: 1,
-        overflowY: 'scroll',
-        WebkitOverflowScrolling: 'touch',
-        height: '0',
-        paddingBottom: "100px"
+        overflowY: "scroll",
+        WebkitOverflowScrolling: "touch",
+        height: "0",
+        paddingBottom: "100px",
       }}>
-        <div style={{ padding: `0 ${H_PAD}px` }}>
-          <h1 style={{
-            fontFamily: FONT,
-            fontSize: "36px",
-            fontWeight: 500,
-            color: TEXT_PRI,
-            lineHeight: "44px",
-            letterSpacing: "0",
-            margin: `8px 0 8px`,
-          }}>
-            Crea un nuevo set
-          </h1>
-
-          <p style={{
-            fontFamily: FONT,
-            fontSize: "18px",
-            fontWeight: 400,
-            color: TEXT_PRI,
-            textAlign: "left",
-            lineHeight: "26px",
-            margin: `0 0 ${SECTION_GAP}px`,
-          }}>
-            Sube una foto de tu lista de palabras
-          </p>
-
-          {/* Upload zone */}
-          {!imageUrl ? (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Subir imagen"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-                height: "220px",
-                background: UPLOAD_BG,
-                border: `2px dashed ${UPLOAD_DASH}`,
-                borderRadius: "16px",
-                cursor: "pointer",
-                boxSizing: "border-box",
-                marginBottom: `${SECTION_GAP}px`,
-              }}
-            >
-              <ImagePlus
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  color: "#4A6FA5",
-                  strokeWidth: 1.5,
-                }}
-              />
-            </button>
-          ) : (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              width: "100%",
-              background: UPLOAD_BG,
-              border: `2px dashed ${UPLOAD_DASH}`,
-              borderRadius: "16px",
-              padding: "16px",
-              boxSizing: "border-box",
-              gap: "14px",
-              marginBottom: `${SECTION_GAP}px`,
-            }}>
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <img
-                  src={imageUrl}
-                  alt="Vista previa"
-                  style={{
-                    width: "68px",
-                    height: "68px",
-                    objectFit: "cover",
-                    borderRadius: "10px",
-                    display: "block",
-                  }}
-                />
-                <div style={{
-                  position: "absolute",
-                  top: "-7px",
-                  right: "-7px",
-                  width: "22px",
-                  height: "22px",
-                  borderRadius: "50%",
-                  background: "#22C55E",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "2px solid #fff",
-                }}>
-                  <Check style={{ width: "11px", height: "11px", color: "#fff", strokeWidth: 3 }} />
-                </div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{
-                  fontFamily: FONT,
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: TEXT_PRI,
-                  margin: "0 0 4px",
-                }}>
-                  Imagen lista
-                </p>
-                <button
-                  onClick={handleReset}
-                  style={{
-                    fontFamily: FONT,
-                    fontSize: "12px",
-                    color: TEXT_MUT,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                    textDecoration: "underline",
-                  }}
-                >
-                  Cambiar imagen
-                </button>
-              </div>
-            </div>
-          )}
-
-          <label style={{
-            display: "block",
-            fontFamily: FONT,
-            fontSize: "15px",
-            fontWeight: 500,
-            color: TEXT_SEC,
-            marginBottom: "8px",
-          }}>
-            Nombre del set
-          </label>
-
-          <input
-            type="text"
-            placeholder="Lección 32"
-            value={setName}
-            onChange={e => setSetName(e.target.value)}
-            disabled={state !== "idle"}
-            style={{
-              width: "100%",
-              height: "52px",
-              borderRadius: "10px",
-              border: `1.5px solid #D1D5DB`,
-              padding: "0 14px",
-              fontFamily: FONT,
-              fontSize: "16px",
-              color: TEXT_PRI,
-              background: "#FFFFFF",
-              outline: "none",
-              boxSizing: "border-box",
-              marginBottom: `${SECTION_GAP}px`,
-            }}
-          />
-
-          <button
-            onClick={handleCreate}
-            disabled={!canCreate}
-            style={{
-              width: "100%",
-              height: "48px",
-              borderRadius: "12px",
-              border: "none",
-              background: canCreate ? TEAL_BTN : "#D0D0D0",
-              fontFamily: FONT,
-              fontSize: "1rem",
-              fontWeight: 600,
-              color: canCreate ? "#FFFFFF" : "#9A9A9A",
-              cursor: canCreate ? "pointer" : "not-allowed",
-              transition: "background 0.2s ease, color 0.2s ease",
-              letterSpacing: "0.01em",
-            }}
-          >
-            Crear set
-          </button>
-
-          <div style={{ height: "32px" }} />
-        </div>
+        {state === "success" ? <Step2Content /> : <Step1Content />}
       </div>
 
       {/* Bottom navigation */}
       <nav style={{
         flexShrink: 0,
         width: "100%",
-        background: BG_PAGE,
-        borderTop: `1px solid #E8E8E8`,
+        background: "#fff",
+        borderTop: `1px solid ${BORDER}`,
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "space-around",
         paddingTop: "10px",
         paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
       }}>
-        <NavItem label="Inicio" active={false} icon={<SmileIcon />} onClick={() => onNavigate("inicio")} />
-        <NavItem label="Crear" active icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => {}} />
-        <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
+        <NavItem label="Inicio" active={false} icon={<HomeIcon />} onClick={() => handleGoHome()} />
+        <NavItem label="Crear" active icon={<CreateIcon />} onClick={() => {}} />
+        <NavItem label="Progreso" active={false} icon={<PlayIcon />} onClick={() => onNavigate("progreso")} />
         <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
       </nav>
 
       {/* iOS home indicator */}
       <div aria-hidden style={{
         flexShrink: 0,
-        background: BG_PAGE,
+        background: "#fff",
         display: "flex",
         justifyContent: "center",
         paddingTop: "4px",
         paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))",
       }}>
-        <div style={{ width: "134px", height: "5px", borderRadius: "99px", background: "#111" }} />
+        <div style={{
+          width: "134px",
+          height: "5px",
+          borderRadius: "99px",
+          background: "#111",
+        }} />
       </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        style={{ display: "none" }}
-      />
-
-      {/* Loading overlay */}
-      {state === "loading" && (
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(255,255,255,0.96)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "16px",
-          zIndex: 20,
-        }}>
-          <Spinner />
-          <p style={{ fontFamily: FONT, fontSize: "18px", fontWeight: 500, color: TEXT_PRI, margin: 0 }}>
-            Analizando imagen...
-          </p>
-          <p style={{ fontFamily: FONT, fontSize: "13px", color: TEXT_MUT, margin: 0 }}>
-            Esto puede tomar unos segundos
-          </p>
-        </div>
-      )}
-
-      {/* Success overlay */}
-      {state === "success" && (
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(255,255,255,0.97)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: `0 ${H_PAD}px`,
-          zIndex: 20,
-        }}>
-          <div style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "50%",
-            background: "#DCFCE7",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: "20px",
-          }}>
-            <Check style={{ width: "34px", height: "34px", color: "#16A34A", strokeWidth: 2.5 }} />
-          </div>
-          <p style={{ fontFamily: FONT, fontSize: "24px", fontWeight: 700, color: TEXT_PRI, margin: "0 0 8px", textAlign: "center" }}>
-            ¡Set creado!
-          </p>
-          <p style={{ fontFamily: FONT, fontSize: "14px", color: TEXT_SEC, margin: "0 0 36px", textAlign: "center" }}>
-            {setName} · {createdCount} tarjetas
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%", maxWidth: "300px" }}>
-            <button
-              onClick={handleStudyNew}
-              style={{
-                height: "56px", borderRadius: "100px", border: "none",
-                background: PRIMARY_BTN,
-                boxShadow: `0 4px 0 ${PRIMARY_BTN_SH}`,
-                fontFamily: FONT, fontSize: "16px",
-                fontWeight: 700, color: "#FFFFFF", cursor: "pointer",
-              }}
-            >
-              Estudiar ahora
-            </button>
-            <button
-              onClick={handleGoHome}
-              style={{
-                height: "56px", borderRadius: "100px",
-                border: `1.5px solid #C8D0D8`, background: "transparent",
-                fontFamily: FONT, fontSize: "16px", fontWeight: 500,
-                color: TEXT_PRI, cursor: "pointer",
-              }}
-            >
-              Volver al inicio
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 
-  // ===== DESKTOP LAYOUT (≥ 1024px) =====
+  // ===== DESKTOP LAYOUT =====
   const desktopContent = (
     <div style={{
       height: "100dvh",
-      background: "#F7F6F3",
+      background: BG_PAGE,
       display: "flex",
       flexDirection: "row",
     }}>
       <AppSidebar activeTab="crear" onNavigate={onNavigate} />
 
-      {/* Main content area */}
       <div style={{
         flex: 1,
         display: "flex",
         flexDirection: "column",
-        background: "#F7F6F3",
       }}>
         <div aria-hidden style={{
           flexShrink: 0,
@@ -573,288 +820,33 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
         <div style={{
           flex: 1,
-          overflowY: 'scroll',
-          WebkitOverflowScrolling: 'touch',
-          height: '100vh',
-          paddingBottom: "40px"
+          overflowY: "scroll",
+          WebkitOverflowScrolling: "touch",
+          height: "100vh",
+          paddingBottom: "40px",
         }}>
           <div style={{
             maxWidth: "680px",
             margin: "0 auto",
-            padding: `0 ${H_PAD}px`,
             width: "100%",
           }}>
-            <h1 style={{
-              fontFamily: FONT,
-              fontSize: "36px",
-              fontWeight: 500,
-              color: TEXT_PRI,
-              lineHeight: "44px",
-              letterSpacing: "0",
-              margin: `8px 0 8px`,
-            }}>
-              Crea un nuevo set
-            </h1>
-
-            <p style={{
-              fontFamily: FONT,
-              fontSize: "18px",
-              fontWeight: 400,
-              color: TEXT_PRI,
-              textAlign: "left",
-              lineHeight: "26px",
-              margin: `0 0 ${SECTION_GAP}px`,
-            }}>
-              Sube una foto de tu lista de palabras
-            </p>
-
-            {!imageUrl ? (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                aria-label="Subir imagen"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: "100%",
-                  height: "220px",
-                  background: UPLOAD_BG,
-                  border: `2px dashed ${UPLOAD_DASH}`,
-                  borderRadius: "16px",
-                  cursor: "pointer",
-                  boxSizing: "border-box",
-                  marginBottom: `${SECTION_GAP}px`,
-                }}
-              >
-                <ImagePlus style={{ width: "52px", height: "52px", color: "#4A6FA5", strokeWidth: 1.5 }} />
-              </button>
-            ) : (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                width: "100%",
-                background: UPLOAD_BG,
-                border: `2px dashed ${UPLOAD_DASH}`,
-                borderRadius: "16px",
-                padding: "16px",
-                boxSizing: "border-box",
-                gap: "14px",
-                marginBottom: `${SECTION_GAP}px`,
-              }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  <img
-                    src={imageUrl}
-                    alt="Vista previa"
-                    style={{
-                      width: "68px",
-                      height: "68px",
-                      objectFit: "cover",
-                      borderRadius: "10px",
-                      display: "block",
-                    }}
-                  />
-                  <div style={{
-                    position: "absolute",
-                    top: "-7px",
-                    right: "-7px",
-                    width: "22px",
-                    height: "22px",
-                    borderRadius: "50%",
-                    background: "#22C55E",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "2px solid #fff",
-                  }}>
-                    <Check style={{ width: "11px", height: "11px", color: "#fff", strokeWidth: 3 }} />
-                  </div>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{
-                    fontFamily: FONT,
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    color: TEXT_PRI,
-                    margin: "0 0 4px",
-                  }}>
-                    Imagen lista
-                  </p>
-                  <button
-                    onClick={handleReset}
-                    style={{
-                      fontFamily: FONT,
-                      fontSize: "12px",
-                      color: TEXT_MUT,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                      textDecoration: "underline",
-                    }}
-                  >
-                    Cambiar imagen
-                  </button>
-                </div>
-              </div>
-            )}
-
-            <label style={{
-              display: "block",
-              fontFamily: FONT,
-              fontSize: "15px",
-              fontWeight: 500,
-              color: TEXT_SEC,
-              marginBottom: "8px",
-            }}>
-              Nombre del set
-            </label>
-
-            <input
-              type="text"
-              placeholder="Lección 32"
-              value={setName}
-              onChange={e => setSetName(e.target.value)}
-              disabled={state !== "idle"}
-              style={{
-                width: "100%",
-                height: "52px",
-                borderRadius: "10px",
-                border: `1.5px solid #D1D5DB`,
-                padding: "0 14px",
-                fontFamily: FONT,
-                fontSize: "16px",
-                color: TEXT_PRI,
-                background: "#FFFFFF",
-                outline: "none",
-                boxSizing: "border-box",
-                marginBottom: `${SECTION_GAP}px`,
-              }}
-            />
-
-            <button
-              onClick={handleCreate}
-              disabled={!canCreate}
-              style={{
-                width: "100%",
-                height: "56px",
-                borderRadius: "14px",
-                border: "none",
-                background: canCreate ? TEAL_BTN : "#D0D0D0",
-                fontFamily: FONT,
-                fontSize: "1rem",
-                fontWeight: 600,
-                color: canCreate ? "#FFFFFF" : "#9A9A9A",
-                cursor: canCreate ? "pointer" : "not-allowed",
-                transition: "background 0.2s ease, color 0.2s ease",
-                letterSpacing: "0.01em",
-              }}
-            >
-              Crear set
-            </button>
-
-            <div style={{ height: "32px" }} />
+            {state === "success" ? <Step2Content /> : <Step1Content />}
           </div>
         </div>
       </div>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        style={{ display: "none" }}
-      />
-
-      {/* Loading overlay */}
-      {state === "loading" && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(255,255,255,0.96)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "16px",
-          zIndex: 20,
-        }}>
-          <Spinner />
-          <p style={{ fontFamily: FONT, fontSize: "18px", fontWeight: 500, color: TEXT_PRI, margin: 0 }}>
-            Analizando imagen...
-          </p>
-          <p style={{ fontFamily: FONT, fontSize: "13px", color: TEXT_MUT, margin: 0 }}>
-            Esto puede tomar unos segundos
-          </p>
-        </div>
-      )}
-
-      {/* Success overlay */}
-      {state === "success" && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(255,255,255,0.97)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: `0 ${H_PAD}px`,
-          zIndex: 20,
-        }}>
-          <div style={{
-            width: "72px",
-            height: "72px",
-            borderRadius: "50%",
-            background: "#DCFCE7",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: "20px",
-          }}>
-            <Check style={{ width: "34px", height: "34px", color: "#16A34A", strokeWidth: 2.5 }} />
-          </div>
-          <p style={{ fontFamily: FONT, fontSize: "24px", fontWeight: 700, color: TEXT_PRI, margin: "0 0 8px", textAlign: "center" }}>
-            ¡Set creado!
-          </p>
-          <p style={{ fontFamily: FONT, fontSize: "14px", color: TEXT_SEC, margin: "0 0 36px", textAlign: "center" }}>
-            {setName} · {createdCount} tarjetas
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%", maxWidth: "300px" }}>
-            <button
-              onClick={handleStudyNew}
-              style={{
-                height: "56px", borderRadius: "100px", border: "none",
-                background: PRIMARY_BTN,
-                boxShadow: `0 4px 0 ${PRIMARY_BTN_SH}`,
-                fontFamily: FONT, fontSize: "16px",
-                fontWeight: 700, color: "#FFFFFF", cursor: "pointer",
-              }}
-            >
-              Estudiar ahora
-            </button>
-            <button
-              onClick={handleGoHome}
-              style={{
-                height: "56px", borderRadius: "100px",
-                border: `1.5px solid #C8D0D8`, background: "transparent",
-                fontFamily: FONT, fontSize: "16px", fontWeight: 500,
-                color: TEXT_PRI, cursor: "pointer",
-              }}
-            >
-              Volver al inicio
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 
   return isMobile ? mobileContent : desktopContent;
 }
 
-// ── NavItem ───────────────────────────────────────────────────────────────
-function NavItem({ label, icon, active, onClick }: {
+// ── NavItem ────────────────────────────────────────────────────────────────────
+function NavItem({
+  label,
+  icon,
+  active,
+  onClick,
+}: {
   label: string;
   icon: React.ReactNode;
   active: boolean;
@@ -864,29 +856,36 @@ function NavItem({ label, icon, active, onClick }: {
     <button
       onClick={onClick}
       style={{
-        flex: 1, display: "flex", flexDirection: "column",
-        alignItems: "center", gap: "3px", minHeight: "48px",
-        background: "none", border: "none", cursor: "pointer", padding: 0,
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "3px",
+        minHeight: "48px",
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        padding: 0,
       }}
     >
       <div style={{
         width: active ? "64px" : "44px",
         height: "32px",
         borderRadius: "16px",
-        background: active ? NAV_PILL : "transparent",
+        background: active ? "#F0F0F0" : "transparent",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: active ? TEXT_PRI : TEXT_MUT,
-        transition: "width 0.15s ease, background 0.15s ease",
+        color: active ? "#1A1A1A" : "#B0A898",
+        transition: "width 0.15s ease",
       }}>
         {icon}
       </div>
       <span style={{
-        fontFamily: FONT,
+        fontFamily: FONT_UI,
         fontSize: "11px",
         fontWeight: active ? 700 : 400,
-        color: active ? TEXT_PRI : TEXT_MUT,
+        color: active ? "#1A1A1A" : "#B0A898",
       }}>
         {label}
       </span>
@@ -894,33 +893,39 @@ function NavItem({ label, icon, active, onClick }: {
   );
 }
 
-function SmileIcon() {
+// ── Icons ──────────────────────────────────────────────────────────────────────
+function HomeIcon() {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="1.9" />
-      <circle cx="8.5" cy="10" r="1.25" fill="currentColor" />
-      <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
-      <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CreateIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="1.8" />
+      <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
     </svg>
   );
 }
 
 function PersonIcon() {
   return (
-    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
       <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
       <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden
-      style={{ animation: "spin 0.9s linear infinite" }}>
-      <circle cx="24" cy="24" r="20" stroke="#E5E7EB" strokeWidth="4" />
-      <path d="M44 24c0-11.046-8.954-20-20-20" stroke={TEAL_BTN} strokeWidth="4" strokeLinecap="round" />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </svg>
   );
 }
