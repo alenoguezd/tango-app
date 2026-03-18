@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Upload, ArrowRight, FolderOpen, Play, MoreVertical, Star } from "lucide-react";
+import { Plus, MoreVertical, Star, ArrowRight } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
@@ -12,7 +12,7 @@ export interface DeckSet {
   id: string;
   title: string;
   cardCount: number;
-  progress: number;   // 0–100
+  progress: number;
   lastStudied: string;
   cards: VocabCard[];
   color?: "blue" | "pink";
@@ -28,49 +28,35 @@ interface HomeScreenProps {
   onLogout?: () => void;
 }
 
-// ── Design tokens ────────────────────────────────────────────────────────────
-const W           = tokens.color.surface;
-const BG_PAGE     = tokens.color.page;
-const FONT        = "var(--font-sans)";
+// ── Design tokens ────────────────────────────────────────────────────────
+const W = tokens.color.surface;
+const BG_PAGE = tokens.color.page;
+const FONT = "var(--font-sans)";
 
-// Text
-const TEXT_PRI    = tokens.color.ink;
-const TEXT_SEC    = tokens.color.muted;
-const TEXT_MUT    = tokens.color.muted;
-const TEXT_RED    = tokens.color.rose;
+// Text colors
+const TEXT_PRI = tokens.color.ink;
+const TEXT_SEC = tokens.color.muted;
+const TEXT_MUT = tokens.color.muted;
+const TEXT_RED = tokens.color.rose;
 
-// Accent
-const LINK_ACCENT = tokens.color.sage;
+// Accent colors (from design tokens)
+const SAGE_ACCENT = tokens.color.sage;
+const ROSE_ACCENT = tokens.color.rose;
+const BUTTER_ACCENT = tokens.color.butter;
+const SKY_ACCENT = tokens.color.sky;
 
-// Banner
-const BANNER_BG   = "#EBF0F8";
-
-// Recientes card
-const CARD_BORDER = "#E0E0E0";
-
-// Folder card colours
-const BLUE_CARD   = "#E7EEF6";   // spec: #E7EEF6
-const BLUE_TAB    = "#D4E2F1";   // spec: #D4E2F1
-const PINK_CARD   = "#FFE1EB";   // spec: #FFE1EB
-const PINK_TAB    = "#F7CDDB";   // spec: #F7CDDB
+// Card styling
+const CARD_BORDER = tokens.color.border;
+const CARD_RADIUS = 14;
+const H_PAD = 16;
+const SECTION_GAP = 24;
 
 // Progress bar
-const PROG_FG     = "#1565C0";
-const PROG_TRACK  = "#D1D5DB";
+const PROG_FG = tokens.color.sage;
+const PROG_TRACK = "#E8E8E8";
 
 // Nav
-const NAV_PILL    = "#EBEBEB";
-
-// Exact Figma dimensions
-const CARD_H      = 138.5;       // px
-const TAB_W       = 81.189;      // px
-const TAB_H       = 18.471;      // px
-const CARD_RADIUS = 10;          // px
-const CARD_PAD_X  = 10;          // px
-const ROW_GAP     = 16;          // px between grid rows
-const COL_GAP     = 12;          // px between columns
-const H_PAD       = 16;          // px page horizontal padding
-const SECTION_GAP = 24;          // px between sections
+const NAV_PILL = "#F0F0F0";
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
@@ -85,13 +71,13 @@ function useWindowSize() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Return desktop width (1024) during SSR/hydration, then switch to actual width
   return mounted ? windowWidth : 1024;
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────
 export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
   const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
+  const [userName, setUserName] = useState<string>("Usuario");
   const [toast, setToast] = useState<string | null>(null);
 
   // Load sets from localStorage on mount
@@ -105,6 +91,22 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         setLocalSets([]);
       }
     }
+
+    // Fetch user name
+    const fetchUserName = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const name = user.email.split("@")[0];
+          setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+        }
+      } catch (err) {
+        console.log("Could not fetch user name");
+      }
+    };
+
+    fetchUserName();
   }, []);
 
   // Show toast notification
@@ -113,15 +115,19 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     setTimeout(() => setToast(null), 2000);
   };
 
+  // Calculate average progress
+  const avgProgress = localSets.length > 0
+    ? Math.round(localSets.reduce((sum, s) => sum + s.progress, 0) / localSets.length)
+    : 0;
+
+  // Count sets that need study (progress < 100)
+  const needsStudy = localSets.filter(s => s.progress < 100).length;
 
   // Share set: copy link to clipboard
   const handleShare = async (setId: string) => {
     const supabase = createClient();
-
-    // Try to set is_public in Supabase
     try {
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
         await supabase
           .from("sets")
@@ -133,7 +139,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       console.log("Could not set public status in Supabase");
     }
 
-    // Copy public study link
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${setId}`;
     navigator.clipboard.writeText(url);
     showToast("¡Link copiado!");
@@ -149,21 +154,17 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       return updated;
     });
 
-    // Sync to Supabase
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-
       if (user) {
         const set = localSets.find(s => s.id === setId);
         const newFavoriteStatus = !set?.favorite;
-
         await supabase
           .from("sets")
           .update({ is_favorite: newFavoriteStatus })
           .eq("id", setId)
           .eq("user_id", user.id);
-
         console.log("[Favorite] Updated in Supabase");
       }
     } catch (err) {
@@ -175,18 +176,15 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   // Delete set
   const handleDeleteSet = async (setId: string) => {
     if (confirm("¿Eliminar este set? Esta acción no se puede deshacer")) {
-      // Remove from localStorage immediately for UI feedback
       setLocalSets((prev) => {
         const updated = prev.filter((set) => set.id !== setId);
         localStorage.setItem("vocab_sets", JSON.stringify(updated));
         return updated;
       });
 
-      // Delete from Supabase
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-
         if (user) {
           const { error } = await supabase
             .from("sets")
@@ -209,6 +207,52 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     }
   };
 
+  // Reset progress
+  const handleResetProgress = async (setId: string) => {
+    if (confirm("¿Reiniciar el progreso de este set? Esta acción no se puede deshacer")) {
+      try {
+        const savedSets = localStorage.getItem("vocab_sets");
+        if (savedSets) {
+          const sets = JSON.parse(savedSets);
+          const updatedSets = sets.map((s: any) =>
+            s.id === setId
+              ? {
+                  ...s,
+                  progress: 0,
+                  cards: (s.cards || []).map((card: any) => ({ ...card, known: false })),
+                }
+              : s
+          );
+          localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
+        }
+
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const set = localSets.find(s => s.id === setId);
+          if (set) {
+            const resetCards = (set.cards || []).map(card => ({ ...card, known: false }));
+            const { error } = await supabase
+              .from("sets")
+              .update({ progress: 0, cards: resetCards })
+              .eq("id", setId)
+              .eq("user_id", user.id);
+
+            if (error) {
+              console.error("[ResetProgress] Supabase update failed:", error);
+            } else {
+              console.log("[ResetProgress] Progress reset in Supabase");
+              showToast("¡Progreso reiniciado!");
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[ResetProgress] Error:", err);
+        showToast("Error al reiniciar progreso");
+      }
+    }
+  };
+
   // Sort sets: favorites first
   const sortedSets = [...localSets].sort((a, b) => {
     if (a.favorite && !b.favorite) return -1;
@@ -216,159 +260,170 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     return 0;
   });
 
-  // Get the most recently studied set, or most recently created if none studied
-  const recentItem = localSets.length > 0
-    ? localSets.reduce((prev, current) => {
-        const prevDate = new Date(prev.lastStudied || "");
-        const currentDate = new Date(current.lastStudied || "");
-        return currentDate > prevDate ? current : prev;
-      })
-    : null;
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
 
-  // Shared content component (reusable across layouts)
+  // ── Content Area (shared between layouts) ──
   const ContentArea = () => (
     <>
-      {/* ── Title ── */}
-      <h1 style={{
-        fontFamily: FONT,
-        fontSize: "36px",
-        fontWeight: 500,
-        color: "#1D1B20",
-        letterSpacing: "0",
-        lineHeight: "44px",
-        margin: `8px 0 ${SECTION_GAP}px`,
+      {/* Greeting Section */}
+      <div style={{
+        marginBottom: SECTION_GAP,
       }}>
-        Inicio
-      </h1>
-
-      {/* ── Upload banner ── */}
-      <button
-        onClick={() => onNavigate("crear")}
-        style={{
-          background: BANNER_BG,
-          borderRadius: "14px",
-          padding: "18px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "12px",
-          marginBottom: `${SECTION_GAP}px`,
-          border: "none",
-          cursor: "pointer",
-          width: "100%",
-        }}
-      >
+        <h1 style={{
+          fontFamily: FONT,
+          fontSize: "28px",
+          fontWeight: 600,
+          color: TEXT_PRI,
+          margin: "0 0 8px 0",
+          lineHeight: "1.2",
+        }}>
+          ¡Hola, {userName}!
+        </h1>
         <p style={{
           fontFamily: FONT,
           fontSize: "15px",
-          fontWeight: 400,
-          color: TEXT_PRI,
-          lineHeight: 1.4,
-          flex: 1,
+          color: TEXT_SEC,
           margin: 0,
-          textAlign: "left",
         }}>
-          Sube una imagen para crear un set
+          Mantén tu aprendizaje en marcha
         </p>
-        <Upload
-          aria-hidden
-          style={{
-            flexShrink: 0,
-            width: "22px",
-            height: "22px",
-            color: TEXT_PRI,
-            strokeWidth: 1.8,
-          }}
-        />
-      </button>
+      </div>
 
-      {/* ── Recientes section ── */}
-      <h2 style={{
-        fontFamily: FONT,
-        fontSize: "20px",
-        fontWeight: 500,
-        color: "#1D1B20",
-        letterSpacing: "0",
-        lineHeight: "28px",
-        margin: `0 0 14px`,
-      }}>
-        Recientes
-      </h2>
-
-      {recentItem ? (
-        <button
-          onClick={() => onStudy(recentItem)}
-          style={{
-            display: "block",
-            width: "100%",
-            textAlign: "left",
-            background: W,
-            border: `1px solid ${CARD_BORDER}`,
-            borderRadius: "12px",
-            padding: "18px 18px 16px",
-            cursor: "pointer",
-            marginBottom: `${SECTION_GAP}px`,
-          }}
-        >
+      {/* Daily Goal Progress Card */}
+      {localSets.length > 0 && (
+        <div style={{
+          background: W,
+          border: `1px solid ${CARD_BORDER}`,
+          borderRadius: CARD_RADIUS,
+          padding: "20px",
+          marginBottom: SECTION_GAP,
+        }}>
           <div style={{
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: "14px",
+            alignItems: "flex-start",
+            marginBottom: "16px",
           }}>
-            <span style={{
+            <div>
+              <p style={{
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_SEC,
+                margin: "0 0 4px 0",
+              }}>
+                Progreso general
+              </p>
+              <div style={{
+                display: "flex",
+                alignItems: "baseline",
+                gap: "4px",
+              }}>
+                <span style={{
+                  fontFamily: FONT,
+                  fontSize: "36px",
+                  fontWeight: 700,
+                  color: TEXT_PRI,
+                }}>
+                  {avgProgress}%
+                </span>
+              </div>
+            </div>
+            <div style={{
+              background: BUTTER_ACCENT,
+              borderRadius: "8px",
+              padding: "8px 12px",
               fontFamily: FONT,
-              fontSize: "20px",
-              fontWeight: 500,
-              color: "#1D1B20",
-              letterSpacing: "0",
-              lineHeight: "28px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: TEXT_PRI,
             }}>
-              {recentItem.title}
-            </span>
-            <span style={{
-              fontFamily: FONT,
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#016D9E",
-              letterSpacing: "0.1px",
-              lineHeight: "20px",
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-            }}>
-              Continuar
-              <ArrowRight style={{ width: "14px", height: "14px", strokeWidth: 2.5 }} />
-            </span>
+              {localSets.length} sets
+            </div>
           </div>
-          <p style={{
-            fontFamily: FONT,
-            fontSize: "13px",
-            color: TEXT_SEC,
-            margin: "0 0 10px",
+
+          {/* Progress Bar */}
+          <div style={{
+            position: "relative",
+            width: "100%",
+            height: "6px",
+            borderRadius: "3px",
+            background: PROG_TRACK,
           }}>
-            {recentItem.cardCount} Tarjetas
-          </p>
-          <ProgressBar value={recentItem.progress} showDot />
-        </button>
-      ) : (
-        <div style={{
-          borderRadius: "12px",
-          border: `1.5px dashed ${CARD_BORDER}`,
-          color: TEXT_MUT,
-          fontFamily: FONT,
-          fontSize: "14px",
-          padding: "28px",
-          textAlign: "center",
-          marginBottom: `${SECTION_GAP}px`,
-        }}>
-          Sin actividad reciente
+            <div style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              height: "100%",
+              width: `${avgProgress}%`,
+              borderRadius: "3px",
+              background: PROG_FG,
+            }} />
+          </div>
         </div>
       )}
 
-      {/* ── Empty state ── */}
+      {/* Needs Study Section */}
+      {needsStudy > 0 && (
+        <div style={{
+          background: "#FFF8F0",
+          borderRadius: CARD_RADIUS,
+          padding: "16px",
+          marginBottom: SECTION_GAP,
+          border: `1px solid ${ROSE_ACCENT}20`,
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <div>
+              <p style={{
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_SEC,
+                margin: "0 0 4px 0",
+              }}>
+                Por reparar
+              </p>
+              <p style={{
+                fontFamily: FONT,
+                fontSize: "24px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                margin: 0,
+              }}>
+                {needsStudy}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                const firstIncomplete = localSets.find(s => s.progress < 100);
+                if (firstIncomplete) onStudy(firstIncomplete);
+              }}
+              style={{
+                background: ROSE_ACCENT,
+                border: "none",
+                borderRadius: tokens.radius.btn,
+                padding: "10px 16px",
+                fontFamily: FONT,
+                fontSize: "14px",
+                fontWeight: 600,
+                color: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
+              Empezar
+              <ArrowRight style={{ width: "16px", height: "16px" }} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
       {localSets.length === 0 ? (
         <div style={{
           display: "flex",
@@ -376,13 +431,18 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           alignItems: "center",
           justifyContent: "center",
           textAlign: "center",
-          minHeight: "300px",
+          minHeight: "400px",
           gap: "16px",
         }}>
+          <div style={{
+            fontSize: "48px",
+          }}>
+            📚
+          </div>
           <h2 style={{
             fontFamily: FONT,
             fontSize: "20px",
-            fontWeight: 500,
+            fontWeight: 600,
             color: TEXT_PRI,
             margin: 0,
           }}>
@@ -393,68 +453,87 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             fontSize: "15px",
             color: TEXT_SEC,
             margin: 0,
+            maxWidth: "280px",
           }}>
-            Ve a Crear para subir tu primera foto
+            Crea tu primer set para empezar a aprender
           </p>
+          <button
+            onClick={() => onNavigate("crear")}
+            style={{
+              background: SAGE_ACCENT,
+              border: "none",
+              borderRadius: tokens.radius.btn,
+              padding: "12px 24px",
+              fontFamily: FONT,
+              fontSize: "15px",
+              fontWeight: 600,
+              color: "#fff",
+              cursor: "pointer",
+              marginTop: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <Plus style={{ width: "18px", height: "18px" }} />
+            Crear set
+          </button>
         </div>
       ) : (
         <>
-          {/* ── Sets header ── */}
+          {/* My Sets Section */}
           <div style={{
             display: "flex",
-            alignItems: "center",
             justifyContent: "space-between",
-            marginBottom: "0",
+            alignItems: "center",
+            marginBottom: "16px",
           }}>
             <h2 style={{
               fontFamily: FONT,
-              fontSize: "20px",
-              fontWeight: 500,
-              color: "#1D1B20",
-              letterSpacing: "0",
-              lineHeight: "28px",
+              fontSize: "18px",
+              fontWeight: 600,
+              color: TEXT_PRI,
               margin: 0,
             }}>
-              Sets
+              Mis sets
             </h2>
-            <button style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontFamily: FONT,
-              fontSize: "15px",
-              fontWeight: 500,
-              color: LINK_ACCENT,
-              display: "flex",
-              alignItems: "center",
-              gap: "2px",
-              padding: "4px 0",
-              minHeight: "44px",
-            }}>
-              Todos
-              <ArrowRight style={{ width: "15px", height: "15px", strokeWidth: 2.5 }} />
+            <button
+              onClick={() => onNavigate("crear")}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: "14px",
+                fontWeight: 600,
+                color: SAGE_ACCENT,
+                padding: "6px 0",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <Plus style={{ width: "18px", height: "18px" }} />
+              Nuevo
             </button>
           </div>
 
-          {/* ── Sets grid ––
-              paddingTop = TAB_H so the overflowing SVG tab has room */}
+          {/* Sets List */}
           <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            columnGap: `${COL_GAP}px`,
-            rowGap: `${ROW_GAP + TAB_H}px`,
-            paddingTop: `${TAB_H + 4}px`,
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
             paddingBottom: "24px",
           }}>
-            {sortedSets.map((set, i) => (
-              <SetCard
+            {sortedSets.map((set) => (
+              <SetListItem
                 key={set.id}
                 set={set}
-                color={set.color ?? (i % 2 === 0 ? "blue" : "pink")}
-                onClick={() => onStudy(set)}
+                onStudy={() => onStudy(set)}
                 onShare={() => handleShare(set.id)}
                 onToggleFavorite={() => handleToggleFavorite(set.id)}
                 onDelete={() => handleDeleteSet(set.id)}
+                onResetProgress={() => handleResetProgress(set.id)}
               />
             ))}
           </div>
@@ -467,116 +546,116 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     <>
       {/* ===== MOBILE LAYOUT (< 1024px) ===== */}
       {isMobile && (
-      <div style={{
-        height: "100dvh",
-        maxWidth: "375px",
-        margin: "0 auto",
-        background: BG_PAGE,
-        display: "flex",
-        flexDirection: "column",
-      }}>
-      {/* Safe-area top spacer */}
-      <div aria-hidden style={{
-        flexShrink: 0,
-        height: "max(16px, env(safe-area-inset-top, 0px))",
-        background: BG_PAGE,
-      }} />
-
-      {/* ── Scrollable body ── */}
-      <div style={{
-        flex: 1,
-        overflowY: 'scroll',
-        WebkitOverflowScrolling: 'touch',
-        height: '0',
-        paddingBottom: "100px"
-      }}>
-        <div style={{ padding: `0 ${H_PAD}px` }}>
-          <ContentArea />
-        </div>
-      </div>
-
-      {/* ── Bottom navigation ── */}
-      <nav
-        aria-label="Navegación principal"
-        style={{
-          flexShrink: 0,
-          width: "100%",
-          background: W,
-          borderTop: `1px solid #E8E8E8`,
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-around",
-          paddingTop: "10px",
-          paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
-        }}
-      >
-        <NavItem label="Inicio"  active       icon={<SmileIcon />} onClick={() => {}} />
-        <NavItem label="Crear"   active={false} icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("crear")} />
-        <NavItem label="Progreso" active={false} icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />} onClick={() => onNavigate("progreso")} />
-        <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
-      </nav>
-
-      {/* iOS home indicator */}
-      <div aria-hidden style={{
-        flexShrink: 0,
-        background: W,
-        display: "flex",
-        justifyContent: "center",
-        paddingTop: "4px",
-        paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))",
-      }}>
         <div style={{
-          width: "134px",
-          height: "5px",
-          borderRadius: "99px",
-          background: "#111",
-        }} />
-      </div>
-      </div>
-      )}
-
-      {/* ===== DESKTOP LAYOUT (≥ 1024px) ===== */}
-      {!isMobile && (
-      <div style={{
-        height: "100dvh",
-        background: "#F7F6F3",
-        display: "flex",
-        flexDirection: "row",
-      }}>
-        <AppSidebar activeTab="inicio" onNavigate={onNavigate} onLogout={onLogout} />
-
-        {/* Main content area */}
-        <div style={{
-          flex: 1,
+          height: "100dvh",
+          maxWidth: "375px",
+          margin: "0 auto",
+          background: BG_PAGE,
           display: "flex",
           flexDirection: "column",
-          background: "#F7F6F3",
         }}>
           {/* Safe-area top spacer */}
           <div aria-hidden style={{
             flexShrink: 0,
             height: "max(16px, env(safe-area-inset-top, 0px))",
+            background: BG_PAGE,
           }} />
 
-          {/* Scrollable content */}
+          {/* Scrollable body */}
           <div style={{
             flex: 1,
-            overflowY: 'scroll',
-            WebkitOverflowScrolling: 'touch',
-            height: '100vh',
-            paddingBottom: "40px"
+            overflowY: "scroll",
+            WebkitOverflowScrolling: "touch",
+            height: "0",
+            paddingBottom: "100px",
           }}>
-            <div style={{
-              maxWidth: "680px",
-              margin: "0 auto",
-              padding: `0 ${H_PAD}px`,
-              width: "100%",
-            }}>
+            <div style={{ padding: `0 ${H_PAD}px` }}>
               <ContentArea />
             </div>
           </div>
+
+          {/* Bottom navigation */}
+          <nav
+            aria-label="Navegación principal"
+            style={{
+              flexShrink: 0,
+              width: "100%",
+              background: W,
+              borderTop: `1px solid ${CARD_BORDER}`,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-around",
+              paddingTop: "10px",
+              paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
+            }}
+          >
+            <NavItem label="Inicio" active icon={<SmileIcon />} onClick={() => {}} />
+            <NavItem label="Crear" active={false} icon={<FolderIcon />} onClick={() => onNavigate("crear")} />
+            <NavItem label="Progreso" active={false} icon={<PlayIcon />} onClick={() => onNavigate("progreso")} />
+            <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
+          </nav>
+
+          {/* iOS home indicator */}
+          <div aria-hidden style={{
+            flexShrink: 0,
+            background: W,
+            display: "flex",
+            justifyContent: "center",
+            paddingTop: "4px",
+            paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))",
+          }}>
+            <div style={{
+              width: "134px",
+              height: "5px",
+              borderRadius: "99px",
+              background: "#111",
+            }} />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ===== DESKTOP LAYOUT (≥ 1024px) ===== */}
+      {!isMobile && (
+        <div style={{
+          height: "100dvh",
+          background: BG_PAGE,
+          display: "flex",
+          flexDirection: "row",
+        }}>
+          <AppSidebar activeTab="inicio" onNavigate={onNavigate} onLogout={onLogout} />
+
+          {/* Main content area */}
+          <div style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            background: BG_PAGE,
+          }}>
+            {/* Safe-area top spacer */}
+            <div aria-hidden style={{
+              flexShrink: 0,
+              height: "max(16px, env(safe-area-inset-top, 0px))",
+            }} />
+
+            {/* Scrollable content */}
+            <div style={{
+              flex: 1,
+              overflowY: "scroll",
+              WebkitOverflowScrolling: "touch",
+              height: "100vh",
+              paddingBottom: "40px",
+            }}>
+              <div style={{
+                maxWidth: "680px",
+                margin: "0 auto",
+                padding: `0 ${H_PAD}px`,
+                width: "100%",
+              }}>
+                <ContentArea />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Toast notification */}
@@ -604,77 +683,28 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   );
 }
 
-// ── SetCard ───────────────────────────────────────────────────────────────────
-function SetCard({
+// ── SetListItem ────────────────────────────────────────────────────────────────
+function SetListItem({
   set,
-  color,
-  onClick,
+  onStudy,
   onShare,
   onToggleFavorite,
   onDelete,
+  onResetProgress,
 }: {
   set: DeckSet;
-  color: "blue" | "pink";
-  onClick: () => void;
+  onStudy: () => void;
   onShare: () => void;
   onToggleFavorite: () => void;
   onDelete: () => void;
+  onResetProgress: () => void;
 }) {
-  const handleResetProgress = async () => {
-    if (confirm("¿Reiniciar el progreso de este set? Esta acción no se puede deshacer")) {
-      try {
-        // Reset in localStorage
-        const savedSets = localStorage.getItem("vocab_sets");
-        if (savedSets) {
-          const sets = JSON.parse(savedSets);
-          const updatedSets = sets.map((s: any) =>
-            s.id === set.id
-              ? {
-                  ...s,
-                  progress: 0,
-                  cards: (s.cards || []).map((card: any) => ({ ...card, known: false })),
-                }
-              : s
-          );
-          localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
-        }
-
-        // Reset in Supabase
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user) {
-          const resetCards = (set.cards || []).map(card => ({ ...card, known: false }));
-          const { error } = await supabase
-            .from("sets")
-            .update({ progress: 0, cards: resetCards })
-            .eq("id", set.id)
-            .eq("user_id", user.id);
-
-          if (error) {
-            console.error("[ResetProgress] Supabase update failed:", error);
-            // Toast will be handled in parent scope
-          } else {
-            console.log("[ResetProgress] Progress reset in Supabase");
-            showToastFromParent("¡Progreso reiniciado!");
-          }
-        }
-      } catch (err) {
-        console.error("[ResetProgress] Error:", err);
-        showToastFromParent("Error al reiniciar progreso");
-      }
-    }
-  };
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(set.title);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
-  const showMenuButton = isMobile || isHovering;
-
-  const cardBg = color === "blue" ? BLUE_CARD : PINK_CARD;
-  const tabFill = color === "blue" ? BLUE_TAB  : PINK_TAB;
 
   const handleMenuAction = (action: () => void) => {
     action();
@@ -688,7 +718,6 @@ function SetCard({
 
   const saveName = async () => {
     if (editedName.trim()) {
-      // Update localStorage first for immediate UI feedback
       const savedSets = localStorage.getItem("vocab_sets");
       if (savedSets) {
         const sets = JSON.parse(savedSets);
@@ -697,13 +726,10 @@ function SetCard({
         );
         localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
       }
-      set.title = editedName.trim();
 
-      // Sync to Supabase
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-
         if (user) {
           const { error } = await supabase
             .from("sets")
@@ -735,45 +761,28 @@ function SetCard({
     }
   };
 
-  return (
-    <div style={{ position: "relative" }}>
+  const showMenuButton = isMobile || isHovering;
 
-      {/* Folder tab — SVG extended by CARD_RADIUS px downward so it
-          overlaps the card's top-left corner, eliminating any gap.
-          The card's borderTopLeftRadius is set to 0 to match. */}
-      <div style={{
-        position: "absolute",
-        top: `-${TAB_H}px`,
-        left: 0,
-        width: `${TAB_W}px`,
-        /* extend height into the card by CARD_RADIUS so there's no gap */
-        height: `${TAB_H + CARD_RADIUS}px`,
-        pointerEvents: "none",
-        zIndex: 1,
-      }}>
-        <svg
-          width={TAB_W}
-          height={TAB_H + CARD_RADIUS}
-          viewBox={`0 0 ${TAB_W} ${TAB_H + CARD_RADIUS}`}
-          fill="none"
-          aria-hidden
-          style={{ display: "block" }}
-        >
-          {/* Curved tab shape */}
-          <path
-            d="M1.15795 9.17728C1.81115 3.93493 6.2668 0 11.5497 0H71.1852C75.5889 0 79.3026 3.28097 79.8454 7.65109L81.1892 18.4706H0L1.15795 9.17728Z"
-            fill={tabFill}
-          />
-          {/* Filled rectangle below tab path — covers card's rounded top-left corner */}
-          <rect
-            x="0"
-            y={TAB_H - 0.5}
-            width={TAB_W}
-            height={CARD_RADIUS + 1}
-            fill={cardBg}
-          />
-        </svg>
-        {/* Tab label — vertically centered within the tab shape height */}
+  return (
+    <button
+      onClick={onStudy}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+        textAlign: "left",
+        background: W,
+        border: `1px solid ${CARD_BORDER}`,
+        borderRadius: CARD_RADIUS,
+        padding: "16px",
+        cursor: "pointer",
+        position: "relative",
+      }}
+    >
+      <div style={{ flex: 1 }}>
         {isEditing ? (
           <input
             autoFocus
@@ -781,306 +790,226 @@ function SetCard({
             onChange={(e) => setEditedName(e.target.value)}
             onBlur={saveName}
             onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: `${TAB_H}px`,
-              paddingLeft: "10px",
-              paddingRight: "10px",
               fontFamily: FONT,
-              fontSize: "11px",
-              fontWeight: 500,
-              border: "none",
-              background: "transparent",
-              color: TEXT_SEC,
+              fontSize: "16px",
+              fontWeight: 600,
+              color: TEXT_PRI,
+              border: `1px solid ${SAGE_ACCENT}`,
+              borderRadius: "8px",
+              padding: "8px 12px",
+              width: "100%",
+              maxWidth: "300px",
             }}
           />
         ) : (
-          <span style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: `${TAB_H}px`,
-            display: "flex",
-            alignItems: "center",
-            paddingLeft: "10px",
-            fontFamily: FONT,
-            fontSize: "11px",
-            fontWeight: 500,
-            color: TEXT_SEC,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}>
-            {set.title}
-          </span>
+          <>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "8px",
+            }}>
+              <h3 style={{
+                fontFamily: FONT,
+                fontSize: "16px",
+                fontWeight: 600,
+                color: TEXT_PRI,
+                margin: 0,
+              }}>
+                {set.title}
+              </h3>
+              {set.favorite && (
+                <Star
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    fill: BUTTER_ACCENT,
+                    color: BUTTER_ACCENT,
+                  }}
+                />
+              )}
+            </div>
+            <p style={{
+              fontFamily: FONT,
+              fontSize: "13px",
+              color: TEXT_SEC,
+              margin: "0 0 8px 0",
+            }}>
+              {set.cardCount} tarjetas • {set.progress}% completo
+            </p>
+
+            {/* Mini progress bar */}
+            <div style={{
+              position: "relative",
+              width: "100%",
+              height: "4px",
+              borderRadius: "2px",
+              background: PROG_TRACK,
+            }}>
+              <div style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                height: "100%",
+                width: `${set.progress}%`,
+                borderRadius: "2px",
+                background: PROG_FG,
+              }} />
+            </div>
+          </>
         )}
       </div>
 
-      {/* Card body — top-left corner is flat (0) where tab connects */}
-      <div
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          width: "100%",
-          height: `${CARD_H}px`,
-          textAlign: "left",
-          background: cardBg,
-          borderRadius: `0 ${CARD_RADIUS}px ${CARD_RADIUS}px ${CARD_RADIUS}px`,
-          padding: `16px ${CARD_PAD_X}px 14px`,
-          position: "relative",
-        }}
-      >
-        {/* Menu button — only visible on hover (desktop) or always on mobile */}
-        {showMenuButton && (
+      {/* Menu button */}
+      {showMenuButton && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             setMenuOpen(!menuOpen);
           }}
           style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
+            flexShrink: 0,
             width: "32px",
             height: "32px",
             padding: "0",
-            background: "rgba(255,255,255,0.6)",
+            background: "none",
             border: "none",
-            borderRadius: "6px",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: TEXT_PRI,
+            color: TEXT_SEC,
+            marginLeft: "12px",
           }}
           aria-label="Más opciones"
         >
-          <MoreVertical style={{ width: "18px", height: "18px" }} />
+          <MoreVertical style={{ width: "20px", height: "20px" }} />
         </button>
-        )}
+      )}
 
-        {/* Dropdown menu */}
-        {menuOpen && (
-          <>
-            {/* Backdrop to close menu */}
-            <div
-              onClick={() => setMenuOpen(false)}
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <>
+          <div
+            onClick={() => setMenuOpen(false)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              right: "0",
+              background: W,
+              border: `1px solid ${CARD_BORDER}`,
+              borderRadius: "8px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+              zIndex: 20,
+              minWidth: "160px",
+              marginTop: "4px",
+              overflow: "hidden",
+            }}
+          >
+            <button
+              onClick={() => handleMenuAction(onShare)}
               style={{
-                position: "fixed",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                zIndex: 10,
-              }}
-            />
-            {/* Menu items */}
-            <div
-              style={{
-                position: "absolute",
-                top: "40px",
-                right: "0",
-                background: W,
-                border: `1px solid ${CARD_BORDER}`,
-                borderRadius: "8px",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-                zIndex: 20,
-                minWidth: "140px",
-                overflow: "hidden",
-              }}
-            >
-              <button
-                onClick={() => handleMenuAction(onShare)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  color: TEXT_PRI,
-                  borderBottom: `1px solid ${CARD_BORDER}`,
-                }}
-              >
-                Compartir
-              </button>
-              <button
-                onClick={() => handleMenuAction(handleRename)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  color: TEXT_PRI,
-                  borderBottom: `1px solid ${CARD_BORDER}`,
-                }}
-              >
-                Renombrar
-              </button>
-              <button
-                onClick={() => handleMenuAction(onToggleFavorite)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  color: TEXT_PRI,
-                  borderBottom: `1px solid ${CARD_BORDER}`,
-                }}
-              >
-                Favorito
-              </button>
-              <button
-                onClick={() => handleMenuAction(handleResetProgress)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  color: TEXT_PRI,
-                  borderBottom: `1px solid ${CARD_BORDER}`,
-                }}
-              >
-                Reiniciar progreso
-              </button>
-              <button
-                onClick={() => handleMenuAction(onDelete)}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontFamily: FONT,
-                  fontSize: "14px",
-                  color: TEXT_RED,
-                }}
-              >
-                Eliminar
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Card content */}
-        <button
-          onClick={onClick}
-          style={{
-            width: "100%",
-            textAlign: "left",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: "0",
-            font: "inherit",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
-            <div>
-              <span style={{
-                fontFamily: FONT,
-                fontSize: "42px",
-                fontWeight: 700,
-                color: TEXT_PRI,
-                lineHeight: 1,
-                display: "block",
-              }}>
-                {set.cardCount}
-              </span>
-              <span style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                cursor: "pointer",
                 fontFamily: FONT,
                 fontSize: "14px",
-                fontWeight: 400,
-                color: TEXT_SEC,
-                display: "block",
-                marginTop: "4px",
-              }}>
-                Tarjetas
-              </span>
-            </div>
-            {set.favorite && (
-              <Star
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  fill: "#FFD700",
-                  color: "#FFD700",
-                  marginBottom: "4px",
-                }}
-              />
-            )}
+                color: TEXT_PRI,
+                borderBottom: `1px solid ${CARD_BORDER}`,
+              }}
+            >
+              Compartir
+            </button>
+            <button
+              onClick={() => handleMenuAction(handleRename)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_PRI,
+                borderBottom: `1px solid ${CARD_BORDER}`,
+              }}
+            >
+              Renombrar
+            </button>
+            <button
+              onClick={() => handleMenuAction(onToggleFavorite)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_PRI,
+                borderBottom: `1px solid ${CARD_BORDER}`,
+              }}
+            >
+              Favorito
+            </button>
+            <button
+              onClick={() => handleMenuAction(onResetProgress)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_PRI,
+                borderBottom: `1px solid ${CARD_BORDER}`,
+              }}
+            >
+              Reiniciar progreso
+            </button>
+            <button
+              onClick={() => handleMenuAction(onDelete)}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                cursor: "pointer",
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_RED,
+              }}
+            >
+              Eliminar
+            </button>
           </div>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── ProgressBar ───────────────────────────────────────────────────────────────
-function ProgressBar({ value, showDot = false }: { value: number; showDot?: boolean }) {
-  const pct = Math.min(100, Math.max(0, value));
-  return (
-    <div
-      role="progressbar"
-      aria-valuenow={pct}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "5px",
-        borderRadius: "99px",
-        background: PROG_TRACK,
-      }}
-    >
-      <div style={{
-        position: "absolute",
-        left: 0, top: 0,
-        height: "100%",
-        width: `${pct}%`,
-        borderRadius: "99px",
-        background: PROG_FG,
-      }} />
-      {showDot && (
-        <div style={{
-          position: "absolute",
-          right: "-3px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "7px",
-          height: "7px",
-          borderRadius: "50%",
-          background: PROG_TRACK,
-          border: `1.5px solid ${PROG_TRACK}`,
-        }} />
+        </>
       )}
-    </div>
+    </button>
   );
 }
 
-// ── NavItem ───────────────────────────────────────────────────────────────────
+// ── NavItem ────────────────────────────────────────────────────────────────────
 function NavItem({
   label,
   icon,
@@ -1106,7 +1035,8 @@ function NavItem({
         border: "none",
         cursor: "pointer",
         padding: 0,
-      }}>
+      }}
+    >
       <div style={{
         width: active ? "64px" : "44px",
         height: "32px",
@@ -1132,7 +1062,7 @@ function NavItem({
   );
 }
 
-// ── SmileIcon ─────────────────────────────────────────────────────────────────
+// ── Icons ──────────────────────────────────────────────────────────────────────
 function SmileIcon() {
   return (
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -1142,6 +1072,22 @@ function SmileIcon() {
       <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
       <path d="M8.5 14c1.2 1.6 5.8 1.6 7 0"
         stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M3 7h3l2-2h10a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
     </svg>
   );
 }
