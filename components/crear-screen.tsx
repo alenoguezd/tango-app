@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Check, FolderOpen, Play, ChevronLeft, Edit2, Plus } from "lucide-react";
+import { Check, X, Plus } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
@@ -15,6 +15,8 @@ const TEXT_SEC = "#B0A898";
 const SAGE = "#A8C87A";
 const ROSE = "#F2B8CD";
 const SKY = "#B8CEEA";
+const SKY_LIGHT = "#E8F2F9";
+const SAGE_LIGHT = "#E8F4D8";
 const BORDER = "#EEEBE6";
 const H_PAD = 16;
 const SECTION_GAP = 24;
@@ -54,13 +56,13 @@ function useWindowSize() {
 export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageName, setImageName] = useState<string | null>(null);
   const [setName, setSetName] = useState("");
   const [state, setState] = useState<CrearState>("idle");
   const [createdCount, setCreatedCount] = useState(0);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [createdCards, setCreatedCards] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -69,13 +71,19 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setImageUrl(URL.createObjectURL(file));
+    setImageName(file.name);
   }
 
-  async function handleCreate() {
-    if (!imageUrl || state !== "idle") return;
+  function handleRemoveImage() {
+    setImageUrl(null);
+    setImageName(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
 
-    const finalName = setName.trim() || "Set sin nombre";
-    setSetName(finalName);
+  async function handleGenerate() {
+    if (!imageUrl || state !== "idle" || !setName.trim()) return;
+
+    const finalName = setName.trim();
     setState("loading");
     setError(null);
 
@@ -136,7 +144,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
             if (user) {
               try {
-                const { error } = await supabase.from("sets").insert({
+                await supabase.from("sets").insert({
                   id: id,
                   user_id: user.id,
                   name: finalName,
@@ -145,12 +153,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                   is_public: false,
                   progress: 0,
                 });
-
-                if (error) {
-                  console.error("[Crear] Supabase insert error:", error);
-                }
               } catch (insertErr) {
-                console.error("[Crear] Supabase insert threw exception:", insertErr);
+                console.error("[Crear] Supabase insert error:", insertErr);
               }
             }
           } catch (err) {
@@ -161,6 +165,11 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           setCreatedId(id);
           setCreatedCards(cardsWithIds);
           setState("success");
+
+          // Navigate to study screen after success
+          setTimeout(() => {
+            if (id) router.push(`/estudiar/${id}`);
+          }, 800);
         } catch (err) {
           setError("Error al procesar imagen");
           setState("idle");
@@ -175,6 +184,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   function handleReset() {
     setImageUrl(null);
+    setImageName(null);
     setSetName("");
     setState("idle");
     setCreatedCount(0);
@@ -183,47 +193,17 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
-  function handleGoBack() {
-    handleReset();
-  }
-
-  function handleSaveSet() {
-    if (createdId) {
-      router.push(`/estudiar/${createdId}`);
-    }
-  }
-
   function handleGoHome() {
     handleReset();
     onNavigate("inicio");
   }
 
-  const canCreate = !!imageUrl && state === "idle";
+  const canGenerate = !!imageUrl && !!setName.trim() && state === "idle";
 
-  // ===== PASO 1: UPLOAD IMAGE =====
-  const Step1Content = () => (
+  // ===== Main Content =====
+  const MainContent = () => (
     <div style={{ padding: `0 ${H_PAD}px` }}>
-      {/* Progress bar */}
-      <div style={{
-        display: "flex",
-        gap: "4px",
-        marginBottom: "24px",
-      }}>
-        <div style={{
-          flex: 1,
-          height: "3px",
-          background: TEXT_PRI,
-          borderRadius: "2px",
-        }} />
-        <div style={{
-          flex: 1,
-          height: "3px",
-          background: BORDER,
-          borderRadius: "2px",
-        }} />
-      </div>
-
-      {/* Title and subtitle */}
+      {/* Title */}
       <h1 style={{
         fontFamily: FONT_UI,
         fontSize: "28px",
@@ -232,8 +212,10 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         color: TEXT_PRI,
         margin: "0 0 8px 0",
       }}>
-        Crear set
+        Nuevo set
       </h1>
+
+      {/* Subtitle */}
       <p style={{
         fontFamily: FONT_UI,
         fontSize: "13px",
@@ -241,97 +223,156 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         color: TEXT_SEC,
         margin: "0 0 24px 0",
       }}>
-        Paso 1 de 2 • Sube tu imagen
+        Crea tus tarjetas de japonés en segundos
       </p>
 
       {/* Upload zone */}
-      <div style={{
-        border: `2px dashed ${SKY}`,
-        borderRadius: CARD_RADIUS,
-        padding: "32px 16px",
-        textAlign: "center",
-        marginBottom: SECTION_GAP,
-        background: "#F0F5FF",
-        cursor: "pointer",
-      }} onClick={() => fileInputRef.current?.click()}>
-        <div style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: "16px",
-        }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" style={{ stroke: SKY, strokeWidth: 1.5 }}>
-            <rect x="3" y="3" width="18" height="18" rx="4" />
-            <circle cx="9" cy="9" r="2" fill="currentColor" />
-            <path d="M21 15l-5-5-11 11" />
-          </svg>
-        </div>
-        <h3 style={{
-          fontFamily: FONT_UI,
-          fontSize: "16px",
-          fontWeight: 700,
-          color: TEXT_PRI,
-          margin: "0 0 8px 0",
-        }}>
-          Toca para subir foto
-        </h3>
-        <p style={{
-          fontFamily: FONT_UI,
-          fontSize: "11px",
-          fontWeight: 400,
-          color: TEXT_SEC,
-          margin: "0 0 6px 0",
-        }}>
-          JPG, PNG • hasta 10 MB
-        </p>
-        <p style={{
-          fontFamily: FONT_UI,
-          fontSize: "11px",
-          fontWeight: 400,
-          color: TEXT_SEC,
-          margin: 0,
-        }}>
-          Luz clara • texto legible
-        </p>
-      </div>
-
-      {/* Image preview */}
-      {imageUrl && (
-        <div style={{
-          background: "#F5F5F5",
-          border: `0.5px solid ${BORDER}`,
+      <div
+        onClick={() => fileInputRef.current?.click()}
+        style={{
+          border: `2px dashed ${imageUrl ? SAGE : SKY}`,
           borderRadius: CARD_RADIUS,
-          padding: "16px",
+          padding: "24px 16px",
+          textAlign: "center",
           marginBottom: SECTION_GAP,
-          display: "flex",
-          gap: "12px",
-          alignItems: "flex-start",
-        }}>
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <img
-              src={imageUrl}
-              alt="Preview"
-              style={{
-                width: "60px",
-                height: "60px",
-                objectFit: "cover",
-                borderRadius: "8px",
-              }}
-            />
+          background: imageUrl ? SAGE_LIGHT : SKY_LIGHT,
+          cursor: "pointer",
+          position: "relative",
+        }}
+      >
+        {!imageUrl ? (
+          <>
             <div style={{
-              position: "absolute",
-              top: "-6px",
-              right: "-6px",
-              width: "20px",
-              height: "20px",
-              borderRadius: "50%",
-              background: SAGE,
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "12px",
+            }}>
+              <svg width="44" height="44" viewBox="0 0 24 24" fill="none" style={{ stroke: SKY, strokeWidth: 1.5 }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="9" cy="9" r="1.5" fill="currentColor" />
+                <path d="M21 15l-5-5-11 11" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <h3 style={{
+              fontFamily: FONT_UI,
+              fontSize: "14px",
+              fontWeight: 700,
+              color: "#1565C0",
+              margin: "0 0 6px 0",
+            }}>
+              Fotografía tu lista de vocabulario
+            </h3>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: "#1565C0",
+              margin: "0 0 4px 0",
+            }}>
+              Kanji, hiragana o rōmaji — lo detectamos todo
+            </p>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: "#1565C0",
+              margin: 0,
+            }}>
+              JPG · PNG · hasta 10 MB
+            </p>
+          </>
+        ) : (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+          }}>
+            <div style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              border: "2px solid #fff",
+              width: "44px",
+              height: "44px",
+              background: "#fff",
+              borderRadius: "8px",
+              flexShrink: 0,
             }}>
-              <Check style={{ width: "10px", height: "10px", color: "#fff", strokeWidth: 3 }} />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ stroke: SAGE, strokeWidth: 1.5 }}>
+                <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round" />
+                <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round" />
+              </svg>
             </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <h4 style={{
+                fontFamily: FONT_UI,
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#2A5010",
+                margin: "0 0 2px 0",
+              }}>
+                ¡Imagen lista!
+              </h4>
+              <p style={{
+                fontFamily: FONT_UI,
+                fontSize: "11px",
+                fontWeight: 400,
+                color: "#2A5010",
+                margin: 0,
+              }}>
+                {imageName} · detectando palabras...
+              </p>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveImage();
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "24px",
+                height: "24px",
+                padding: 0,
+                color: "#2A5010",
+                flexShrink: 0,
+              }}
+            >
+              <X style={{ width: "20px", height: "20px" }} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Info card */}
+      {!imageUrl && (
+        <div style={{
+          background: "#fff",
+          border: `0.5px solid ${BORDER}`,
+          borderRadius: "10px",
+          padding: "12px 14px",
+          marginBottom: "16px",
+          display: "flex",
+          gap: "10px",
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "36px",
+            height: "36px",
+            background: SKY_LIGHT,
+            borderRadius: "6px",
+            flexShrink: 0,
+          }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ stroke: SKY, strokeWidth: 1.5 }}>
+              <line x1="5" y1="8" x2="19" y2="8" strokeLinecap="round" />
+              <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round" />
+              <line x1="5" y1="16" x2="19" y2="16" strokeLinecap="round" />
+            </svg>
           </div>
           <div>
             <h4 style={{
@@ -339,9 +380,9 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
               fontSize: "13px",
               fontWeight: 700,
               color: TEXT_PRI,
-              margin: "0 0 4px 0",
+              margin: "0 0 2px 0",
             }}>
-              Tu foto debe verse así
+              Consejo para mejor detección
             </h4>
             <p style={{
               fontFamily: FONT_UI,
@@ -350,11 +391,23 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
               color: TEXT_SEC,
               margin: 0,
             }}>
-              Lista visible, bien iluminada y sin sombras
+              Buena luz, texto plano y sin sombras
             </p>
           </div>
         </div>
       )}
+
+      {/* Divider or link */}
+      <p style={{
+        fontFamily: FONT_UI,
+        fontSize: "11px",
+        fontWeight: 400,
+        color: TEXT_SEC,
+        textAlign: "center",
+        margin: "0 0 16px 0",
+      }}>
+        o escribe tú mismo
+      </p>
 
       {/* Add manually link */}
       <button
@@ -370,12 +423,12 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           padding: "8px 0",
           display: "flex",
           alignItems: "center",
-          gap: "4px",
+          gap: "6px",
           marginBottom: SECTION_GAP,
         }}
       >
-        <Plus style={{ width: "16px", height: "16px" }} />
-        Agregar palabras manualmente
+        <span style={{ fontSize: "14px" }}>🖊</span>
+        Agregar palabras a mano
       </button>
 
       {/* Set name input */}
@@ -389,112 +442,32 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       }}>
         Nombre del set
       </label>
-      <div style={{
-        position: "relative",
-        marginBottom: SECTION_GAP,
-      }}>
-        <input
-          type="text"
-          value={setName}
-          onChange={(e) => setSetName(e.target.value)}
-          placeholder="Ej. Biología · Cap. 3"
-          style={{
-            width: "100%",
-            fontFamily: FONT_UI,
-            fontSize: "13px",
-            padding: "12px 12px",
-            border: `0.5px solid ${BORDER}`,
-            borderRadius: "8px",
-            boxSizing: "border-box",
-            background: "#F5F5F5",
-          }}
-        />
-        <Edit2 style={{
-          position: "absolute",
-          right: "12px",
-          top: "50%",
-          transform: "translateY(-50%)",
-          width: "16px",
-          height: "16px",
-          color: TEXT_SEC,
-          pointerEvents: "none",
-        }} />
-      </div>
-
-      {/* Checklist */}
-      <div style={{
-        background: "#F5F5F5",
-        border: `0.5px solid ${BORDER}`,
-        borderRadius: CARD_RADIUS,
-        padding: "16px",
-        marginBottom: SECTION_GAP,
-      }}>
-        <p style={{
-          fontFamily: FONT_UI,
-          fontSize: "11px",
-          fontWeight: 700,
-          color: TEXT_SEC,
-          margin: "0 0 12px 0",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}>
-          Para continuar necesitas:
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <label style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            cursor: "pointer",
-            fontFamily: FONT_UI,
-            fontSize: "13px",
-            color: imageUrl ? TEXT_PRI : TEXT_SEC,
-          }}>
-            <input
-              type="checkbox"
-              checked={!!imageUrl}
-              readOnly
-              style={{
-                width: "16px",
-                height: "16px",
-                cursor: "pointer",
-                accentColor: SAGE,
-              }}
-            />
-            Subir una imagen
-          </label>
-          <label style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            cursor: "pointer",
-            fontFamily: FONT_UI,
-            fontSize: "13px",
-            color: setName ? TEXT_PRI : TEXT_SEC,
-          }}>
-            <input
-              type="checkbox"
-              checked={!!setName}
-              readOnly
-              style={{
-                width: "16px",
-                height: "16px",
-                cursor: "pointer",
-                accentColor: SAGE,
-              }}
-            />
-            Nombrar el set
-          </label>
-        </div>
-      </div>
-
-      {/* Continue button */}
-      <button
-        onClick={handleCreate}
-        disabled={!canCreate || state === "loading"}
+      <input
+        type="text"
+        value={setName}
+        onChange={(e) => setSetName(e.target.value)}
+        placeholder="Ej. N5 · Verbos · Lección 3"
         style={{
           width: "100%",
-          background: canCreate ? TEXT_PRI : BORDER,
+          fontFamily: FONT_UI,
+          fontSize: "13px",
+          padding: "12px 12px",
+          border: imageUrl ? `2px solid ${SAGE}` : `0.5px solid ${BORDER}`,
+          borderRadius: "8px",
+          boxSizing: "border-box",
+          background: "#fff",
+          color: TEXT_PRI,
+          marginBottom: SECTION_GAP,
+        }}
+      />
+
+      {/* Generate button */}
+      <button
+        onClick={handleGenerate}
+        disabled={!canGenerate}
+        style={{
+          width: "100%",
+          background: canGenerate ? TEXT_PRI : "#D9D9D9",
           border: "none",
           borderRadius: "9999px",
           padding: "14px 20px",
@@ -502,15 +475,14 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           fontSize: "14px",
           fontWeight: 700,
           color: "#fff",
-          cursor: canCreate ? "pointer" : "not-allowed",
-          opacity: canCreate ? 1 : 0.5,
+          cursor: canGenerate ? "pointer" : "not-allowed",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: "8px",
         }}
       >
-        {state === "loading" ? "Procesando..." : "Continuar →"}
+        {state === "loading" ? "Procesando..." : "Generar tarjetas →"}
       </button>
 
       <input
@@ -520,217 +492,6 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         onChange={handleFileChange}
         style={{ display: "none" }}
       />
-    </div>
-  );
-
-  // ===== PASO 2: REVIEW CARDS =====
-  const Step2Content = () => (
-    <div style={{ padding: `0 ${H_PAD}px` }}>
-      {/* Back button and progress */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: "24px",
-      }}>
-        <button
-          onClick={handleGoBack}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "4px 0",
-            fontFamily: FONT_UI,
-            fontSize: "13px",
-            fontWeight: 600,
-            color: TEXT_SEC,
-          }}
-        >
-          <ChevronLeft style={{ width: "18px", height: "18px" }} />
-          Volver
-        </button>
-
-        {/* Progress bar */}
-        <div style={{ display: "flex", gap: "4px", flex: 1, marginLeft: "16px" }}>
-          <div style={{
-            flex: 1,
-            height: "3px",
-            background: TEXT_PRI,
-            borderRadius: "2px",
-          }} />
-          <div style={{
-            flex: 1,
-            height: "3px",
-            background: TEXT_PRI,
-            borderRadius: "2px",
-          }} />
-        </div>
-      </div>
-
-      {/* Title and subtitle */}
-      <h1 style={{
-        fontFamily: FONT_UI,
-        fontSize: "28px",
-        fontWeight: 800,
-        letterSpacing: "-0.02em",
-        color: TEXT_PRI,
-        margin: "0 0 8px 0",
-      }}>
-        Revisar set
-      </h1>
-      <p style={{
-        fontFamily: FONT_UI,
-        fontSize: "13px",
-        fontWeight: 400,
-        color: TEXT_SEC,
-        margin: "0 0 24px 0",
-      }}>
-        Paso 2 de 2 • Confirma tus tarjetas
-      </p>
-
-      {/* Set name badge */}
-      <div style={{
-        background: SKY,
-        borderRadius: "8px",
-        padding: "8px 12px",
-        fontFamily: FONT_UI,
-        fontSize: "12px",
-        fontWeight: 700,
-        color: TEXT_PRI,
-        marginBottom: "16px",
-        display: "inline-block",
-      }}>
-        {setName || "Sin nombre"}
-      </div>
-
-      {/* Cards detected header */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "16px",
-      }}>
-        <h2 style={{
-          fontFamily: FONT_UI,
-          fontSize: "14px",
-          fontWeight: 700,
-          color: TEXT_PRI,
-          margin: 0,
-        }}>
-          Tarjetas detectadas
-        </h2>
-        <div style={{
-          background: SAGE,
-          borderRadius: "9999px",
-          padding: "4px 10px",
-          fontFamily: FONT_UI,
-          fontSize: "11px",
-          fontWeight: 700,
-          color: "#fff",
-        }}>
-          {createdCount} tarjetas
-        </div>
-      </div>
-
-      {/* Cards list */}
-      <div style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-        marginBottom: SECTION_GAP,
-      }}>
-        {createdCards.map((card, idx) => (
-          <div
-            key={card.id || idx}
-            onClick={() => setEditingCardId(card.id || idx.toString())}
-            style={{
-              background: editingCardId === (card.id || idx.toString()) ? ROSE : "#fff",
-              border: `0.5px solid ${BORDER}`,
-              borderRadius: CARD_RADIUS,
-              padding: "12px 14px",
-              cursor: "pointer",
-            }}
-          >
-            <h4 style={{
-              fontFamily: FONT_UI,
-              fontSize: "14px",
-              fontWeight: 700,
-              color: editingCardId === (card.id || idx.toString()) ? "#7A3550" : TEXT_PRI,
-              margin: "0 0 4px 0",
-            }}>
-              {card.spanish || card.kanji || "Sin título"}
-            </h4>
-            <p style={{
-              fontFamily: FONT_UI,
-              fontSize: "11px",
-              fontWeight: 400,
-              color: editingCardId === (card.id || idx.toString()) ? "#7A3550" : TEXT_SEC,
-              margin: 0,
-            }}>
-              {card.example_usage || "Sin descripción"}
-            </p>
-            {editingCardId === (card.id || idx.toString()) && (
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "11px",
-                fontWeight: 700,
-                color: "#7A3550",
-                margin: "6px 0 0 0",
-              }}>
-                Toca para editar
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Add manually link */}
-      <button
-        onClick={() => {}}
-        style={{
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          fontFamily: FONT_UI,
-          fontSize: "13px",
-          fontWeight: 600,
-          color: TEXT_SEC,
-          padding: "8px 0",
-          display: "flex",
-          alignItems: "center",
-          gap: "4px",
-          marginBottom: SECTION_GAP,
-        }}
-      >
-        <Plus style={{ width: "16px", height: "16px" }} />
-        Agregar tarjeta manualmente
-      </button>
-
-      {/* Save button */}
-      <button
-        onClick={handleSaveSet}
-        style={{
-          width: "100%",
-          background: TEXT_PRI,
-          border: "none",
-          borderRadius: "9999px",
-          padding: "14px 20px",
-          fontFamily: FONT_UI,
-          fontSize: "14px",
-          fontWeight: 700,
-          color: "#fff",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-        }}
-      >
-        Guardar set →
-      </button>
     </div>
   );
 
@@ -758,7 +519,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         height: "0",
         paddingBottom: "100px",
       }}>
-        {state === "success" ? <Step2Content /> : <Step1Content />}
+        <MainContent />
       </div>
 
       {/* Bottom navigation */}
@@ -830,7 +591,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             margin: "0 auto",
             width: "100%",
           }}>
-            {state === "success" ? <Step2Content /> : <Step1Content />}
+            <MainContent />
           </div>
         </div>
       </div>
