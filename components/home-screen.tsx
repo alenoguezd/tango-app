@@ -31,7 +31,7 @@ interface HomeScreenProps {
 // ── Design tokens ────────────────────────────────────────────────────────
 const W = tokens.color.surface;
 const BG_PAGE = tokens.color.page;
-const FONT = "var(--font-sans)";
+const FONT_UI = "var(--font-ui)";
 
 // Text colors
 const TEXT_PRI = tokens.color.ink;
@@ -271,20 +271,22 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         marginBottom: SECTION_GAP,
       }}>
         <h1 style={{
-          fontFamily: FONT,
-          fontSize: "28px",
-          fontWeight: 600,
+          fontFamily: FONT_UI,
+          fontSize: "var(--text-display)",
+          fontWeight: 800,
           color: TEXT_PRI,
           margin: "0 0 8px 0",
           lineHeight: "1.2",
+          letterSpacing: "-0.02em",
         }}>
           ¡Hola, {userName}!
         </h1>
         <p style={{
-          fontFamily: FONT,
-          fontSize: "15px",
+          fontFamily: FONT_UI,
+          fontSize: "var(--text-body)",
           color: TEXT_SEC,
           margin: 0,
+          lineHeight: "1.6",
         }}>
           Mantén tu aprendizaje en marcha
         </p>
@@ -307,10 +309,11 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <div>
               <p style={{
-                fontFamily: FONT,
-                fontSize: "14px",
+                fontFamily: FONT_UI,
+                fontSize: "var(--text-meta)",
                 color: TEXT_SEC,
                 margin: "0 0 4px 0",
+                fontWeight: 400,
               }}>
                 Progreso general
               </p>
@@ -320,8 +323,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 gap: "4px",
               }}>
                 <span style={{
-                  fontFamily: FONT,
-                  fontSize: "36px",
+                  fontFamily: FONT_UI,
+                  fontSize: "var(--text-card-word)",
                   fontWeight: 700,
                   color: TEXT_PRI,
                 }}>
@@ -333,9 +336,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               background: BUTTER_ACCENT,
               borderRadius: "8px",
               padding: "8px 12px",
-              fontFamily: FONT,
-              fontSize: "13px",
-              fontWeight: 600,
+              fontFamily: FONT_UI,
+              fontSize: "var(--text-button)",
+              fontWeight: 700,
               color: TEXT_PRI,
             }}>
               {localSets.length} sets
@@ -379,7 +382,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <div>
               <p style={{
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_SEC,
                 margin: "0 0 4px 0",
@@ -387,7 +390,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 Por reparar
               </p>
               <p style={{
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "24px",
                 fontWeight: 700,
                 color: TEXT_PRI,
@@ -406,7 +409,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 border: "none",
                 borderRadius: tokens.radius.btn,
                 padding: "10px 16px",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 fontWeight: 600,
                 color: "#fff",
@@ -440,7 +443,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             📚
           </div>
           <h2 style={{
-            fontFamily: FONT,
+            fontFamily: FONT_UI,
             fontSize: "20px",
             fontWeight: 600,
             color: TEXT_PRI,
@@ -449,7 +452,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             Aún no tienes sets
           </h2>
           <p style={{
-            fontFamily: FONT,
+            fontFamily: FONT_UI,
             fontSize: "15px",
             color: TEXT_SEC,
             margin: 0,
@@ -464,7 +467,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               border: "none",
               borderRadius: tokens.radius.btn,
               padding: "12px 24px",
-              fontFamily: FONT,
+              fontFamily: FONT_UI,
               fontSize: "15px",
               fontWeight: 600,
               color: "#fff",
@@ -489,7 +492,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             marginBottom: "16px",
           }}>
             <h2 style={{
-              fontFamily: FONT,
+              fontFamily: FONT_UI,
               fontSize: "18px",
               fontWeight: 600,
               color: TEXT_PRI,
@@ -503,7 +506,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 background: "none",
                 border: "none",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 fontWeight: 600,
                 color: SAGE_ACCENT,
@@ -670,7 +673,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             color: W,
             padding: "12px 24px",
             borderRadius: "8px",
-            fontFamily: FONT,
+            fontFamily: FONT_UI,
             fontSize: "14px",
             zIndex: 100,
             animation: "fadeInOut 2s ease-in-out",
@@ -792,7 +795,7 @@ function SetListItem({
             onKeyDown={handleKeyDown}
             onClick={(e) => e.stopPropagation()}
             style={{
-              fontFamily: FONT,
+              fontFamily: FONT_UI,
               fontSize: "16px",
               fontWeight: 600,
               color: TEXT_PRI,
@@ -812,7 +815,7 @@ function SetListItem({
               marginBottom: "8px",
             }}>
               <h3 style={{
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "16px",
                 fontWeight: 600,
                 color: TEXT_PRI,
@@ -832,7 +835,7 @@ function SetListItem({
               )}
             </div>
             <p style={{
-              fontFamily: FONT,
+              fontFamily: FONT_UI,
               fontSize: "13px",
               color: TEXT_SEC,
               margin: "0 0 8px 0",
@@ -927,7 +930,7 @@ function SetListItem({
                 border: "none",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_PRI,
                 borderBottom: `1px solid ${CARD_BORDER}`,
@@ -944,7 +947,7 @@ function SetListItem({
                 border: "none",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_PRI,
                 borderBottom: `1px solid ${CARD_BORDER}`,
@@ -961,7 +964,7 @@ function SetListItem({
                 border: "none",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_PRI,
                 borderBottom: `1px solid ${CARD_BORDER}`,
@@ -978,7 +981,7 @@ function SetListItem({
                 border: "none",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_PRI,
                 borderBottom: `1px solid ${CARD_BORDER}`,
@@ -995,7 +998,7 @@ function SetListItem({
                 border: "none",
                 textAlign: "left",
                 cursor: "pointer",
-                fontFamily: FONT,
+                fontFamily: FONT_UI,
                 fontSize: "14px",
                 color: TEXT_RED,
               }}
@@ -1051,7 +1054,7 @@ function NavItem({
         {icon}
       </div>
       <span style={{
-        fontFamily: FONT,
+        fontFamily: FONT_UI,
         fontSize: "11px",
         fontWeight: active ? 700 : 400,
         color: active ? TEXT_PRI : TEXT_MUT,
