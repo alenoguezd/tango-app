@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { FolderOpen, Play } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 
-// ── Design tokens — identical to home-screen.tsx ──────────────────────────────
+// ── Design tokens — warm analog aesthetic ──────────────────────────────
 const W           = "#FFFFFF";
 const BG_PAGE     = "#FFFFFF";
 const FONT        = "var(--font-sans)";
@@ -68,16 +68,19 @@ interface ProgresoScreenProps {
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return windowWidth;
+  // Return desktop width (1024) during SSR/hydration, then switch to actual width
+  return mounted ? windowWidth : 1024;
 }
 
 // ── ProgresoScreen ─────────────────────────────────────────────────────────────
@@ -180,7 +183,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             style={{
               background: W,
               border: `1px solid ${CARD_BORDER}`,
-              borderRadius: "16px",
+              borderRadius: "12px",
               padding: "18px 18px 16px",
               marginBottom: `${SECTION_GAP}px`,
             }}
@@ -689,7 +692,7 @@ function NavItem({
         style={{
           width: active ? "64px" : "44px",
           height: "32px",
-          borderRadius: "16px",
+          borderRadius: "12px",
           background: active ? NAV_PILL : "transparent",
           display: "flex",
           alignItems: "center",

@@ -37,16 +37,19 @@ interface CrearScreenProps {
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────
 function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return windowWidth;
+  // Return desktop width (1024) during SSR/hydration, then switch to actual width
+  return mounted ? windowWidth : 1024;
 }
 
 export function CrearScreen({ onNavigate }: CrearScreenProps) {
@@ -105,7 +108,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
           const data = await response.json();
           const cards = data.cards || [];
-          const id = Date.now().toString();
+          const id = crypto.randomUUID();
 
           // Add unique IDs to each card
           const cardsWithIds = cards.map((card, index) => ({
@@ -145,24 +148,38 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
-              console.log("[Crear] Saving set to Supabase. User ID:", user.id, "Set ID:", id);
-              const { error } = await supabase.from("sets").insert({
-                id: id,
-                user_id: user.id,
-                title: finalName,
-                card_count: cards.length,
-                cards: cardsWithIds,
-                is_public: false,
-              });
+              console.log("[Crear] Attempting Supabase save. User ID:", user.id, "Set ID:", id);
 
-              if (error) {
-                console.error("[Crear] Supabase save error:", error);
-              } else {
-                console.log("[Crear] Set saved to Supabase successfully");
+              try {
+                const { error, data } = await supabase.from("sets").insert({
+                  id: id,
+                  user_id: user.id,
+                  name: finalName,
+                  cards: cardsWithIds,
+                  is_favorite: false,
+                  is_public: false,
+                  progress: 0,
+                });
+
+                if (error) {
+                  console.error("[Crear] Supabase insert error:", {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                    fullError: JSON.stringify(error)
+                  });
+                } else {
+                  console.log("[Crear] Set saved to Supabase successfully", { data });
+                }
+              } catch (insertErr) {
+                console.error("[Crear] Supabase insert threw exception:", insertErr);
               }
+            } else {
+              console.log("[Crear] No authenticated user found - Supabase save skipped");
             }
           } catch (err) {
-            console.error("[Crear] Supabase save failed:", err);
+            console.error("[Crear] Supabase auth check failed:", err);
           }
 
           setCreatedCount(cards.length);
@@ -388,8 +405,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             disabled={!canCreate}
             style={{
               width: "100%",
-              height: "56px",
-              borderRadius: "14px",
+              height: "48px",
+              borderRadius: "12px",
               border: "none",
               background: canCreate ? TEAL_BTN : "#D0D0D0",
               fontFamily: FONT,

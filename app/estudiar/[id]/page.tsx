@@ -17,16 +17,19 @@ interface StudySet {
 }
 
 function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return windowWidth;
+  // Return desktop width (1024) during SSR/hydration, then switch to actual width
+  return mounted ? windowWidth : 1024;
 }
 
 // Migrate cards without IDs
@@ -195,16 +198,17 @@ export default function EstudiarPage() {
     console.log("[Estudiar] Saving set to user account. Set ID:", setId, "Current User:", currentUserId);
 
     try {
-      const newSetId = Date.now().toString();
+      const newSetId = crypto.randomUUID();
 
       // Create a copy of the set with the new user as owner
       const newSet = {
         id: newSetId,
         user_id: currentUserId,
-        title: set.title,
-        card_count: set.cardCount,
+        name: set.title,
         cards: set.cards,
+        is_favorite: false,
         is_public: false,
+        progress: 0,
       };
 
       console.log("[Estudiar] Inserting new set:", newSet);

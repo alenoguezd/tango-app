@@ -42,16 +42,25 @@ export default function InicioPage() {
         .select("*")
         .eq("user_id", userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("[Inicio] Supabase select error:", {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          fullError: JSON.stringify(error)
+        });
+        throw error;
+      }
 
       console.log("[Inicio] Sets loaded from Supabase:", data);
 
       const supabaseSets = (data || []).map((set: any) => ({
         id: set.id,
-        title: set.title,
-        cardCount: set.card_count,
-        progress: 0,
-        lastStudied: set.updated_at || new Date().toISOString(),
+        title: set.name,
+        cardCount: (set.cards || []).length,
+        progress: set.progress || 0,
+        lastStudied: set.last_studied || set.created_at || new Date().toISOString(),
         cards: set.cards || [],
         favorite: set.is_favorite || false,
       }));

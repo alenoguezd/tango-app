@@ -73,16 +73,19 @@ const SECTION_GAP = 24;          // px between sections
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return windowWidth;
+  // Return desktop width (1024) during SSR/hydration, then switch to actual width
+  return mounted ? windowWidth : 1024;
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────
@@ -302,7 +305,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             textAlign: "left",
             background: W,
             border: `1px solid ${CARD_BORDER}`,
-            borderRadius: "16px",
+            borderRadius: "12px",
             padding: "18px 18px 16px",
             cursor: "pointer",
             marginBottom: `${SECTION_GAP}px`,
@@ -351,7 +354,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         </button>
       ) : (
         <div style={{
-          borderRadius: "16px",
+          borderRadius: "12px",
           border: `1.5px dashed ${CARD_BORDER}`,
           color: TEXT_MUT,
           fontFamily: FONT,
@@ -703,7 +706,7 @@ function SetCard({
         if (user) {
           const { error } = await supabase
             .from("sets")
-            .update({ title: editedName.trim() })
+            .update({ name: editedName.trim() })
             .eq("id", set.id)
             .eq("user_id", user.id);
 
@@ -886,7 +889,7 @@ function SetCard({
                 background: W,
                 border: `1px solid ${CARD_BORDER}`,
                 borderRadius: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
                 zIndex: 20,
                 minWidth: "140px",
                 overflow: "hidden",

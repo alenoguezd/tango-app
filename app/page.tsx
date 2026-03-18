@@ -188,9 +188,9 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "16px",
+            borderRadius: "12px",
             padding: "40px 24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
         >
           <div style={{ textAlign: "center", marginBottom: "24px" }}>
@@ -252,11 +252,15 @@ export default function Home() {
             onClick={handleVerificationComplete}
             style={{
               width: "100%",
-              padding: "12px 16px",
+              height: "48px",
+              padding: "0 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: BUTTON_NAVY,
               color: W,
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "12px",
               fontFamily: FONT,
               fontSize: "15px",
               fontWeight: 600,
@@ -271,11 +275,15 @@ export default function Home() {
             onClick={handleResendVerification}
             style={{
               width: "100%",
-              padding: "12px 16px",
+              height: "48px",
+              padding: "0 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               background: "transparent",
               color: LINK_BLUE,
               border: `1px solid ${LINK_BLUE}`,
-              borderRadius: "8px",
+              borderRadius: "12px",
               fontFamily: FONT,
               fontSize: "15px",
               fontWeight: 600,
@@ -307,9 +315,9 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "16px",
+            borderRadius: "12px",
             padding: "40px 24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
         >
           <button
@@ -417,7 +425,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     boxSizing: "border-box",
                   }}
                 />
@@ -515,9 +523,9 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "16px",
+            borderRadius: "12px",
             padding: "40px 24px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
         >
           <button
@@ -625,7 +633,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     boxSizing: "border-box",
                   }}
                 />
@@ -683,7 +691,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "8px",
+                    borderRadius: "12px",
                     boxSizing: "border-box",
                   }}
                 />
@@ -802,8 +810,8 @@ export default function Home() {
             <button
               onClick={() => setScreen("login")}
               style={{
-                height: "56px",
-                borderRadius: "14px",
+                height: "48px",
+                borderRadius: "12px",
                 background: BUTTON_NAVY,
                 color: W,
                 fontSize: "1rem",
@@ -819,8 +827,8 @@ export default function Home() {
             <button
               onClick={() => setScreen("signup")}
               style={{
-                height: "56px",
-                borderRadius: "14px",
+                height: "48px",
+                borderRadius: "12px",
                 background: "transparent",
                 color: BUTTON_NAVY,
                 fontSize: "1rem",

@@ -15,16 +15,19 @@ const BUTTON_NAVY = "#1A6B8A";
 const DIVIDER = "#E8E8E8";
 
 function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(1024);
+  const [windowWidth, setWindowWidth] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  return windowWidth;
+  // Return desktop width (1024) during SSR/hydration, then switch to actual width
+  return mounted ? windowWidth : 1024;
 }
 
 export default function PerfilPage() {
@@ -278,7 +281,7 @@ export default function PerfilPage() {
             <div
               style={{
                 background: "#F7F6F3",
-                borderRadius: "16px",
+                borderRadius: "12px",
                 padding: "24px 16px",
                 textAlign: "center",
                 marginBottom: "24px",
@@ -778,7 +781,7 @@ export default function PerfilPage() {
             <div
               style={{
                 background: "#FFFFFF",
-                borderRadius: "16px",
+                borderRadius: "12px",
                 padding: "24px",
                 textAlign: "center",
                 marginBottom: "24px",
@@ -1195,7 +1198,7 @@ function NavItem({
         style={{
           width: active ? "64px" : "44px",
           height: "32px",
-          borderRadius: "16px",
+          borderRadius: "12px",
           background: active ? "#EBEBEB" : "transparent",
           display: "flex",
           alignItems: "center",
