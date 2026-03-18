@@ -5,6 +5,26 @@
 
 /* Design Token System - Single Source of Truth */
 :root {
+  /* Typography */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-card: Georgia, "Times New Roman", serif;
+
+  /* UI Typography Scale */
+  --text-page-title:    26px;  /* weight 800, tracking -0.025em */
+  --text-display:       22px;  /* weight 800, tracking -0.02em  */
+  --text-section:       17px;  /* weight 700, tracking -0.01em  */
+  --text-card-title:    14px;  /* weight 700                    */
+  --text-body:          13px;  /* weight 400, line-height 1.6   */
+  --text-button:        12px;  /* weight 600-700                */
+  --text-meta:          10px;  /* weight 400, color: muted      */
+  --text-label:          9px;  /* weight 700, uppercase, +0.07em*/
+
+  /* Card Content Typography (Georgia only) */
+  --text-card-word:     48px;  /* weight 700, adaptive 30-52px  */
+  --text-card-phonetic: 13px;  /* weight 400, color: sky        */
+  --text-card-answer:   18px;  /* weight 700                    */
+  --text-card-grammar:  10px;  /* weight 400, color: muted      */
+
   /* Colors */
   --color-page: #FAFAF8;
   --color-surface: #FFFFFF;
