@@ -5,6 +5,7 @@ import { Upload, ArrowRight, FolderOpen, Play, MoreVertical, Star } from "lucide
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
+import { tokens } from "@/lib/design-tokens";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -27,19 +28,19 @@ interface HomeScreenProps {
   onLogout?: () => void;
 }
 
-// ── Design tokens — exact Figma values ────────────────────────────────────────
-const W           = "#FFFFFF";
-const BG_PAGE     = "#FFFFFF";
-const FONT        = "var(--font-sans)";          // Roboto
+// ── Design tokens ────────────────────────────────────────────────────────────
+const W           = tokens.color.surface;
+const BG_PAGE     = tokens.color.page;
+const FONT        = "var(--font-sans)";
 
 // Text
-const TEXT_PRI    = "#111111";
-const TEXT_SEC    = "#555555";
-const TEXT_MUT    = "#9A9A9A";
-const TEXT_RED    = "#D0312D";
+const TEXT_PRI    = tokens.color.ink;
+const TEXT_SEC    = tokens.color.muted;
+const TEXT_MUT    = tokens.color.muted;
+const TEXT_RED    = tokens.color.rose;
 
-// Accent (Continuar / Todos links)
-const LINK_BLUE   = "#1565C0";
+// Accent
+const LINK_ACCENT = tokens.color.sage;
 
 // Banner
 const BANNER_BG   = "#EBF0F8";
@@ -423,7 +424,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontFamily: FONT,
               fontSize: "15px",
               fontWeight: 500,
-              color: LINK_BLUE,
+              color: LINK_ACCENT,
               display: "flex",
               alignItems: "center",
               gap: "2px",

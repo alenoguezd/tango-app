@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import { Check, FolderOpen, Play, ImagePlus } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
 import { createClient } from "@/lib/supabase";
+import { tokens } from "@/lib/design-tokens";
 
 // ── Design tokens ─────────────────────────────────────────────────────────
 const FONT        = "var(--font-sans)";
-const BG_PAGE     = "#FFFFFF";
-const TEXT_PRI    = "#1D1B20";
-const TEXT_SEC    = "#555555";
-const TEXT_MUT    = "#9A9A9A";
-const NAV_PILL    = "#EBEBEB";
-const TEAL_BTN    = "#1A6B8A";
-const TEAL_BTN_SH = "#124557";
-const UPLOAD_BG   = "#E8EEF6";
-const UPLOAD_DASH = "#B8CCE4";
+const BG_PAGE     = tokens.color.page;
+const TEXT_PRI    = tokens.color.ink;
+const TEXT_SEC    = tokens.color.muted;
+const TEXT_MUT    = tokens.color.muted;
+const NAV_PILL    = tokens.color.border;
+const PRIMARY_BTN = tokens.color.ink;
+const PRIMARY_BTN_SH = "#0F0F0F";
+const UPLOAD_BG   = tokens.color.sky;
+const UPLOAD_DASH = tokens.color.sky;
 const H_PAD       = 16;
 const SECTION_GAP = 24;
 
@@ -523,8 +524,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
               onClick={handleStudyNew}
               style={{
                 height: "56px", borderRadius: "100px", border: "none",
-                background: TEAL_BTN,
-                boxShadow: `0 4px 0 ${TEAL_BTN_SH}`,
+                background: PRIMARY_BTN,
+                boxShadow: `0 4px 0 ${PRIMARY_BTN_SH}`,
                 fontFamily: FONT, fontSize: "16px",
                 fontWeight: 700, color: "#FFFFFF", cursor: "pointer",
               }}
@@ -824,8 +825,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
               onClick={handleStudyNew}
               style={{
                 height: "56px", borderRadius: "100px", border: "none",
-                background: TEAL_BTN,
-                boxShadow: `0 4px 0 ${TEAL_BTN_SH}`,
+                background: PRIMARY_BTN,
+                boxShadow: `0 4px 0 ${PRIMARY_BTN_SH}`,
                 fontFamily: FONT, fontSize: "16px",
                 fontWeight: 700, color: "#FFFFFF", cursor: "pointer",
               }}

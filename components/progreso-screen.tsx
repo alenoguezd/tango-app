@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { FolderOpen, Play } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
+import { tokens } from "@/lib/design-tokens";
 
-// ── Design tokens — warm analog aesthetic ──────────────────────────────
-const W           = "#FFFFFF";
+// ── Design tokens ────────────────────────────────────────────────────────────
+const W           = tokens.color.surface;
+const BG_PAGE     = tokens.color.page;
 const BG_PAGE     = "#FFFFFF";
 const FONT        = "var(--font-sans)";
 

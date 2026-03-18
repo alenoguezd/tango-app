@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase";
+import { tokens, semanticColors } from "@/lib/design-tokens";
 
 const FONT = "var(--font-sans)";
 const FONT_JP = "var(--font-japanese), var(--font-sans)";
-const W = "#FFFFFF";
-const BG_PAGE = "#FFFFFF";
-const TEXT_PRI = "#111111";
-const TEXT_SEC = "#555555";
-const TEXT_MUT = "#9A9A9A";
-const LINK_BLUE = "#1565C0";
-const BUTTON_NAVY = "#1A6B8A";
+const W = tokens.color.surface;
+const BG_PAGE = tokens.color.page;
+const TEXT_PRI = tokens.color.ink;
+const TEXT_SEC = tokens.color.muted;
+const TEXT_MUT = tokens.color.muted;
+const LINK_ACCENT = tokens.color.sage;
+const BUTTON_PRIMARY = tokens.color.ink;
 
 type EntryScreen = "splash" | "login" | "signup" | "verification";
 
@@ -188,7 +189,7 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "12px",
+            borderRadius: tokens.radius.card,
             padding: "40px 24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
@@ -197,7 +198,7 @@ export default function Home() {
             <Mail
               size={48}
               style={{
-                color: BUTTON_NAVY,
+                color: BUTTON_PRIMARY,
                 marginBottom: "16px",
                 display: "block",
                 margin: "0 auto 16px",
@@ -257,10 +258,10 @@ export default function Home() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: BUTTON_NAVY,
+              background: BUTTON_PRIMARY,
               color: W,
               border: "none",
-              borderRadius: "12px",
+              borderRadius: tokens.radius.card,
               fontFamily: FONT,
               fontSize: "15px",
               fontWeight: 600,
@@ -281,9 +282,9 @@ export default function Home() {
               alignItems: "center",
               justifyContent: "center",
               background: "transparent",
-              color: LINK_BLUE,
-              border: `1px solid ${LINK_BLUE}`,
-              borderRadius: "12px",
+              color: LINK_ACCENT,
+              border: `1px solid ${LINK_ACCENT}`,
+              borderRadius: tokens.radius.card,
               fontFamily: FONT,
               fontSize: "15px",
               fontWeight: 600,
@@ -315,7 +316,7 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "12px",
+            borderRadius: tokens.radius.card,
             padding: "40px 24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
@@ -425,7 +426,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "12px",
+                    borderRadius: tokens.radius.card,
                     boxSizing: "border-box",
                   }}
                 />
@@ -463,7 +464,7 @@ export default function Home() {
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: BUTTON_NAVY,
+                background: BUTTON_PRIMARY,
                 color: W,
                 border: "none",
                 borderRadius: "8px",
@@ -486,7 +487,7 @@ export default function Home() {
               style={{
                 background: "none",
                 border: "none",
-                color: LINK_BLUE,
+                color: LINK_ACCENT,
                 cursor: loading ? "not-allowed" : "pointer",
                 fontFamily: FONT,
                 fontSize: "14px",
@@ -523,7 +524,7 @@ export default function Home() {
             width: "100%",
             maxWidth: "400px",
             background: W,
-            borderRadius: "12px",
+            borderRadius: tokens.radius.card,
             padding: "40px 24px",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
@@ -633,7 +634,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "12px",
+                    borderRadius: tokens.radius.card,
                     boxSizing: "border-box",
                   }}
                 />
@@ -691,7 +692,7 @@ export default function Home() {
                     fontFamily: FONT,
                     fontSize: "14px",
                     border: `1px solid #E0E0E0`,
-                    borderRadius: "12px",
+                    borderRadius: tokens.radius.card,
                     boxSizing: "border-box",
                   }}
                 />
@@ -729,7 +730,7 @@ export default function Home() {
               style={{
                 width: "100%",
                 padding: "12px 16px",
-                background: BUTTON_NAVY,
+                background: BUTTON_PRIMARY,
                 color: W,
                 border: "none",
                 borderRadius: "8px",
@@ -811,8 +812,8 @@ export default function Home() {
               onClick={() => setScreen("login")}
               style={{
                 height: "48px",
-                borderRadius: "12px",
-                background: BUTTON_NAVY,
+                borderRadius: tokens.radius.card,
+                background: BUTTON_PRIMARY,
                 color: W,
                 fontSize: "1rem",
                 fontFamily: FONT,
@@ -828,13 +829,13 @@ export default function Home() {
               onClick={() => setScreen("signup")}
               style={{
                 height: "48px",
-                borderRadius: "12px",
+                borderRadius: tokens.radius.card,
                 background: "transparent",
-                color: BUTTON_NAVY,
+                color: BUTTON_PRIMARY,
                 fontSize: "1rem",
                 fontFamily: FONT,
                 fontWeight: 600,
-                border: `2px solid ${BUTTON_NAVY}`,
+                border: `2px solid ${BUTTON_PRIMARY}`,
                 cursor: "pointer",
                 letterSpacing: "0.01em",
               }}
@@ -909,7 +910,7 @@ export default function Home() {
                 style={{
                   height: "56px",
                   borderRadius: "14px",
-                  background: BUTTON_NAVY,
+                  background: BUTTON_PRIMARY,
                   color: W,
                   fontSize: "1rem",
                   fontFamily: FONT,
@@ -923,7 +924,7 @@ export default function Home() {
                   e.currentTarget.style.background = "#0F4F63";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = BUTTON_NAVY;
+                  e.currentTarget.style.background = BUTTON_PRIMARY;
                 }}
               >
                 Iniciar sesión
@@ -934,11 +935,11 @@ export default function Home() {
                   height: "56px",
                   borderRadius: "14px",
                   background: "transparent",
-                  color: BUTTON_NAVY,
+                  color: BUTTON_PRIMARY,
                   fontSize: "1rem",
                   fontFamily: FONT,
                   fontWeight: 600,
-                  border: `2px solid ${BUTTON_NAVY}`,
+                  border: `2px solid ${BUTTON_PRIMARY}`,
                   cursor: "pointer",
                   letterSpacing: "0.01em",
                   transition: "all 0.15s ease",

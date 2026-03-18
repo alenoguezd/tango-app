@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { ChevronLeft, ChevronRight, Shuffle, RotateCcw, X, Check, ArrowLeft } from "lucide-react";
+import { tokens } from "@/lib/design-tokens";
 
 export interface VocabCard {
   id?: string;
