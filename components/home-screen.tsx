@@ -136,8 +136,33 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     }
 
     const url = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${setId}`;
-    navigator.clipboard.writeText(url);
-    showToast("¡Link copiado!");
+
+    try {
+      // Try to copy to clipboard
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        showToast("¡Link copiado!");
+      } else {
+        // Fallback for non-secure contexts or older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+          document.execCommand("copy");
+          showToast("¡Link copiado!");
+        } catch (err) {
+          console.error("Fallback copy failed:", err);
+          showToast("No se pudo copiar el link");
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      console.error("Clipboard error:", err);
+      showToast("No se pudo copiar el link");
+    }
   };
 
   // Toggle favorite
