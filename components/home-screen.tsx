@@ -325,17 +325,28 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* Repasar CTA */}
       {needsStudy > 0 && (
-        <div style={{
-          background: "#000",
-          borderRadius: "28px",
-          padding: "16px 20px",
-          marginBottom: SECTION_GAP,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: "12px",
-        }}>
-          <div>
+        <button
+          onClick={() => {
+            const firstIncomplete = localSets.find(s => s.progress < 100);
+            if (firstIncomplete) onStudy(firstIncomplete);
+          }}
+          aria-label={`Empezar a reparar ${needsStudy} tarjetas, tiempo estimado 2 minutos`}
+          style={{
+            background: "#000",
+            borderRadius: "28px",
+            padding: "16px 20px",
+            marginBottom: SECTION_GAP,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            border: "none",
+            cursor: "pointer",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ textAlign: "left" }}>
             <h2 style={{
               fontFamily: FONT_UI,
               fontSize: "14px",
@@ -356,28 +367,23 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             </p>
           </div>
 
-          <button
-            onClick={() => {
-              const firstIncomplete = localSets.find(s => s.progress < 100);
-              if (firstIncomplete) onStudy(firstIncomplete);
-            }}
+          <div
             style={{
               background: ROSE,
-              border: "none",
               borderRadius: "20px",
               padding: "8px 16px",
               fontFamily: FONT_UI,
               fontSize: "12px",
               fontWeight: 700,
               color: "#fff",
-              cursor: "pointer",
               flexShrink: 0,
               whiteSpace: "nowrap",
+              pointerEvents: "none",
             }}
           >
             Repasar →
-          </button>
-        </div>
+          </div>
+        </button>
       )}
 
       {/* Mis sets Header */}
