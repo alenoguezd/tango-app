@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Share2 } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
@@ -402,7 +402,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               color: TEXT_SEC,
               margin: "0 0 4px 0",
             }}>
-              Por reparar
+              Repasar
             </p>
             <p style={{
               fontFamily: FONT_UI,
@@ -772,7 +772,7 @@ function SetCard({
       const date = new Date(lastStudied);
       const now = new Date();
       const hours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-      if (hours < 1) return "Ahora";
+      if (hours < 1) return "Hace un momento";
       if (hours < 24) return `Hace ${hours}h`;
       const days = Math.floor(hours / 24);
       if (days < 7) return `Hace ${days}d`;
@@ -840,7 +840,7 @@ function SetCard({
             color: TEXT_SEC,
             margin: "2px 0 0 0",
           }}>
-            {set.cardCount} tarjetas • Visto hace {getTimeSinceStudied(set.lastStudied)}
+            {set.cardCount} tarjetas • {getTimeSinceStudied(set.lastStudied)}
           </p>
         </div>
 
@@ -878,42 +878,35 @@ function SetCard({
         }} />
       </div>
 
-      {/* Bottom row: metadata on left, action button on right */}
+      {/* Bottom row: only action button on right */}
       <div style={{
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "flex-end",
         alignItems: "center",
         gap: "8px",
       }}>
+        {/* Share button */}
         <button
-          onClick={() => {
-            const actions = [
-              { label: "Estudiar", fn: onStudy },
-              { label: "Compartir", fn: onShare },
-              { label: "Renombrar", fn: () => setIsRenaming(true) },
-              { label: "Favorito", fn: onToggleFavorite },
-              { label: "Reiniciar", fn: onResetProgress },
-              { label: "Eliminar", fn: onDelete },
-            ];
-            // In mobile, show a simple action on tap
-            if (isMobile) {
-              onStudy();
-            }
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare();
           }}
           style={{
-            background: "none",
-            border: "none",
+            width: "30px",
+            height: "30px",
+            borderRadius: "50%",
+            background: "transparent",
+            border: `1px solid ${BORDER}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             cursor: "pointer",
-            fontFamily: FONT_UI,
-            fontSize: "11px",
-            fontWeight: 600,
-            color: SAGE,
-            padding: "2px 0",
-            flex: 1,
-            textAlign: "left",
+            flexShrink: 0,
+            color: TEXT_SEC,
           }}
+          title="Compartir set"
         >
-          Ver más
+          <Share2 style={{ width: "16px", height: "16px", strokeWidth: 2 }} />
         </button>
 
         {/* Action button (circular arrow) */}
@@ -931,6 +924,7 @@ function SetCard({
             cursor: "pointer",
             flexShrink: 0,
           }}
+          title="Estudiar"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ stroke: arrowBtnStroke, strokeWidth: 2 }}>
             <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
