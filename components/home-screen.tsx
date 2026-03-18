@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, MoreVertical, Star, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
@@ -31,32 +31,28 @@ interface HomeScreenProps {
 // ── Design tokens ────────────────────────────────────────────────────────
 const W = tokens.color.surface;
 const BG_PAGE = tokens.color.page;
-const FONT_UI = "var(--font-ui)";
+const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 
-// Text colors
-const TEXT_PRI = tokens.color.ink;
-const TEXT_SEC = tokens.color.muted;
-const TEXT_MUT = tokens.color.muted;
-const TEXT_RED = tokens.color.rose;
+// Colors
+const TEXT_PRI = "#1A1A1A";
+const TEXT_SEC = "#B0A898";
+const SAGE = "#A8C87A";
+const ROSE = "#F2B8CD";
+const BUTTER = "#F5DC7A";
+const BORDER = "#EEEBE6";
+const BADGE_BG = "#E8F4D8";
+const BADGE_GREEN_TEXT = "#2A5010";
+const BADGE_PINK_BG = "#FDE8F0";
+const BADGE_PINK_TEXT = "#7A3550";
+const BADGE_YELLOW_BG = "#FEF7D6";
+const BADGE_YELLOW_TEXT = "#6B5500";
+const BUTTON_BG = "#F5F2EC";
+const BUTTON_BG_LOW = "#FDE8F0";
 
-// Accent colors (from design tokens)
-const SAGE_ACCENT = tokens.color.sage;
-const ROSE_ACCENT = tokens.color.rose;
-const BUTTER_ACCENT = tokens.color.butter;
-const SKY_ACCENT = tokens.color.sky;
-
-// Card styling
-const CARD_BORDER = tokens.color.border;
-const CARD_RADIUS = 14;
+// Spacing
 const H_PAD = 16;
 const SECTION_GAP = 24;
-
-// Progress bar
-const PROG_FG = tokens.color.sage;
-const PROG_TRACK = "#E8E8E8";
-
-// Nav
-const NAV_PILL = "#F0F0F0";
+const CARD_RADIUS = 14;
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
@@ -123,7 +119,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   // Count sets that need study (progress < 100)
   const needsStudy = localSets.filter(s => s.progress < 100).length;
 
-  // Share set: copy link to clipboard
+  // Share set
   const handleShare = async (setId: string) => {
     const supabase = createClient();
     try {
@@ -165,7 +161,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           .update({ is_favorite: newFavoriteStatus })
           .eq("id", setId)
           .eq("user_id", user.id);
-        console.log("[Favorite] Updated in Supabase");
       }
     } catch (err) {
       console.error("[Favorite] Supabase sync failed:", err);
@@ -196,7 +191,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             console.error("[Delete] Supabase delete failed:", error);
             showToast("Error al eliminar de la nube");
           } else {
-            console.log("[Delete] Deleted from Supabase");
             showToast("Set eliminado");
           }
         }
@@ -232,24 +226,45 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           const set = localSets.find(s => s.id === setId);
           if (set) {
             const resetCards = (set.cards || []).map(card => ({ ...card, known: false }));
-            const { error } = await supabase
+            await supabase
               .from("sets")
               .update({ progress: 0, cards: resetCards })
               .eq("id", setId)
               .eq("user_id", user.id);
-
-            if (error) {
-              console.error("[ResetProgress] Supabase update failed:", error);
-            } else {
-              console.log("[ResetProgress] Progress reset in Supabase");
-              showToast("¡Progreso reiniciado!");
-            }
+            showToast("¡Progreso reiniciado!");
           }
         }
       } catch (err) {
         console.error("[ResetProgress] Error:", err);
         showToast("Error al reiniciar progreso");
       }
+    }
+  };
+
+  // Rename set
+  const handleRenameSet = async (setId: string, newName: string) => {
+    if (!newName.trim()) return;
+
+    setLocalSets((prev) => {
+      const updated = prev.map((set) =>
+        set.id === setId ? { ...set, title: newName.trim() } : set
+      );
+      localStorage.setItem("vocab_sets", JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("sets")
+          .update({ name: newName.trim() })
+          .eq("id", setId)
+          .eq("user_id", user.id);
+      }
+    } catch (err) {
+      console.error("[Rename] Error:", err);
     }
   };
 
@@ -267,23 +282,22 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   const ContentArea = () => (
     <>
       {/* Greeting Section */}
-      <div style={{
-        marginBottom: SECTION_GAP,
-      }}>
+      <div style={{ marginBottom: SECTION_GAP }}>
         <h1 style={{
           fontFamily: FONT_UI,
-          fontSize: "var(--text-display)",
+          fontSize: "22px",
           fontWeight: 800,
+          letterSpacing: "-0.02em",
           color: TEXT_PRI,
           margin: "0 0 8px 0",
           lineHeight: "1.2",
-          letterSpacing: "-0.02em",
         }}>
           ¡Hola, {userName}!
         </h1>
         <p style={{
           fontFamily: FONT_UI,
-          fontSize: "var(--text-body)",
+          fontSize: "13px",
+          fontWeight: 400,
           color: TEXT_SEC,
           margin: 0,
           lineHeight: "1.6",
@@ -296,7 +310,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       {localSets.length > 0 && (
         <div style={{
           background: W,
-          border: `1px solid ${CARD_BORDER}`,
+          border: `0.5px solid ${BORDER}`,
           borderRadius: CARD_RADIUS,
           padding: "20px",
           marginBottom: SECTION_GAP,
@@ -310,10 +324,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             <div>
               <p style={{
                 fontFamily: FONT_UI,
-                fontSize: "var(--text-meta)",
+                fontSize: "10px",
+                fontWeight: 400,
                 color: TEXT_SEC,
                 margin: "0 0 4px 0",
-                fontWeight: 400,
               }}>
                 Progreso general
               </p>
@@ -324,8 +338,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               }}>
                 <span style={{
                   fontFamily: FONT_UI,
-                  fontSize: "var(--text-card-word)",
-                  fontWeight: 700,
+                  fontSize: "32px",
+                  fontWeight: 800,
+                  letterSpacing: "-0.03em",
                   color: TEXT_PRI,
                 }}>
                   {avgProgress}%
@@ -333,13 +348,13 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               </div>
             </div>
             <div style={{
-              background: BUTTER_ACCENT,
-              borderRadius: "8px",
-              padding: "8px 12px",
+              background: BUTTER,
+              borderRadius: "9999px",
+              padding: "6px 16px",
               fontFamily: FONT_UI,
-              fontSize: "var(--text-button)",
+              fontSize: "13px",
               fontWeight: 700,
-              color: TEXT_PRI,
+              color: BADGE_YELLOW_TEXT,
             }}>
               {localSets.length} sets
             </div>
@@ -349,9 +364,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           <div style={{
             position: "relative",
             width: "100%",
-            height: "6px",
+            height: "5px",
             borderRadius: "3px",
-            background: PROG_TRACK,
+            background: BORDER,
           }}>
             <div style={{
               position: "absolute",
@@ -360,7 +375,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               height: "100%",
               width: `${avgProgress}%`,
               borderRadius: "3px",
-              background: PROG_FG,
+              background: SAGE,
             }} />
           </div>
         </div>
@@ -373,56 +388,57 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           borderRadius: CARD_RADIUS,
           padding: "16px",
           marginBottom: SECTION_GAP,
-          border: `1px solid ${ROSE_ACCENT}20`,
+          border: `0.5px solid ${BORDER}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "12px",
         }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <div>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_SEC,
-                margin: "0 0 4px 0",
-              }}>
-                Por reparar
-              </p>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "24px",
-                fontWeight: 700,
-                color: TEXT_PRI,
-                margin: 0,
-              }}>
-                {needsStudy}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                const firstIncomplete = localSets.find(s => s.progress < 100);
-                if (firstIncomplete) onStudy(firstIncomplete);
-              }}
-              style={{
-                background: ROSE_ACCENT,
-                border: "none",
-                borderRadius: tokens.radius.btn,
-                padding: "10px 16px",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "#fff",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              Empezar
-              <ArrowRight style={{ width: "16px", height: "16px" }} />
-            </button>
+          <div>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "10px",
+              fontWeight: 400,
+              color: TEXT_SEC,
+              margin: "0 0 4px 0",
+            }}>
+              Por reparar
+            </p>
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "22px",
+              fontWeight: 800,
+              color: TEXT_PRI,
+              margin: 0,
+            }}>
+              {needsStudy}
+            </p>
           </div>
+          <button
+            onClick={() => {
+              const firstIncomplete = localSets.find(s => s.progress < 100);
+              if (firstIncomplete) onStudy(firstIncomplete);
+            }}
+            style={{
+              flexShrink: 0,
+              background: ROSE,
+              border: "none",
+              borderRadius: "9999px",
+              padding: "12px 20px",
+              fontFamily: FONT_UI,
+              fontSize: "13px",
+              fontWeight: 700,
+              color: BADGE_PINK_TEXT,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Empezar
+            <ArrowRight style={{ width: "16px", height: "16px" }} />
+          </button>
         </div>
       )}
 
@@ -437,11 +453,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           minHeight: "400px",
           gap: "16px",
         }}>
-          <div style={{
-            fontSize: "48px",
-          }}>
-            📚
-          </div>
+          <div style={{ fontSize: "48px" }}>📚</div>
           <h2 style={{
             fontFamily: FONT_UI,
             fontSize: "20px",
@@ -453,7 +465,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           </h2>
           <p style={{
             fontFamily: FONT_UI,
-            fontSize: "15px",
+            fontSize: "13px",
             color: TEXT_SEC,
             margin: 0,
             maxWidth: "280px",
@@ -463,13 +475,13 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           <button
             onClick={() => onNavigate("crear")}
             style={{
-              background: SAGE_ACCENT,
+              background: SAGE,
               border: "none",
-              borderRadius: tokens.radius.btn,
+              borderRadius: "9999px",
               padding: "12px 24px",
               fontFamily: FONT_UI,
-              fontSize: "15px",
-              fontWeight: 600,
+              fontSize: "13px",
+              fontWeight: 700,
               color: "#fff",
               cursor: "pointer",
               marginTop: "8px",
@@ -478,8 +490,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               gap: "6px",
             }}
           >
-            <Plus style={{ width: "18px", height: "18px" }} />
-            Crear set
+            + Crear set
           </button>
         </div>
       ) : (
@@ -493,8 +504,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <h2 style={{
               fontFamily: FONT_UI,
-              fontSize: "18px",
-              fontWeight: 600,
+              fontSize: "17px",
+              fontWeight: 700,
+              letterSpacing: "-0.01em",
               color: TEXT_PRI,
               margin: 0,
             }}>
@@ -507,17 +519,16 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 border: "none",
                 cursor: "pointer",
                 fontFamily: FONT_UI,
-                fontSize: "14px",
-                fontWeight: 600,
-                color: SAGE_ACCENT,
+                fontSize: "13px",
+                fontWeight: 700,
+                color: SAGE,
                 padding: "6px 0",
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
               }}
             >
-              <Plus style={{ width: "18px", height: "18px" }} />
-              Nuevo
+              + Nuevo
             </button>
           </div>
 
@@ -529,7 +540,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             paddingBottom: "24px",
           }}>
             {sortedSets.map((set) => (
-              <SetListItem
+              <SetCard
                 key={set.id}
                 set={set}
                 onStudy={() => onStudy(set)}
@@ -537,6 +548,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 onToggleFavorite={() => handleToggleFavorite(set.id)}
                 onDelete={() => handleDeleteSet(set.id)}
                 onResetProgress={() => handleResetProgress(set.id)}
+                onRename={(newName) => handleRenameSet(set.id, newName)}
               />
             ))}
           </div>
@@ -584,7 +596,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               flexShrink: 0,
               width: "100%",
               background: W,
-              borderTop: `1px solid ${CARD_BORDER}`,
+              borderTop: `1px solid ${BORDER}`,
               display: "flex",
               alignItems: "flex-start",
               justifyContent: "space-around",
@@ -674,7 +686,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             padding: "12px 24px",
             borderRadius: "8px",
             fontFamily: FONT_UI,
-            fontSize: "14px",
+            fontSize: "13px",
             zIndex: 100,
             animation: "fadeInOut 2s ease-in-out",
           }}
@@ -686,14 +698,15 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   );
 }
 
-// ── SetListItem ────────────────────────────────────────────────────────────────
-function SetListItem({
+// ── SetCard ────────────────────────────────────────────────────────────────────
+function SetCard({
   set,
   onStudy,
   onShare,
   onToggleFavorite,
   onDelete,
   onResetProgress,
+  onRename,
 }: {
   set: DeckSet;
   onStudy: () => void;
@@ -701,320 +714,229 @@ function SetListItem({
   onToggleFavorite: () => void;
   onDelete: () => void;
   onResetProgress: () => void;
+  onRename: (newName: string) => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isHovering, setIsHovering] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [editedName, setEditedName] = useState(set.title);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
 
-  const handleMenuAction = (action: () => void) => {
-    action();
-    setMenuOpen(false);
-  };
+  // Determine mastery badge colors based on progress
+  let badgeBg = BADGE_YELLOW_BG;
+  let badgeText = BADGE_YELLOW_TEXT;
+  if (set.progress > 50) {
+    badgeBg = BADGE_BG;
+    badgeText = BADGE_GREEN_TEXT;
+  } else if (set.progress < 30) {
+    badgeBg = BADGE_PINK_BG;
+    badgeText = BADGE_PINK_TEXT;
+  }
+
+  // Determine progress bar color
+  let progressBarColor = BUTTER;
+  if (set.progress > 50) {
+    progressBarColor = SAGE;
+  } else if (set.progress < 30) {
+    progressBarColor = ROSE;
+  }
+
+  // Determine button background based on progress
+  let arrowBtnBg = BUTTON_BG;
+  let arrowBtnStroke = TEXT_PRI;
+  if (set.progress < 30) {
+    arrowBtnBg = BUTTON_BG_LOW;
+    arrowBtnStroke = BADGE_PINK_TEXT;
+  }
 
   const handleRename = () => {
-    setIsEditing(true);
-    setMenuOpen(false);
-  };
-
-  const saveName = async () => {
-    if (editedName.trim()) {
-      const savedSets = localStorage.getItem("vocab_sets");
-      if (savedSets) {
-        const sets = JSON.parse(savedSets);
-        const updatedSets = sets.map((s: any) =>
-          s.id === set.id ? { ...s, title: editedName.trim() } : s
-        );
-        localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
-      }
-
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error } = await supabase
-            .from("sets")
-            .update({ name: editedName.trim() })
-            .eq("id", set.id)
-            .eq("user_id", user.id);
-
-          if (error) {
-            console.error("[Rename] Supabase update failed:", error);
-          } else {
-            console.log("[Rename] Updated in Supabase");
-          }
-        }
-      } catch (err) {
-        console.error("[Rename] Error:", err);
-      }
+    if (editedName.trim() && editedName !== set.title) {
+      onRename(editedName.trim());
     } else {
       setEditedName(set.title);
     }
-    setIsEditing(false);
+    setIsRenaming(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      saveName();
+      handleRename();
     } else if (e.key === "Escape") {
       setEditedName(set.title);
-      setIsEditing(false);
+      setIsRenaming(false);
     }
   };
 
-  const showMenuButton = isMobile || isHovering;
+  // Time since last studied
+  const getTimeSinceStudied = (lastStudied: string) => {
+    try {
+      const date = new Date(lastStudied);
+      const now = new Date();
+      const hours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+      if (hours < 1) return "Ahora";
+      if (hours < 24) return `Hace ${hours}h`;
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `Hace ${days}d`;
+      return "Hace semanas";
+    } catch {
+      return "Nunca";
+    }
+  };
 
   return (
     <div
-      onClick={onStudy}
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onStudy();
-        }
-      }}
       style={{
+        background: W,
+        border: `0.5px solid ${BORDER}`,
+        borderRadius: CARD_RADIUS,
+        padding: "12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+      }}
+    >
+      {/* Top row: name on left, mastery badge on right */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: "8px",
+      }}>
+        <div style={{ flex: 1 }}>
+          {isRenaming ? (
+            <input
+              autoFocus
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              onBlur={handleRename}
+              onKeyDown={handleKeyDown}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                fontFamily: FONT_UI,
+                fontSize: "14px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                border: `1px solid ${SAGE}`,
+                borderRadius: "6px",
+                padding: "6px 8px",
+                width: "100%",
+              }}
+            />
+          ) : (
+            <h3 style={{
+              fontFamily: FONT_UI,
+              fontSize: "14px",
+              fontWeight: 700,
+              color: TEXT_PRI,
+              margin: 0,
+              cursor: "pointer",
+            }} onClick={() => setIsRenaming(true)}>
+              {set.title}
+            </h3>
+          )}
+          <p style={{
+            fontFamily: FONT_UI,
+            fontSize: "10px",
+            fontWeight: 400,
+            color: TEXT_SEC,
+            margin: "2px 0 0 0",
+          }}>
+            {set.cardCount} tarjetas • Visto hace {getTimeSinceStudied(set.lastStudied)}
+          </p>
+        </div>
+
+        {/* Mastery badge */}
+        <div style={{
+          background: badgeBg,
+          borderRadius: "9999px",
+          padding: "4px 10px",
+          fontFamily: FONT_UI,
+          fontSize: "10px",
+          fontWeight: 700,
+          color: badgeText,
+          flexShrink: 0,
+        }}>
+          {set.progress}%
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: "5px",
+        borderRadius: "3px",
+        background: BORDER,
+      }}>
+        <div style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          height: "100%",
+          width: `${set.progress}%`,
+          borderRadius: "3px",
+          background: progressBarColor,
+        }} />
+      </div>
+
+      {/* Bottom row: metadata on left, action button on right */}
+      <div style={{
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        width: "100%",
-        textAlign: "left",
-        background: W,
-        border: `1px solid ${CARD_BORDER}`,
-        borderRadius: CARD_RADIUS,
-        padding: "16px",
-        cursor: "pointer",
-        position: "relative",
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        {isEditing ? (
-          <input
-            autoFocus
-            value={editedName}
-            onChange={(e) => setEditedName(e.target.value)}
-            onBlur={saveName}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              fontFamily: FONT_UI,
-              fontSize: "16px",
-              fontWeight: 600,
-              color: TEXT_PRI,
-              border: `1px solid ${SAGE_ACCENT}`,
-              borderRadius: "8px",
-              padding: "8px 12px",
-              width: "100%",
-              maxWidth: "300px",
-            }}
-          />
-        ) : (
-          <>
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "8px",
-            }}>
-              <h3 style={{
-                fontFamily: FONT_UI,
-                fontSize: "16px",
-                fontWeight: 600,
-                color: TEXT_PRI,
-                margin: 0,
-              }}>
-                {set.title}
-              </h3>
-              {set.favorite && (
-                <Star
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    fill: BUTTER_ACCENT,
-                    color: BUTTER_ACCENT,
-                  }}
-                />
-              )}
-            </div>
-            <p style={{
-              fontFamily: FONT_UI,
-              fontSize: "13px",
-              color: TEXT_SEC,
-              margin: "0 0 8px 0",
-            }}>
-              {set.cardCount} tarjetas • {set.progress}% completo
-            </p>
-
-            {/* Mini progress bar */}
-            <div style={{
-              position: "relative",
-              width: "100%",
-              height: "4px",
-              borderRadius: "2px",
-              background: PROG_TRACK,
-            }}>
-              <div style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                height: "100%",
-                width: `${set.progress}%`,
-                borderRadius: "2px",
-                background: PROG_FG,
-              }} />
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Menu button */}
-      {showMenuButton && (
+        gap: "8px",
+      }}>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen(!menuOpen);
+          onClick={() => {
+            const actions = [
+              { label: "Estudiar", fn: onStudy },
+              { label: "Compartir", fn: onShare },
+              { label: "Renombrar", fn: () => setIsRenaming(true) },
+              { label: "Favorito", fn: onToggleFavorite },
+              { label: "Reiniciar", fn: onResetProgress },
+              { label: "Eliminar", fn: onDelete },
+            ];
+            // In mobile, show a simple action on tap
+            if (isMobile) {
+              onStudy();
+            }
           }}
           style={{
-            flexShrink: 0,
-            width: "32px",
-            height: "32px",
-            padding: "0",
             background: "none",
             border: "none",
             cursor: "pointer",
+            fontFamily: FONT_UI,
+            fontSize: "11px",
+            fontWeight: 600,
+            color: SAGE,
+            padding: "2px 0",
+            flex: 1,
+            textAlign: "left",
+          }}
+        >
+          Ver más
+        </button>
+
+        {/* Action button (circular arrow) */}
+        <button
+          onClick={onStudy}
+          style={{
+            width: "30px",
+            height: "30px",
+            borderRadius: "50%",
+            background: arrowBtnBg,
+            border: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: TEXT_SEC,
-            marginLeft: "12px",
+            cursor: "pointer",
+            flexShrink: 0,
           }}
-          aria-label="Más opciones"
         >
-          <MoreVertical style={{ width: "20px", height: "20px" }} />
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ stroke: arrowBtnStroke, strokeWidth: 2 }}>
+            <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
-      )}
-
-      {/* Dropdown menu */}
-      {menuOpen && (
-        <>
-          <div
-            onClick={() => setMenuOpen(false)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 10,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              top: "100%",
-              right: "0",
-              background: W,
-              border: `1px solid ${CARD_BORDER}`,
-              borderRadius: "8px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-              zIndex: 20,
-              minWidth: "160px",
-              marginTop: "4px",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              onClick={() => handleMenuAction(onShare)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "none",
-                border: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_PRI,
-                borderBottom: `1px solid ${CARD_BORDER}`,
-              }}
-            >
-              Compartir
-            </button>
-            <button
-              onClick={() => handleMenuAction(handleRename)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "none",
-                border: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_PRI,
-                borderBottom: `1px solid ${CARD_BORDER}`,
-              }}
-            >
-              Renombrar
-            </button>
-            <button
-              onClick={() => handleMenuAction(onToggleFavorite)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "none",
-                border: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_PRI,
-                borderBottom: `1px solid ${CARD_BORDER}`,
-              }}
-            >
-              Favorito
-            </button>
-            <button
-              onClick={() => handleMenuAction(onResetProgress)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "none",
-                border: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_PRI,
-                borderBottom: `1px solid ${CARD_BORDER}`,
-              }}
-            >
-              Reiniciar progreso
-            </button>
-            <button
-              onClick={() => handleMenuAction(onDelete)}
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "none",
-                border: "none",
-                textAlign: "left",
-                cursor: "pointer",
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                color: TEXT_RED,
-              }}
-            >
-              Eliminar
-            </button>
-          </div>
-        </>
-      )}
+      </div>
     </div>
   );
 }
@@ -1051,11 +973,11 @@ function NavItem({
         width: active ? "64px" : "44px",
         height: "32px",
         borderRadius: "16px",
-        background: active ? NAV_PILL : "transparent",
+        background: active ? "#F0F0F0" : "transparent",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: active ? TEXT_PRI : TEXT_MUT,
+        color: active ? TEXT_PRI : TEXT_SEC,
         transition: "width 0.15s ease, background 0.15s ease",
       }}>
         {icon}
@@ -1064,7 +986,7 @@ function NavItem({
         fontFamily: FONT_UI,
         fontSize: "11px",
         fontWeight: active ? 700 : 400,
-        color: active ? TEXT_PRI : TEXT_MUT,
+        color: active ? TEXT_PRI : TEXT_SEC,
       }}>
         {label}
       </span>
