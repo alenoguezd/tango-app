@@ -767,10 +767,17 @@ function SetListItem({
   const showMenuButton = isMobile || isHovering;
 
   return (
-    <button
+    <div
       onClick={onStudy}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onStudy();
+        }
+      }}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -1008,7 +1015,7 @@ function SetListItem({
           </div>
         </>
       )}
-    </button>
+    </div>
   );
 }
 
