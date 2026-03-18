@@ -237,7 +237,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       {/* Header Section */}
       <div style={{
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         alignItems: "flex-start",
         marginBottom: SECTION_GAP,
       }}>
@@ -261,47 +261,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             {userName}
           </h1>
-        </div>
-
-        {/* Badges */}
-        <div style={{
-          display: "flex",
-          gap: "8px",
-          alignItems: "center",
-        }}>
-          {/* Sets count badge */}
-          <div style={{
-            background: BUTTER,
-            borderRadius: "20px",
-            padding: "6px 12px",
-            fontFamily: FONT_UI,
-            fontSize: "12px",
-            fontWeight: 700,
-            color: "#6B5500",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px",
-          }}>
-            <span style={{ fontSize: "14px" }}>📚</span>
-            {localSets.length}
-          </div>
-
-          {/* User initials badge */}
-          <div style={{
-            width: "40px",
-            height: "40px",
-            borderRadius: "50%",
-            background: ROSE,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: FONT_UI,
-            fontSize: "13px",
-            fontWeight: 700,
-            color: "#fff",
-          }}>
-            {userInitials}
-          </div>
         </div>
       </div>
 
