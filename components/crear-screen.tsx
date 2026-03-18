@@ -200,8 +200,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   const canGenerate = !!imageUrl && !!setName.trim() && state === "idle";
 
-  // ===== Main Content =====
-  const MainContent = () => (
+  // ===== Main Content (memoized to prevent re-renders) =====
+  const mainContent = (
     <div style={{ padding: `0 ${H_PAD}px` }}>
       {/* Title */}
       <h1 style={{
@@ -519,7 +519,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         height: "0",
         paddingBottom: "100px",
       }}>
-        <MainContent />
+        {mainContent}
       </div>
 
       {/* Bottom navigation */}
@@ -591,7 +591,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             margin: "0 auto",
             width: "100%",
           }}>
-            <MainContent />
+            {mainContent}
           </div>
         </div>
       </div>
