@@ -8,18 +8,17 @@ import { tokens } from "@/lib/design-tokens";
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
 const BG_PAGE     = tokens.color.page;
-const BG_PAGE     = "#FFFFFF";
 const FONT        = "var(--font-sans)";
 
-const TEXT_PRI    = "#111111";
-const TEXT_SEC    = "#555555";
-const TEXT_MUT    = "#9A9A9A";
-const TEXT_RED    = "#D0312D";
+const TEXT_PRI    = tokens.color.ink;
+const TEXT_SEC    = tokens.color.muted;
+const TEXT_MUT    = tokens.color.muted;
+const TEXT_RED    = tokens.color.rose;
 
-const CARD_BORDER = "#E0E0E0";
-const PROG_FG     = "#1565C0";
-const PROG_TRACK  = "#D1D5DB";
-const NAV_PILL    = "#EBEBEB";
+const CARD_BORDER = tokens.color.border;
+const PROG_FG     = tokens.color.sage;
+const PROG_TRACK  = "#E8E8E8";
+const NAV_PILL    = "#F0F0F0";
 
 const BLUE_CARD   = "#E7EEF6";
 const BLUE_TAB    = "#D4E2F1";
