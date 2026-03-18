@@ -375,7 +375,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontFamily: FONT_UI,
               fontSize: "12px",
               fontWeight: 700,
-              color: "#fff",
+              color: TEXT_PRI,
               flexShrink: 0,
               whiteSpace: "nowrap",
               pointerEvents: "none",
