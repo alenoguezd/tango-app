@@ -253,6 +253,12 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     return "translateX(0) translateY(0) rotate(0deg)";
   };
 
+  const getCardTransition = () => {
+    if (isDragging) return "none";
+    if (isFlying) return "transform 200ms ease-out, opacity 150ms ease-out";
+    return "transform 300ms ease-out";
+  };
+
   // Stack cards
   const stackCards = [2, 1, 0].map((offset) => {
     const cardIndex = index + offset;
@@ -541,7 +547,8 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               alignItems: "center",
               cursor: isDragging ? "grabbing" : "grab",
               transform: getCardTransform(),
-              transition: isFlying || isDragging ? "none" : "transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+              transition: getCardTransition(),
+              opacity: isFlying ? 0 : 1,
               willChange: "transform",
               touchAction: "none",
               zIndex: 10,
