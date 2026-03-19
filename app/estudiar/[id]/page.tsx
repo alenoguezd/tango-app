@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Flashcard, type VocabCard } from "@/components/flashcard";
+import { SessionComplete } from "@/components/session-complete";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
 
@@ -52,6 +53,9 @@ export default function EstudiarPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [previousMastery, setPreviousMastery] = useState(0);
+  const [sessionComplete, setSessionComplete] = useState(false);
+  const [originalSetName, setOriginalSetName] = useState<string>("");
 
   useEffect(() => {
     checkAuthAndLoadSet();
@@ -88,10 +92,10 @@ export default function EstudiarPage() {
         console.log("[Estudiar] Set loaded from Supabase:", data);
         const found: StudySet = {
           id: data.id,
-          title: data.title,
-          cardCount: data.card_count,
-          progress: 0,
-          lastStudied: data.updated_at || new Date().toISOString(),
+          title: data.name,
+          cardCount: (data.cards || []).length,
+          progress: data.progress || 0,
+          lastStudied: data.updated_at || data.created_at || new Date().toISOString(),
           cards: data.cards || [],
           userId: data.user_id,
         };
@@ -101,6 +105,12 @@ export default function EstudiarPage() {
           found.cards = migrateCards(found.cards);
         }
 
+        // Calculate previous mastery
+        const prev = found.cards ? Math.round(
+          (found.cards.filter((c) => c.known === true).length / found.cards.length) * 100
+        ) : 0;
+        setPreviousMastery(prev);
+        setOriginalSetName(found.title);
         setSet(found);
       } else {
         // Fallback to localStorage
@@ -152,7 +162,6 @@ export default function EstudiarPage() {
             if (cardIndex !== -1) {
               sets[setIndex].cards[cardIndex].known = true;
             }
-            sets[setIndex].progress = Math.min(100, (sets[setIndex].progress as number) + 5);
           } else if (direction === "left") {
             // Mark card as not known (needs review)
             const cardIndex = sets[setIndex].cards.findIndex((c) => c.id === card.id);
@@ -161,7 +170,20 @@ export default function EstudiarPage() {
             }
           }
 
+          // Calculate progress based on actual card states (after all updates)
+          const knownCount = sets[setIndex].cards.filter((c) => c.known === true).length;
+          sets[setIndex].progress = sets[setIndex].cards.length > 0
+            ? Math.round((knownCount / sets[setIndex].cards.length) * 100)
+            : 0;
+
           localStorage.setItem("vocab_sets", JSON.stringify(sets));
+
+          // Update component state with the latest card data
+          setSet({
+            ...set,
+            cards: sets[setIndex].cards,
+            progress: sets[setIndex].progress,
+          });
 
           // Try to save to Supabase
           try {
@@ -247,6 +269,27 @@ export default function EstudiarPage() {
     }
   };
 
+  const handleReviewDifficult = () => {
+    if (set) {
+      // Filter cards that are marked as difficult or not known
+      const difficultCards = set.cards.filter((c) => c.difficulty === "difícil" || c.known === false);
+      if (difficultCards.length > 0) {
+        // Create temporary filtered set for review (preserve original title)
+        const reviewSet = { ...set, cards: difficultCards, title: originalSetName };
+        setSet(reviewSet);
+        setSessionComplete(false);
+      }
+    }
+  };
+
+  const handleGoHome = () => {
+    router.push("/inicio");
+  };
+
+  const handleStudyAnother = () => {
+    router.push("/inicio");
+  };
+
   if (loading) {
     return (
       <div
@@ -291,6 +334,28 @@ export default function EstudiarPage() {
           Volver
         </button>
       </div>
+    );
+  }
+
+  // Check if session is complete (all cards have been swiped)
+  if (sessionComplete && set) {
+    const noSe = set.cards.filter((c) => c.known === false && c.difficulty !== "difícil").length;
+    const dificil = set.cards.filter((c) => c.difficulty === "difícil").length;
+    const conocidas = set.cards.filter((c) => c.known === true).length;
+
+    return (
+      <SessionComplete
+        setName={set.title}
+        total={set.cards.length}
+        noSe={noSe}
+        dificil={dificil}
+        conocidas={conocidas}
+        previousMastery={previousMastery}
+        streakDays={0}
+        onReviewDifficult={handleReviewDifficult}
+        onGoHome={handleGoHome}
+        onStudyAnother={handleStudyAnother}
+      />
     );
   }
 
@@ -346,6 +411,7 @@ export default function EstudiarPage() {
             title={set.title}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
+            onSessionComplete={() => setSessionComplete(true)}
           />
         </div>
       </div>
@@ -419,6 +485,7 @@ export default function EstudiarPage() {
             title={set.title}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
+            onSessionComplete={() => setSessionComplete(true)}
           />
         </div>
       </div>

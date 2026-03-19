@@ -15,6 +15,16 @@ export default function InicioPage() {
 
   useEffect(() => {
     checkAuthAndLoadSets();
+
+    // Reload sets when page becomes visible (user returns from study)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadSets(localStorage.getItem("current_user_id") || "");
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   const checkAuthAndLoadSets = async () => {
@@ -27,6 +37,7 @@ export default function InicioPage() {
       }
 
       setIsAuthenticated(true);
+      localStorage.setItem('current_user_id', user.id);
       loadSets(user.id);
     } catch (error) {
       router.push("/");

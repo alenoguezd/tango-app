@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share2 } from "lucide-react";
+import { Share2, MoreVertical } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
@@ -223,6 +223,13 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
   const needsStudy = localSets.filter(s => s.progress < 100).length;
   const sortedSets = [...localSets].sort((a, b) => {
+    // Sort by most recently studied first
+    const dateA = new Date(a.lastStudied).getTime();
+    const dateB = new Date(b.lastStudied).getTime();
+    if (dateA !== dateB) {
+      return dateB - dateA; // Most recent first
+    }
+    // Secondary sort: favorites first
     if (a.favorite && !b.favorite) return -1;
     if (!a.favorite && b.favorite) return 1;
     return 0;
@@ -331,7 +338,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             const firstIncomplete = localSets.find(s => s.progress < 100);
             if (firstIncomplete) onStudy(firstIncomplete);
           }}
-          aria-label={`Empezar a reparar ${needsStudy} tarjetas, tiempo estimado 2 minutos`}
+          aria-label={`Empezar a repasar ${needsStudy} tarjetas, tiempo estimado 2 minutos`}
           style={{
             background: "#000",
             borderRadius: "28px",
@@ -355,7 +362,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               color: "#fff",
               margin: "0 0 2px 0",
             }}>
-              {needsStudy} tarjetas por reparar
+              {needsStudy} tarjetas por repasar
             </h2>
             <p style={{
               fontFamily: FONT_UI,
@@ -389,37 +396,15 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* Mis sets Header */}
       {localSets.length > 0 && (
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "16px",
+        <h2 style={{
+          fontFamily: FONT_UI,
+          fontSize: "20px",
+          fontWeight: 700,
+          color: TEXT_PRI,
+          margin: "0 0 16px",
         }}>
-          <h2 style={{
-            fontFamily: FONT_UI,
-            fontSize: "20px",
-            fontWeight: 700,
-            color: TEXT_PRI,
-            margin: 0,
-          }}>
-            Mis sets
-          </h2>
-          <button
-            onClick={() => {}}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontFamily: FONT_UI,
-              fontSize: "13px",
-              fontWeight: 600,
-              color: SAGE,
-              padding: 0,
-            }}
-          >
-            Ver todos →
-          </button>
-        </div>
+          Mis sets
+        </h2>
       )}
 
       {/* Sets List */}
@@ -631,13 +616,24 @@ function SetCard({
     barColor = "#F2B8CD";
   }
 
+  const [isPressed, setIsPressed] = useState(false);
+
   return (
-    <div style={{
-      background: "#fff",
-      border: `0.5px solid #EEEBE6`,
-      borderRadius: CARD_RADIUS,
-      padding: "14px",
-    }}>
+    <div
+      onClick={onStudy}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
+      style={{
+        background: isPressed ? "#F8F8F8" : "#fff",
+        border: `0.5px solid #EEEBE6`,
+        borderRadius: CARD_RADIUS,
+        padding: "14px",
+        cursor: "pointer",
+        transform: isPressed ? "scale(0.98)" : "scale(1)",
+        transition: "all 100ms ease",
+      }}
+    >
       {/* Title and Progress Badge */}
       <div style={{
         display: "flex",
@@ -691,32 +687,32 @@ function SetCard({
         {set.cardCount} tarjetas · {getTimeSinceStudied(set.lastStudied)}
       </p>
 
-      {/* Progress Bar */}
-      <div style={{
-        position: "relative",
-        width: "100%",
-        height: "4px",
-        borderRadius: "2px",
-        background: "#EEEBE6",
-        marginBottom: "10px",
-      }}>
-        <div style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          height: "100%",
-          width: `${set.progress}%`,
-          borderRadius: "2px",
-          background: barColor,
-        }} />
-      </div>
-
-      {/* Action Buttons */}
+      {/* Action Row: Progress Bar + Share + Menu */}
       <div style={{
         display: "flex",
+        alignItems: "center",
         gap: "8px",
-        justifyContent: "flex-end",
       }}>
+        {/* Progress Bar (flex: 1) */}
+        <div style={{
+          flex: 1,
+          position: "relative",
+          width: "100%",
+          height: "4px",
+          borderRadius: "2px",
+          background: "#EEEBE6",
+        }}>
+          <div style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            height: "100%",
+            width: `${set.progress}%`,
+            borderRadius: "2px",
+            background: barColor,
+          }} />
+        </div>
+
         {/* Share button */}
         <button
           onClick={(e) => {
@@ -734,34 +730,84 @@ function SetCard({
             justifyContent: "center",
             cursor: "pointer",
             color: "#B8CEEA",
+            flexShrink: 0,
           }}
           title="Compartir"
         >
           <Share2 style={{ width: "16px", height: "16px" }} />
         </button>
 
-        {/* Study button */}
-        <button
-          onClick={onStudy}
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "10px",
-            background: "#FEF7D6",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "#6B5500",
-          }}
-          title="Estudiar"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ stroke: "currentColor", strokeWidth: 2 }}>
-            <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+        {/* Menu button */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <MenuButton onDelete={onDelete} />
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── MenuButton ────────────────────────────────────────────────────────────────────
+function MenuButton({ onDelete }: { onDelete: () => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "10px",
+          background: "#F5F5F5",
+          border: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          color: "#B0A898",
+        }}
+        title="Más opciones"
+      >
+        <MoreVertical style={{ width: "16px", height: "16px" }} />
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "100%",
+            marginTop: "8px",
+            background: "#fff",
+            border: "1px solid #EEEBE6",
+            borderRadius: "8px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            zIndex: 1000,
+            minWidth: "140px",
+          }}
+        >
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              onDelete();
+            }}
+            style={{
+              width: "100%",
+              padding: "10px 16px",
+              background: "none",
+              border: "none",
+              textAlign: "left",
+              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+              fontSize: "13px",
+              fontWeight: 500,
+              color: "#D0312D",
+              cursor: "pointer",
+            }}
+          >
+            Eliminar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

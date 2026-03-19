@@ -19,6 +19,7 @@ interface FlashcardProps {
   title?: string;
   onBack?: () => void;
   onCardSwiped?: (card: VocabCard, direction: "left" | "right") => void;
+  onSessionComplete?: () => void;
 }
 
 const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
@@ -32,7 +33,7 @@ const PAGE_BG = tokens.color.page;
 
 const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
 
-export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: FlashcardProps) {
+export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -175,8 +176,13 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         setFlipped(false); // Reset flip state with index change to prevent brief old state flicker
         exitingCardRef.current = null; // Clear snapshot after advancing
       }, 250);
+    } else {
+      // Last card was swiped - session complete
+      if (onSessionComplete) {
+        setTimeout(onSessionComplete, 500);
+      }
     }
-  }, [index, total, deck, onCardSwiped, logStudyActivity]);
+  }, [index, total, deck, onCardSwiped, onSessionComplete, logStudyActivity]);
 
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -371,39 +377,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         touchAction: "pan-y",
       }}
     >
-      {/* Top bar with time and dots */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingTop: "max(12px, env(safe-area-inset-top, 0px) + 8px)",
-        paddingLeft: "16px",
-        paddingRight: "16px",
-        paddingBottom: "12px",
-        color: TEXT_SEC,
-        fontSize: "13px",
-        fontWeight: 500,
-      }}>
-        <span>9:41</span>
-        <div style={{
-          display: "flex",
-          gap: "6px",
-          alignItems: "center",
-        }}>
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                background: i < Math.ceil((index + 1) / (total / 3)) ? TEXT_SEC : "#E0DCD4",
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
       {/* Header with back button and title */}
       <div style={{
         display: "flex",
@@ -443,7 +416,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
           color: TEXT_PRI,
           margin: 0,
         }}>
-          Lección {index + 1}
+          {title}
         </h1>
       </div>
 
