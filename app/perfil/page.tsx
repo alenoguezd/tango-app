@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, ChevronRight, FolderOpen, Play } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
@@ -22,6 +22,7 @@ const BORDER = tokens.color.border;
 const SAGE_LIGHT = "#E0F2E0";
 const BLUE_LIGHT = "#E0EDF8";
 const BUTTER_LIGHT = "#FFF9E0";
+const NAV_PILL = "#F0F0F0";
 
 function useWindowSize() {
   const [windowWidth, setWindowWidth] = useState<number>(0);
@@ -768,25 +769,25 @@ export default function PerfilPage() {
           <NavItem
             label="Inicio"
             active={false}
-            icon="🏠"
+            icon={<SmileIcon />}
             onClick={() => handleNavigate("inicio")}
           />
           <NavItem
             label="Crear"
             active={false}
-            icon="➕"
+            icon={<FolderOpen style={{ width: "22px", height: "22px", strokeWidth: 1.8 }} />}
             onClick={() => handleNavigate("crear")}
           />
           <NavItem
             label="Progreso"
             active={false}
-            icon="📊"
+            icon={<Play style={{ width: "20px", height: "20px", strokeWidth: 1.8 }} />}
             onClick={() => handleNavigate("progreso")}
           />
           <NavItem
             label="Perfil"
             active
-            icon="👤"
+            icon={<PersonIcon />}
             onClick={() => {}}
           />
         </nav>
@@ -902,15 +903,10 @@ function NavItem({
   onClick,
 }: {
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   active: boolean;
   onClick: () => void;
 }) {
-  const FONT = "var(--font-sans)";
-  const TEXT_PRI = "#1A1A1A";
-  const TEXT_SEC = "#B0A898";
-  const ROSE = "#F2B8CD";
-
   return (
     <button
       onClick={onClick}
@@ -927,28 +923,65 @@ function NavItem({
         padding: 0,
       }}
     >
-      <div style={{
-        width: active ? "64px" : "44px",
-        height: "32px",
-        borderRadius: "12px",
-        background: active ? ROSE : "transparent",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: active ? TEXT_PRI : TEXT_SEC,
-        fontSize: "18px",
-        transition: "width 0.15s ease, background 0.15s ease",
-      }}>
+      <div
+        style={{
+          width: active ? "64px" : "44px",
+          height: "32px",
+          borderRadius: "12px",
+          background: active ? NAV_PILL : "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: active ? TEXT_PRI : TEXT_SEC,
+          transition: "width 0.15s ease, background 0.15s ease",
+        }}
+      >
         {icon}
       </div>
-      <span style={{
-        fontFamily: FONT,
-        fontSize: "11px",
-        fontWeight: active ? 700 : 400,
-        color: active ? TEXT_PRI : TEXT_SEC,
-      }}>
+      <span
+        style={{
+          fontFamily: FONT,
+          fontSize: "11px",
+          fontWeight: active ? 700 : 400,
+          color: active ? TEXT_PRI : TEXT_SEC,
+        }}
+      >
         {label}
       </span>
     </button>
+  );
+}
+
+// ── SmileIcon ─────────────────────────────────────────────────────────────────
+function SmileIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect
+        x="2"
+        y="2"
+        width="20"
+        height="20"
+        rx="6"
+        stroke="currentColor"
+        strokeWidth="1.9"
+      />
+      <circle cx="8.5" cy="10" r="1.25" fill="currentColor" />
+      <circle cx="15.5" cy="10" r="1.25" fill="currentColor" />
+      <path
+        d="M8.5 14c1.2 1.6 5.8 1.6 7 0"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
