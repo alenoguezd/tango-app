@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderOpen, Play } from "lucide-react";
+import { FolderOpen, Play, ChevronRight } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { tokens } from "@/lib/design-tokens";
 
@@ -19,17 +19,10 @@ const CARD_BORDER = tokens.color.border;
 const PROG_FG     = tokens.color.sage;
 const PROG_TRACK  = "#E8E8E8";
 const NAV_PILL    = "#F0F0F0";
+const BUTTER      = tokens.color.butter;
+const SAGE        = tokens.color.sage;
+const ROSE        = tokens.color.rose;
 
-const BLUE_CARD   = "#E7EEF6";
-const BLUE_TAB    = "#D4E2F1";
-const PINK_CARD   = "#FFE1EB";
-const PINK_TAB    = "#F7CDDB";
-
-const CARD_H      = 138.5;
-const TAB_W       = 81.189;
-const TAB_H       = 18.471;
-const CARD_RADIUS = 10;
-const CARD_PAD_X  = 10;
 const ROW_GAP     = 16;
 const COL_GAP     = 12;
 const H_PAD       = 16;
@@ -124,124 +117,257 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const overallPct = totalCards > 0 ? Math.round((totalKnown / totalCards) * 100) : 0;
 
   // Shared content component
-  const ContentArea = () => (
-    <>
-      {/* Title */}
-      <h1
-        style={{
-          fontFamily: FONT,
-          fontSize: "36px",
-          fontWeight: 500,
-          color: "#1D1B20",
-          letterSpacing: "0",
-          lineHeight: "44px",
-          margin: `8px 0 ${SECTION_GAP}px`,
-        }}
-      >
-        Progreso
-      </h1>
+  const ContentArea = () => {
+    const badgeCount = sets.length;
 
-      {sets.length === 0 ? (
-        /* ── Empty state ── */
+    return (
+      <>
+        {/* Status bar */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
+            justifyContent: "space-between",
             alignItems: "center",
-            justifyContent: "center",
-            paddingTop: "80px",
-            gap: "10px",
-            textAlign: "center",
+            marginBottom: "24px",
           }}
         >
-          <p
-            style={{
-              fontFamily: FONT,
-              fontSize: "16px",
-              fontWeight: 500,
-              color: TEXT_PRI,
-              margin: 0,
-            }}
-          >
-            Aún no has estudiado ningún set
-          </p>
-          <p
+          <span
             style={{
               fontFamily: FONT,
               fontSize: "14px",
-              color: TEXT_MUT,
-              margin: 0,
-              lineHeight: 1.5,
+              fontWeight: 500,
+              color: TEXT_PRI,
             }}
           >
-            Empieza a estudiar para ver tu progreso aquí
-          </p>
+            9:41
+          </span>
+          <div style={{ display: "flex", gap: "4px" }}>
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: "3px",
+                  height: "3px",
+                  borderRadius: "50%",
+                  background: TEXT_SEC,
+                }}
+              />
+            ))}
+          </div>
         </div>
-      ) : (
-        <>
-          {/* ── Summary card ── */}
+
+        {/* Title with badge */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: `${SECTION_GAP}px`,
+          }}
+        >
+          <h1
+            style={{
+              fontFamily: FONT,
+              fontSize: "48px",
+              fontWeight: 800,
+              color: TEXT_PRI,
+              letterSpacing: "-0.01em",
+              lineHeight: 1,
+              margin: 0,
+            }}
+          >
+            Progreso
+          </h1>
           <div
             style={{
-              background: W,
-              border: `1px solid ${CARD_BORDER}`,
-              borderRadius: "12px",
-              padding: "18px 18px 16px",
-              marginBottom: `${SECTION_GAP}px`,
+              background: BUTTER,
+              borderRadius: "50px",
+              padding: "8px 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
             }}
           >
-            {/* Three stats */}
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+              }}
+            >
+              💡
+            </span>
+            <span
+              style={{
+                fontSize: "16px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+              }}
+            >
+              {badgeCount}
+            </span>
+          </div>
+        </div>
+
+        {sets.length === 0 ? (
+          /* ── Empty state ── */
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingTop: "80px",
+              gap: "10px",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: FONT,
+                fontSize: "16px",
+                fontWeight: 500,
+                color: TEXT_PRI,
+                margin: 0,
+              }}
+            >
+              Aún no has estudiado ningún set
+            </p>
+            <p
+              style={{
+                fontFamily: FONT,
+                fontSize: "14px",
+                color: TEXT_MUT,
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              Empieza a estudiar para ver tu progreso aquí
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* ── Summary card ── */}
+            <div
+              style={{
+                background: W,
+                border: `1px solid ${CARD_BORDER}`,
+                borderRadius: "14px",
+                padding: "20px",
+                marginBottom: `${SECTION_GAP}px`,
+              }}
+            >
+              {/* Three stats in a single row */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-around",
+                  marginBottom: "20px",
+                }}
+              >
+                <StatCell label="dominadas" value={`${overallPct}%`} />
+                <StatCell label="estudiadas" value={`${totalKnown}`} />
+                <StatCell label="repasar" value={`${totalReview}`} color={TEXT_RED} />
+              </div>
+
+              {/* Overall progress bar with label */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <ProgressBar value={overallPct} />
+                <span
+                  style={{
+                    fontFamily: FONT,
+                    fontSize: "11px",
+                    color: TEXT_SEC,
+                    marginLeft: "8px",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {totalKnown}/{totalCards}
+                </span>
+              </div>
+            </div>
+
+            {/* ── Esta semana section ── */}
+            <div
+              style={{
+                background: W,
+                border: `1px solid ${CARD_BORDER}`,
+                borderRadius: "14px",
+                padding: "18px",
+                marginBottom: `${SECTION_GAP}px`,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "16px",
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: FONT,
+                    fontSize: "18px",
+                    fontWeight: 700,
+                    color: TEXT_PRI,
+                    margin: 0,
+                  }}
+                >
+                  Esta semana
+                </h3>
+                <span
+                  style={{
+                    fontFamily: FONT,
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    color: SAGE,
+                  }}
+                >
+                  +18% vs anterior
+                </span>
+              </div>
+              <WeeklyChart />
+            </div>
+
+            {/* ── Por set section ── */}
+            <h2
+              style={{
+                fontFamily: FONT,
+                fontSize: "20px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                margin: `0 0 16px`,
+              }}
+            >
+              Por set
+            </h2>
+
+            {/* Set list — new card layout */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "space-between",
-                marginBottom: "16px",
+                flexDirection: "column",
+                gap: ROW_GAP,
+                paddingBottom: "24px",
               }}
             >
-              <StatCell label="conocidas" value={`${overallPct}%`} />
-              <StatDivider />
-              <StatCell label="estudiadas" value={`${totalKnown}`} />
-              <StatDivider />
-              <StatCell label="repasar" value={`${totalReview}`} color={TEXT_RED} />
+              {sets.map((set) => (
+                <SetProgressCard key={set.id} set={set} color={set.color || "blue"} />
+              ))}
             </div>
-
-            {/* Overall progress bar */}
-            <ProgressBar value={overallPct} showDot />
-          </div>
-
-          {/* ── Por set section ── */}
-          <h2
-            style={{
-              fontFamily: FONT,
-              fontSize: "20px",
-              fontWeight: 500,
-              color: "#1D1B20",
-              letterSpacing: "0",
-              lineHeight: "28px",
-              margin: `0 0 ${TAB_H + 4}px`,
-            }}
-          >
-            Por set
-          </h2>
-
-          {/* Set list — folder-style cards matching SetCard in home-screen */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              columnGap: `${COL_GAP}px`,
-              rowGap: `${ROW_GAP + TAB_H}px`,
-              paddingTop: `${TAB_H + 4}px`,
-              paddingBottom: "24px",
-            }}
-          >
-            {sets.map((set) => (
-              <SetProgressCard key={set.id} set={set} color={set.color || "blue"} />
-            ))}
-          </div>
-        </>
-      )}
-    </>
-  );
+          </>
+        )}
+      </>
+    );
+  };
 
   if (loading) {
     return (
@@ -417,7 +543,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   );
 }
 
-// ── SetProgressCard — folder-style, mirrors SetCard in home-screen ────────────
+// ── SetProgressCard — new flat layout with badge and arrow ────────────
 function SetProgressCard({
   set,
   color,
@@ -425,125 +551,90 @@ function SetProgressCard({
   set: SetProgress;
   color: "blue" | "pink";
 }) {
-  const cardBg = color === "blue" ? BLUE_CARD : PINK_CARD;
-  const tabFill = color === "blue" ? BLUE_TAB : PINK_TAB;
   const pct = set.cardCount > 0 ? Math.round((set.known / set.cardCount) * 100) : 0;
+  const badgeBg = color === "blue" ? "#E0F2E0" : "#FFE5F0";
+  const arrowBg = color === "blue" ? "#E0F2E0" : "#FFE5F0";
+  const arrowColor = color === "blue" ? SAGE : ROSE;
 
   return (
-    <div style={{ position: "relative" }}>
-      {/* Folder tab — same SVG pattern as home-screen SetCard */}
-      <div
-        style={{
-          position: "absolute",
-          top: `-${TAB_H}px`,
-          left: 0,
-          width: `${TAB_W}px`,
-          height: `${TAB_H + CARD_RADIUS}px`,
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      >
-        <svg
-          width={TAB_W}
-          height={TAB_H + CARD_RADIUS}
-          viewBox={`0 0 ${TAB_W} ${TAB_H + CARD_RADIUS}`}
-          fill="none"
-          aria-hidden
-          style={{ display: "block" }}
-        >
-          <path
-            d="M1.15795 9.17728C1.81115 3.93493 6.2668 0 11.5497 0H71.1852C75.5889 0 79.3026 3.28097 79.8454 7.65109L81.1892 18.4706H0L1.15795 9.17728Z"
-            fill={tabFill}
-          />
-          <rect
-            x="0"
-            y={TAB_H - 0.5}
-            width={TAB_W}
-            height={CARD_RADIUS + 1}
-            fill={cardBg}
-          />
-        </svg>
-        <span
+    <div
+      style={{
+        background: W,
+        border: `1px solid ${CARD_BORDER}`,
+        borderRadius: "14px",
+        padding: "16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "12px",
+      }}
+    >
+      {/* Left: title + subtitle */}
+      <div style={{ flex: 1 }}>
+        <h3
           style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: `${TAB_H}px`,
-            display: "flex",
-            alignItems: "center",
-            paddingLeft: "10px",
             fontFamily: FONT,
-            fontSize: "11px",
-            fontWeight: 500,
-            color: TEXT_SEC,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            fontSize: "16px",
+            fontWeight: 700,
+            color: TEXT_PRI,
+            margin: "0 0 4px",
           }}
         >
           {set.title}
+        </h3>
+        <p
+          style={{
+            fontFamily: FONT,
+            fontSize: "12px",
+            color: TEXT_SEC,
+            margin: 0,
+          }}
+        >
+          {set.known}/{set.cardCount} dominadas
+        </p>
+      </div>
+
+      {/* Center: percentage badge */}
+      <div
+        style={{
+          background: badgeBg,
+          borderRadius: "20px",
+          padding: "6px 14px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: FONT,
+            fontSize: "14px",
+            fontWeight: 700,
+            color: arrowColor,
+          }}
+        >
+          {pct}%
         </span>
       </div>
 
-      {/* Card body */}
-      <div
+      {/* Right: arrow button */}
+      <button
         style={{
-          width: "100%",
-          height: `${CARD_H}px`,
-          background: cardBg,
-          borderRadius: `0 ${CARD_RADIUS}px ${CARD_RADIUS}px ${CARD_RADIUS}px`,
-          padding: `14px ${CARD_PAD_X}px 12px`,
+          background: arrowBg,
+          border: "none",
+          borderRadius: "50%",
+          width: "40px",
+          height: "40px",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          boxSizing: "border-box",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          color: arrowColor,
+          flexShrink: 0,
         }}
       >
-        {/* Top: big percentage */}
-        <div>
-          <span
-            style={{
-              fontFamily: FONT,
-              fontSize: "38px",
-              fontWeight: 700,
-              color: TEXT_PRI,
-              lineHeight: 1,
-              display: "block",
-            }}
-          >
-            {pct}%
-          </span>
-          <span
-            style={{
-              fontFamily: FONT,
-              fontSize: "12px",
-              fontWeight: 400,
-              color: TEXT_SEC,
-              display: "block",
-              marginTop: "2px",
-            }}
-          >
-            conocidas
-          </span>
-        </div>
-
-        {/* Bottom: sub-stats + progress bar */}
-        <div>
-          <p
-            style={{
-              fontFamily: FONT,
-              fontSize: "11px",
-              color: TEXT_MUT,
-              margin: "0 0 6px",
-              lineHeight: 1.3,
-            }}
-          >
-            {set.known} conocidas · {set.toReview} repasar
-          </p>
-          <ProgressBar value={pct} />
-        </div>
-      </div>
+        <ChevronRight size={20} strokeWidth={2} />
+      </button>
     </div>
   );
 }
@@ -565,14 +656,14 @@ function StatCell({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "2px",
+        gap: "4px",
       }}
     >
       <span
         style={{
           fontFamily: FONT,
-          fontSize: "28px",
-          fontWeight: 700,
+          fontSize: "36px",
+          fontWeight: 800,
           color,
           lineHeight: 1,
         }}
@@ -582,7 +673,7 @@ function StatCell({
       <span
         style={{
           fontFamily: FONT,
-          fontSize: "12px",
+          fontSize: "11px",
           fontWeight: 400,
           color: TEXT_SEC,
         }}
@@ -593,18 +684,63 @@ function StatCell({
   );
 }
 
-// ── StatDivider ───────────────────────────────────────────────────────────────
-function StatDivider() {
+// ── WeeklyChart ───────────────────────────────────────────────────────────────
+function WeeklyChart() {
+  // Mock data for weekly progress — days L, M, X, J, V, S, D
+  const days = ["L", "M", "X", "J", "V", "S", "D"];
+  const heights = [40, 60, 30, 70, 80, 20, 95]; // percentage of max height
+
+  const maxHeight = 100;
+  const barHeight = 80; // visual max height in px
+
   return (
     <div
       style={{
-        width: "1px",
-        alignSelf: "stretch",
-        background: CARD_BORDER,
-        margin: "0 4px",
-        flexShrink: 0,
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        gap: "8px",
+        height: `${barHeight + 20}px`,
       }}
-    />
+    >
+      {days.map((day, i) => {
+        const isToday = i === days.length - 1;
+        const barColor = isToday ? TEXT_PRI : SAGE;
+        const actualHeight = (heights[i] / maxHeight) * barHeight;
+
+        return (
+          <div
+            key={day}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            <div
+              style={{
+                width: "100%",
+                height: `${actualHeight}px`,
+                background: barColor,
+                borderRadius: "4px 4px 0 0",
+              }}
+            />
+            <span
+              style={{
+                fontFamily: FONT,
+                fontSize: "11px",
+                fontWeight: 500,
+                color: TEXT_SEC,
+              }}
+            >
+              {day}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
