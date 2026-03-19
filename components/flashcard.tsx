@@ -45,6 +45,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const cardDimsRef = useRef({ width: 560, height: 400 });
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
   const didDrag = useRef(false);
@@ -52,13 +53,36 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   const total = deck.length;
   const current = deck[index];
 
-  // Calculate stats from cards
-  const conocidas = deck.filter(c => c.known === true && c.difficulty !== "difícil").length;
+  // Phase 1: Fix stat calculation - separate all 4 states explicitly
+  const conocidas = deck.filter(c => c.known === true).length;
+  const noSé = deck.filter(c => c.known === false && c.difficulty === null).length;
   const difícil = deck.filter(c => c.difficulty === "difícil").length;
-  const restantes = total - conocidas - difícil;
+  const restantes = total - conocidas - noSé - difícil;
 
   const progress = total > 0 ? (index + 1) : 1;
   const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+
+  // Phase 3: Cache card dimensions on mount and resize
+  useEffect(() => {
+    const updateDims = () => {
+      if (cardRef.current) {
+        const rect = cardRef.current.getBoundingClientRect();
+        cardDimsRef.current = { width: rect.width, height: rect.height };
+      }
+    };
+
+    // Update immediately
+    updateDims();
+
+    // Re-measure after next frame to catch render completion
+    const timer = setTimeout(updateDims, 100);
+
+    window.addEventListener("resize", updateDims);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", updateDims);
+    };
+  }, []);
 
   // Handle card swipe
   const advanceCard = useCallback((direction: "left" | "right" | "down") => {
@@ -99,14 +123,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     }
   }, [index, total, current, deck, onCardSwiped]);
 
-  // Get card dimensions for threshold calculation
-  const getCardDimensions = () => {
-    if (cardRef.current) {
-      return cardRef.current.getBoundingClientRect();
-    }
-    return { width: 560, height: 400 };
-  };
-
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (isFlying) return;
@@ -141,7 +157,9 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
     const dx = e.clientX - (pointerStartX.current ?? e.clientX);
     const dy = e.clientY - (pointerStartY.current ?? e.clientY);
-    const dims = getCardDimensions();
+
+    // Phase 3: Use cached dimensions instead of recalculating
+    const dims = cardDimsRef.current;
     const thresholdX = dims.width * SWIPE_THRESHOLD;
     const thresholdY = dims.height * SWIPE_THRESHOLD;
 
@@ -200,9 +218,8 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [flipped, isFlying, isDesktop, advanceCard]);
 
-  // Calculate drag derived values
-  const windowWidth = typeof window !== "undefined" ? window.innerWidth : 390;
-  const dims = getCardDimensions();
+  // Calculate drag derived values using cached dimensions
+  const dims = cardDimsRef.current;
   const thresholdX = dims.width * SWIPE_THRESHOLD;
   const thresholdY = dims.height * SWIPE_THRESHOLD;
 
@@ -370,7 +387,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         </span>
       </div>
 
-      {/* Status cards */}
+      {/* Phase 2: Update counter display - replaced "restantes" with "No sé" */}
       <div style={{
         display: "flex",
         gap: "12px",
@@ -411,6 +428,34 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
           </div>
         </div>
 
+        {/* No sé - NEWLY ADDED */}
+        <div style={{
+          flex: 1,
+          background: "rgba(242, 184, 205, 0.15)",
+          border: `1.5px solid ${ROSE}`,
+          borderRadius: "16px",
+          padding: "12px 16px",
+          textAlign: "center",
+          transition: "all 200ms ease",
+          transform: noSé > 0 ? "scale(1.05)" : "scale(1)",
+        }}>
+          <div style={{
+            fontSize: "18px",
+            fontWeight: 800,
+            color: ROSE,
+            marginBottom: "2px",
+          }}>
+            {noSé}
+          </div>
+          <div style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            color: ROSE,
+          }}>
+            no sé
+          </div>
+        </div>
+
         {/* Difícil */}
         <div style={{
           flex: 1,
@@ -436,33 +481,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             color: "#8B7D00",
           }}>
             difícil
-          </div>
-        </div>
-
-        {/* Restantes */}
-        <div style={{
-          flex: 1,
-          background: "rgba(200, 200, 200, 0.1)",
-          border: `1.5px solid #E0DCD4`,
-          borderRadius: "16px",
-          padding: "12px 16px",
-          textAlign: "center",
-          transition: "all 200ms ease",
-        }}>
-          <div style={{
-            fontSize: "18px",
-            fontWeight: 800,
-            color: TEXT_SEC,
-            marginBottom: "2px",
-          }}>
-            {restantes}
-          </div>
-          <div style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: TEXT_SEC,
-          }}>
-            restantes
           </div>
         </div>
       </div>
@@ -545,7 +563,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               }}
             />
 
-            {/* Labels for swipe directions */}
+            {/* Phase 4: Improved label visibility with better opacity calculation */}
             {(showGreen || isFlying === "right") && (
               <div
                 style={{
@@ -556,7 +574,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                   fontSize: "13px",
                   fontWeight: 700,
                   color: SAGE,
-                  opacity: Math.max(0, clampedRatioX),
+                  opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
                 }}
               >
                 Conocida ✓
@@ -573,7 +591,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                   fontSize: "13px",
                   fontWeight: 700,
                   color: ROSE,
-                  opacity: Math.max(0, -clampedRatioX),
+                  opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
                 }}
               >
                 No sé
@@ -591,7 +609,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                   fontSize: "13px",
                   fontWeight: 700,
                   color: "#8B7D00",
-                  opacity: Math.max(0, clampedRatioY),
+                  opacity: Math.max(0, clampedRatioY - 0.1),
                 }}
               >
                 Difícil
