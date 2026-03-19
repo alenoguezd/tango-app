@@ -505,9 +505,26 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         position: "relative",
       }}>
         <div style={{ width: "100%", maxWidth: "560px", position: "relative", height: "100%" }}>
-          {/* Stack cards in background */}
+          {/* Stack cards in background - physical deck look */}
           {stackCards.length > 1 && stackCards.map((item) => {
             if (!item || item.offset === 0) return null;
+
+            // Stack positioning for physical deck appearance
+            const getStackTransform = () => {
+              if (item.offset === 1) {
+                // Card 2: next card
+                return "rotate(2deg) translate(3px, 6px)";
+              } else if (item.offset === 2) {
+                // Card 3: after next
+                return "rotate(-1.5deg) translate(-4px, 10px)";
+              }
+              return "rotate(0deg) translate(0px, 0px)";
+            };
+
+            const getStackZIndex = () => {
+              return 3 - item.offset;
+            };
+
             return (
               <div
                 key={item.index}
@@ -518,8 +535,10 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                   border: `1px solid ${BORDER}`,
                   borderRadius: "24px",
                   padding: "40px 24px",
-                  transform: `translateY(${item.offset * 4}px) scale(${1 - item.offset * 0.02})`,
-                  zIndex: -item.offset,
+                  transform: getStackTransform(),
+                  transition: isFlying ? "transform 220ms ease-out" : "none",
+                  zIndex: getStackZIndex(),
+                  opacity: 1,
                   pointerEvents: "none",
                 }}
               />
@@ -551,7 +570,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               opacity: isFlying ? 0 : 1,
               willChange: "transform",
               touchAction: "none",
-              zIndex: 10,
+              zIndex: 3,
               overflow: "hidden",
             }}
             role="button"
