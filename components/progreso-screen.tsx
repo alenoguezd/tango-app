@@ -153,11 +153,9 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
 
   // Shared content component
   const ContentArea = () => {
-    const badgeCount = sets.length;
-
     return (
       <>
-        {/* Title with badges */}
+        {/* Title with streak badge */}
         <div
           style={{
             display: "flex",
@@ -179,43 +177,24 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
           >
             Progreso
           </h1>
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+          {currentStreak > 0 && (
             <div
               style={{
                 background: BUTTER,
                 borderRadius: "50px",
-                padding: "8px 16px",
+                padding: "6px 12px",
                 display: "flex",
                 alignItems: "center",
-                gap: "6px",
+                gap: "4px",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: TEXT_PRI,
               }}
             >
-              <span style={{ fontSize: "14px", fontWeight: 700, color: TEXT_PRI }}>
-                💡
-              </span>
-              <span style={{ fontSize: "16px", fontWeight: 700, color: TEXT_PRI }}>
-                {badgeCount}
-              </span>
+              <span>💧</span>
+              <span>{currentStreak} días seguidos</span>
             </div>
-            {currentStreak > 0 && (
-              <div
-                style={{
-                  background: BUTTER,
-                  borderRadius: "50px",
-                  padding: "6px 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: TEXT_PRI,
-                }}
-              >
-                <span>💧</span>
-                <span>{currentStreak} días seguidos</span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         {sets.length === 0 ? (
