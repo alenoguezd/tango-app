@@ -51,6 +51,7 @@ export default function PerfilPage() {
   const [setsCount, setSetsCount] = useState(0);
   const [cardsCount, setCardsCount] = useState(0);
   const [masteryPercent, setMasteryPercent] = useState(0);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -109,6 +110,37 @@ export default function PerfilPage() {
       setCardsCount(totalCards);
       const pct = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
       setMasteryPercent(pct);
+
+      // Calculate streak
+      const studyLog = localStorage.getItem("study_log");
+      if (studyLog) {
+        try {
+          const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
+          if (log.length > 0) {
+            log.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            let streakCount = 0;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < log.length; i++) {
+              const logDate = new Date(log[i].date);
+              logDate.setHours(0, 0, 0, 0);
+              const expectedDate = new Date(today);
+              expectedDate.setDate(expectedDate.getDate() - i);
+
+              if (logDate.getTime() === expectedDate.getTime()) {
+                streakCount++;
+              } else {
+                break;
+              }
+            }
+            setStreak(streakCount);
+          }
+        } catch {
+          setStreak(0);
+        }
+      }
     } catch (err) {
       console.error("[Perfil] Error loading user data:", err);
       setError("Error al cargar datos del perfil");
@@ -193,7 +225,6 @@ export default function PerfilPage() {
   const userInitial = email.charAt(0).toUpperCase();
   const setsCreatedThisMonth = setsCount;
   const maxSetsMonth = 3;
-  const streakDays = 5; // Mock data for now
 
   const ContentArea = () => (
     <>
@@ -290,21 +321,23 @@ export default function PerfilPage() {
         </p>
 
         {/* Streak badge */}
-        <div style={{
-          background: BUTTER,
-          borderRadius: "50px",
-          padding: "8px 14px",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "6px",
-          fontFamily: FONT,
-          fontSize: "12px",
-          fontWeight: 700,
-          color: TEXT_PRI,
-        }}>
-          <span>💧</span>
-          <span>{streakDays} días seguidos</span>
-        </div>
+        {streak > 0 && (
+          <div style={{
+            background: BUTTER,
+            borderRadius: "50px",
+            padding: "8px 14px",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontFamily: FONT,
+            fontSize: "12px",
+            fontWeight: 700,
+            color: TEXT_PRI,
+          }}>
+            <span>💧</span>
+            <span>{streak} días seguidos</span>
+          </div>
+        )}
       </div>
 
       {/* Stats cards */}

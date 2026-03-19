@@ -116,13 +116,48 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const totalReview = sets.reduce((s, x) => s + x.toReview, 0);
   const overallPct = totalCards > 0 ? Math.round((totalKnown / totalCards) * 100) : 0;
 
+  // Calculate streak - simple check: if user has studied sets
+  const getStreak = () => {
+    const studyLog = localStorage.getItem("study_log");
+    if (!studyLog) return 0;
+    try {
+      const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
+      if (log.length === 0) return 0;
+
+      // Sort by date descending
+      log.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      let streak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < log.length; i++) {
+        const logDate = new Date(log[i].date);
+        logDate.setHours(0, 0, 0, 0);
+        const expectedDate = new Date(today);
+        expectedDate.setDate(expectedDate.getDate() - i);
+
+        if (logDate.getTime() === expectedDate.getTime()) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+      return streak;
+    } catch {
+      return 0;
+    }
+  };
+
+  const currentStreak = getStreak();
+
   // Shared content component
   const ContentArea = () => {
     const badgeCount = sets.length;
 
     return (
       <>
-        {/* Title with badge */}
+        {/* Title with badges */}
         <div
           style={{
             display: "flex",
@@ -144,34 +179,42 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
           >
             Progreso
           </h1>
-          <div
-            style={{
-              background: BUTTER,
-              borderRadius: "50px",
-              padding: "8px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}
-          >
-            <span
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "flex-end" }}>
+            <div
               style={{
-                fontSize: "14px",
-                fontWeight: 700,
-                color: TEXT_PRI,
+                background: BUTTER,
+                borderRadius: "50px",
+                padding: "8px 16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
               }}
             >
-              💡
-            </span>
-            <span
-              style={{
-                fontSize: "16px",
-                fontWeight: 700,
-                color: TEXT_PRI,
-              }}
-            >
-              {badgeCount}
-            </span>
+              <span style={{ fontSize: "14px", fontWeight: 700, color: TEXT_PRI }}>
+                💡
+              </span>
+              <span style={{ fontSize: "16px", fontWeight: 700, color: TEXT_PRI }}>
+                {badgeCount}
+              </span>
+            </div>
+            {currentStreak > 0 && (
+              <div
+                style={{
+                  background: BUTTER,
+                  borderRadius: "50px",
+                  padding: "6px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: TEXT_PRI,
+                }}
+              >
+                <span>💧</span>
+                <span>{currentStreak} días seguidos</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -289,16 +332,18 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
                 >
                   Esta semana
                 </h3>
-                <span
-                  style={{
-                    fontFamily: FONT,
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: SAGE,
-                  }}
-                >
-                  +18% vs anterior
-                </span>
+                {currentStreak > 0 && (
+                  <span
+                    style={{
+                      fontFamily: FONT,
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: SAGE,
+                    }}
+                  >
+                    {currentStreak} días activos
+                  </span>
+                )}
               </div>
               <WeeklyChart />
             </div>
@@ -652,11 +697,38 @@ function StatCell({
 
 // ── WeeklyChart ───────────────────────────────────────────────────────────────
 function WeeklyChart() {
-  // Mock data for weekly progress — days L, M, X, J, V, S, D
   const days = ["L", "M", "X", "J", "V", "S", "D"];
-  const heights = [40, 60, 30, 70, 80, 20, 95]; // percentage of max height
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-  const maxHeight = 100;
+  // Get study data from localStorage
+  const getWeeklyData = () => {
+    const studyLog = localStorage.getItem("study_log");
+    const weekData = [0, 0, 0, 0, 0, 0, 0]; // Sun to Sat
+
+    if (!studyLog) return weekData;
+
+    try {
+      const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
+      const today = new Date();
+
+      log.forEach((entry) => {
+        const entryDate = new Date(entry.date);
+        const daysDiff = Math.floor((today.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff < 7) {
+          const dayOfWeek = entryDate.getDay();
+          weekData[dayOfWeek] += entry.cardsStudied;
+        }
+      });
+    } catch (error) {
+      console.error("Error reading study log:", error);
+    }
+
+    return weekData;
+  };
+
+  const weekData = getWeeklyData();
+  const maxValue = Math.max(...weekData, 1); // Ensure at least 1 to avoid division by zero
   const barHeight = 80; // visual max height in px
 
   return (
@@ -670,9 +742,11 @@ function WeeklyChart() {
       }}
     >
       {days.map((day, i) => {
-        const isToday = i === days.length - 1;
+        const dayIndex = (i + 1) % 7; // Convert L-D (Mon-Sun) order to getDay() indices (0=Sun, 1=Mon, ..., 6=Sat)
+        const value = weekData[dayIndex] || 0;
+        const isToday = new Date().getDay() === dayIndex;
         const barColor = isToday ? TEXT_PRI : SAGE;
-        const actualHeight = (heights[i] / maxHeight) * barHeight;
+        const actualHeight = (value / maxValue) * barHeight;
 
         return (
           <div
@@ -684,6 +758,7 @@ function WeeklyChart() {
               alignItems: "center",
               gap: "4px",
             }}
+            title={`${dayNames[dayIndex]}: ${value} cards`}
           >
             <div
               style={{

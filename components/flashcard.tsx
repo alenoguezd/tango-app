@@ -92,6 +92,38 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   // This prevents race condition where cleanup effect would interfere with state updates
 
   // Handle card swipe
+  // Log study activity for streak tracking
+  const logStudyActivity = useCallback(() => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split("T")[0];
+
+      const studyLog = localStorage.getItem("study_log");
+      let log: { date: string; cardsStudied: number }[] = [];
+
+      if (studyLog) {
+        try {
+          log = JSON.parse(studyLog);
+        } catch {
+          log = [];
+        }
+      }
+
+      // Find today's entry or create new one
+      const todayEntry = log.find((entry) => entry.date === todayStr);
+      if (todayEntry) {
+        todayEntry.cardsStudied += 1;
+      } else {
+        log.push({ date: todayStr, cardsStudied: 1 });
+      }
+
+      localStorage.setItem("study_log", JSON.stringify(log));
+    } catch (error) {
+      console.error("Error logging study activity:", error);
+    }
+  }, []);
+
   const advanceCard = useCallback((direction: "left" | "right" | "down") => {
     const cardToUpdate = deck[index];
     if (!cardToUpdate) return;
@@ -104,6 +136,8 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     if (direction === "right") {
       newCard.known = true;
       newCard.difficulty = null;
+      // Log this study activity for streak tracking
+      logStudyActivity();
     } else if (direction === "down") {
       newCard.known = false;
       newCard.difficulty = "difícil";
@@ -142,7 +176,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         exitingCardRef.current = null; // Clear snapshot after advancing
       }, 250);
     }
-  }, [index, total, deck, onCardSwiped]);
+  }, [index, total, deck, onCardSwiped, logStudyActivity]);
 
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
