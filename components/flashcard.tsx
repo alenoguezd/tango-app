@@ -400,34 +400,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         boxSizing: "border-box",
         justifyContent: "center",
       }}>
-        {/* Conocidas */}
-        <div style={{
-          flex: 1,
-          background: "rgba(168, 200, 122, 0.15)",
-          border: `1.5px solid ${SAGE}`,
-          borderRadius: "16px",
-          padding: "12px 16px",
-          textAlign: "center",
-          transition: "all 200ms ease",
-          transform: conocidas > 0 ? "scale(1.05)" : "scale(1)",
-        }}>
-          <div style={{
-            fontSize: "18px",
-            fontWeight: 800,
-            color: SAGE,
-            marginBottom: "2px",
-          }}>
-            {conocidas}
-          </div>
-          <div style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: SAGE,
-          }}>
-            conocidas
-          </div>
-        </div>
-
         {/* No sé - NEWLY ADDED */}
         <div style={{
           flex: 1,
@@ -481,6 +453,34 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             color: "#8B7D00",
           }}>
             difícil
+          </div>
+        </div>
+
+        {/* Conocidas */}
+        <div style={{
+          flex: 1,
+          background: "rgba(168, 200, 122, 0.15)",
+          border: `1.5px solid ${SAGE}`,
+          borderRadius: "16px",
+          padding: "12px 16px",
+          textAlign: "center",
+          transition: "all 200ms ease",
+          transform: conocidas > 0 ? "scale(1.05)" : "scale(1)",
+        }}>
+          <div style={{
+            fontSize: "18px",
+            fontWeight: 800,
+            color: SAGE,
+            marginBottom: "2px",
+          }}>
+            {conocidas}
+          </div>
+          <div style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            color: SAGE,
+          }}>
+            conocidas
           </div>
         </div>
       </div>
