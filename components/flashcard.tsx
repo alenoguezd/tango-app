@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { ChevronLeft, ArrowLeft } from "lucide-react";
 import { tokens } from "@/lib/design-tokens";
 
 export interface VocabCard {
@@ -30,23 +30,46 @@ const BUTTER = tokens.color.butter;
 const BORDER = tokens.color.border;
 const PAGE_BG = tokens.color.page;
 
+// Swipe detection constants
+const SWIPE_THRESHOLD = 50; // pixels
+const SWIPE_VERTICAL_THRESHOLD = 80; // pixels for down swipe
+
 export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [showButtons, setShowButtons] = useState(false);
+
+  // Swipe detection
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const total = deck.length;
   const current = deck[index];
+
+  // Initialize session counters
+  const conocidas = deck.filter(c => c.known === true && c.difficulty !== "difícil").length;
+  const difícil = deck.filter(c => c.difficulty === "difícil").length;
+  const restantes = total - conocidas - difícil;
+
   const progress = total > 0 ? (index + 1) : 1;
 
-  // Calculate stats from cards
-  const known = deck.filter(c => c.known === true).length;
-  const needsReview = deck.filter(c => c.known === false && c.difficulty === "difícil").length;
-  const easy = deck.filter(c => c.known === true && c.difficulty !== "difícil").length;
-
-  const handleResponse = useCallback((response: "conocida" | "difícil" | "no_se") => {
+  const handleSwipe = useCallback((direction: "up" | "down" | "left" | "right") => {
     const cardToUpdate = current;
-    if (!cardToUpdate) return;
+    if (!cardToUpdate || !flipped) return;
+
+    let response: "conocida" | "difícil" | "no_se" | null = null;
+
+    if (direction === "right") {
+      response = "conocida";
+    } else if (direction === "left") {
+      response = "no_se";
+    } else if (direction === "down") {
+      response = "difícil";
+    }
+
+    if (!response) return;
 
     // Update card state
     const newCard = { ...cardToUpdate };
@@ -75,25 +98,53 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     if (index < total - 1) {
       setIndex(index + 1);
       setFlipped(false);
+      setShowButtons(false);
     }
-  }, [index, total, current, deck, onCardSwiped]);
+  }, [index, total, current, deck, flipped, onCardSwiped]);
 
-  const handlePrevious = useCallback(() => {
-    if (index > 0) {
-      setIndex(index - 1);
-      setFlipped(false);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const endX = e.changedTouches[0].clientX;
+    const endY = e.changedTouches[0].clientY;
+
+    const deltaX = endX - touchStartX.current;
+    const deltaY = endY - touchStartY.current;
+
+    // Check for swipe down first (higher threshold)
+    if (deltaY > SWIPE_VERTICAL_THRESHOLD && Math.abs(deltaX) < 30) {
+      handleSwipe("down");
+    } else if (Math.abs(deltaX) > SWIPE_THRESHOLD && Math.abs(deltaY) < 30) {
+      // Horizontal swipe
+      if (deltaX > 0) {
+        handleSwipe("right");
+      } else {
+        handleSwipe("left");
+      }
     }
-  }, [index]);
 
-  const handleNext = useCallback(() => {
-    if (index < total - 1) {
-      setIndex(index + 1);
-      setFlipped(false);
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [handleSwipe]);
+
+  const handleCardClick = useCallback(() => {
+    if (!flipped) {
+      setFlipped(true);
+      // Show buttons after a brief delay
+      setTimeout(() => setShowButtons(true), 100);
     }
-  }, [index, total]);
+  }, [flipped]);
 
-  // Format title with lesson number
-  const lessonNumber = index + 1;
+  const handleResponse = useCallback((response: "conocida" | "difícil" | "no_se") => {
+    handleSwipe(
+      response === "conocida" ? "right" : response === "no_se" ? "left" : "down"
+    );
+  }, [handleSwipe]);
 
   return (
     <div style={{
@@ -137,11 +188,12 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         </div>
       </div>
 
-      {/* Title with navigation arrows */}
+      {/* Header with back button and title only */}
       <div style={{
         display: "flex",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
         alignItems: "center",
+        gap: "16px",
         paddingLeft: "16px",
         paddingRight: "16px",
         paddingBottom: "20px",
@@ -151,57 +203,32 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         boxSizing: "border-box",
       }}>
         <button
-          onClick={handlePrevious}
-          disabled={index === 0}
+          onClick={onBack}
           style={{
-            width: "48px",
-            height: "48px",
+            width: "40px",
+            height: "40px",
             borderRadius: "50%",
             border: `1.5px solid ${BORDER}`,
             background: "#fff",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            cursor: index === 0 ? "not-allowed" : "pointer",
+            cursor: "pointer",
             color: TEXT_SEC,
-            opacity: index === 0 ? 0.5 : 1,
           }}
-          aria-label="Tarjeta anterior"
+          aria-label="Volver"
         >
-          <ChevronLeft size={20} strokeWidth={2} />
+          <ArrowLeft size={20} strokeWidth={2} />
         </button>
 
         <h1 style={{
-          fontSize: "28px",
+          fontSize: "24px",
           fontWeight: 800,
           color: TEXT_PRI,
           margin: 0,
-          textAlign: "center",
-          flex: 1,
         }}>
-          Lección {lessonNumber}
+          Lección {index + 1}
         </h1>
-
-        <button
-          onClick={handleNext}
-          disabled={index === total - 1}
-          style={{
-            width: "48px",
-            height: "48px",
-            borderRadius: "50%",
-            border: `1.5px solid ${BORDER}`,
-            background: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: index === total - 1 ? "not-allowed" : "pointer",
-            color: TEXT_SEC,
-            opacity: index === total - 1 ? 0.5 : 1,
-          }}
-          aria-label="Siguiente tarjeta"
-        >
-          <ChevronRight size={20} strokeWidth={2} />
-        </button>
       </div>
 
       {/* Progress bar and counter */}
@@ -270,7 +297,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             color: SAGE,
             marginBottom: "2px",
           }}>
-            {easy}
+            {conocidas}
           </div>
           <div style={{
             fontSize: "12px",
@@ -296,7 +323,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             color: "#8B7D00",
             marginBottom: "2px",
           }}>
-            {needsReview}
+            {difícil}
           </div>
           <div style={{
             fontSize: "12px",
@@ -307,11 +334,11 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
           </div>
         </div>
 
-        {/* Repasar */}
+        {/* Restantes */}
         <div style={{
           flex: 1,
-          background: "rgba(242, 184, 205, 0.15)",
-          border: `1.5px solid ${ROSE}`,
+          background: "rgba(200, 200, 200, 0.1)",
+          border: `1.5px solid #E0DCD4`,
           borderRadius: "16px",
           padding: "12px 16px",
           textAlign: "center",
@@ -319,17 +346,17 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
           <div style={{
             fontSize: "18px",
             fontWeight: 800,
-            color: "#993366",
+            color: TEXT_SEC,
             marginBottom: "2px",
           }}>
-            {total - known}
+            {restantes}
           </div>
           <div style={{
             fontSize: "12px",
             fontWeight: 600,
-            color: "#993366",
+            color: TEXT_SEC,
           }}>
-            repasar
+            restantes
           </div>
         </div>
       </div>
@@ -345,9 +372,13 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         paddingBottom: "24px",
         minHeight: 0,
         overflow: "hidden",
+        position: "relative",
       }}>
         <div
-          onClick={() => setFlipped(!flipped)}
+          ref={cardRef}
+          onClick={handleCardClick}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={{
             width: "100%",
             maxWidth: "560px",
@@ -360,8 +391,10 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
-            cursor: "pointer",
+            cursor: !flipped ? "pointer" : "default",
             transition: "all 200ms ease",
+            position: "relative",
+            overflow: "hidden",
           }}
           onMouseEnter={(e) => {
             if (!flipped) {
@@ -374,7 +407,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         >
           {!flipped ? (
             <>
-              {/* Front: Japanese */}
+              {/* Front face: Japanese only */}
               <p style={{
                 fontSize: "clamp(36px, 10vw, 56px)",
                 fontWeight: 800,
@@ -389,16 +422,55 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               <p style={{
                 fontSize: "14px",
                 color: "#5B9FD8",
-                margin: 0,
+                margin: "0 0 32px 0",
                 textAlign: "center",
                 fontFamily: "'Georgia', 'Times New Roman', serif",
               }}>
                 {current?.kana}
               </p>
+
+              {/* Tap hint pill */}
+              <div style={{
+                background: "#F5F2EC",
+                color: TEXT_SEC,
+                padding: "6px 12px",
+                borderRadius: "50px",
+                fontSize: "9px",
+                fontWeight: 600,
+                textAlign: "center",
+              }}>
+                Toca para ver respuesta
+              </div>
+
+              {/* Ghost swipe hints */}
+              <div style={{
+                position: "absolute",
+                left: 0,
+                top: "50%",
+                width: "8px",
+                height: "60px",
+                transform: "translateY(-50%)",
+                background: ROSE,
+                opacity: 0.25,
+                borderRadius: "0 4px 4px 0",
+                pointerEvents: "none",
+              }} />
+              <div style={{
+                position: "absolute",
+                right: 0,
+                top: "50%",
+                width: "8px",
+                height: "60px",
+                transform: "translateY(-50%)",
+                background: SAGE,
+                opacity: 0.25,
+                borderRadius: "4px 0 0 4px",
+                pointerEvents: "none",
+              }} />
             </>
           ) : (
             <>
-              {/* Back: English and details */}
+              {/* Back face: English and details */}
               <p style={{
                 fontSize: "clamp(20px, 6vw, 32px)",
                 fontWeight: 800,
@@ -430,7 +502,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               <p style={{
                 fontSize: "13px",
                 color: TEXT_SEC,
-                margin: "0",
+                margin: "0 0 8px 0",
                 textAlign: "center",
                 fontWeight: 600,
               }}>
@@ -440,7 +512,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               <p style={{
                 fontSize: "12px",
                 color: TEXT_PRI,
-                margin: "8px 0 4px 0",
+                margin: "0 0 4px 0",
                 textAlign: "center",
                 fontFamily: "'Georgia', 'Times New Roman', serif",
               }}>
@@ -462,125 +534,141 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         </div>
       </div>
 
-      {/* Bottom: How did you do? */}
-      <div style={{
-        paddingLeft: "16px",
-        paddingRight: "16px",
-        paddingBottom: "max(24px, env(safe-area-inset-bottom, 8px) + 16px)",
-        maxWidth: "600px",
-        margin: "0 auto",
-        width: "100%",
-        boxSizing: "border-box",
-      }}>
-        <p style={{
-          fontSize: "14px",
-          fontWeight: 600,
-          color: TEXT_PRI,
-          textAlign: "center",
-          marginBottom: "12px",
-        }}>
-          ¿Cómo te fue?
-        </p>
-
+      {/* Bottom: Assessment buttons (only show on back face) */}
+      {flipped && (
         <div style={{
-          display: "flex",
-          gap: "12px",
-          justifyContent: "center",
+          paddingLeft: "16px",
+          paddingRight: "16px",
+          paddingBottom: "max(24px, env(safe-area-inset-bottom, 8px) + 16px)",
+          maxWidth: "600px",
+          margin: "0 auto",
+          width: "100%",
+          boxSizing: "border-box",
+          animation: showButtons ? "slideUp 200ms ease forwards" : "none",
         }}>
-          <button
-            onClick={() => handleResponse("no_se")}
-            style={{
-              flex: 1,
-              maxWidth: "120px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
-              paddingLeft: "16px",
-              paddingRight: "16px",
-              background: ROSE,
-              color: "#993366",
-              border: "none",
-              borderRadius: "24px",
-              fontFamily: FONT_UI,
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 200ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-          >
-            No sé
-          </button>
+          <p style={{
+            fontSize: "14px",
+            fontWeight: 600,
+            color: TEXT_PRI,
+            textAlign: "center",
+            marginBottom: "12px",
+          }}>
+            ¿Cómo te fue?
+          </p>
 
-          <button
-            onClick={() => handleResponse("difícil")}
-            style={{
-              flex: 1,
-              maxWidth: "120px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
-              paddingLeft: "16px",
-              paddingRight: "16px",
-              background: BUTTER,
-              color: "#8B7D00",
-              border: "none",
-              borderRadius: "24px",
-              fontFamily: FONT_UI,
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 200ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-          >
-            Difícil
-          </button>
+          <div style={{
+            display: "flex",
+            gap: "12px",
+            justifyContent: "center",
+          }}>
+            <button
+              onClick={() => handleResponse("no_se")}
+              style={{
+                flex: 1,
+                maxWidth: "120px",
+                paddingTop: "12px",
+                paddingBottom: "12px",
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                background: ROSE,
+                color: "#993366",
+                border: "none",
+                borderRadius: "24px",
+                fontFamily: FONT_UI,
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.9";
+                e.currentTarget.style.transform = "scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              No sé
+            </button>
 
-          <button
-            onClick={() => handleResponse("conocida")}
-            style={{
-              flex: 1,
-              maxWidth: "120px",
-              paddingTop: "12px",
-              paddingBottom: "12px",
-              paddingLeft: "16px",
-              paddingRight: "16px",
-              background: SAGE,
-              color: "#fff",
-              border: "none",
-              borderRadius: "24px",
-              fontFamily: FONT_UI,
-              fontSize: "13px",
-              fontWeight: 700,
-              cursor: "pointer",
-              transition: "all 200ms ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.9";
-              e.currentTarget.style.transform = "scale(1.02)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "scale(1)";
-            }}
-          >
-            Conocida
-          </button>
+            <button
+              onClick={() => handleResponse("difícil")}
+              style={{
+                flex: 1,
+                maxWidth: "120px",
+                paddingTop: "12px",
+                paddingBottom: "12px",
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                background: BUTTER,
+                color: "#8B7D00",
+                border: "none",
+                borderRadius: "24px",
+                fontFamily: FONT_UI,
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.9";
+                e.currentTarget.style.transform = "scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              Difícil
+            </button>
+
+            <button
+              onClick={() => handleResponse("conocida")}
+              style={{
+                flex: 1,
+                maxWidth: "120px",
+                paddingTop: "12px",
+                paddingBottom: "12px",
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                background: SAGE,
+                color: "#fff",
+                border: "none",
+                borderRadius: "24px",
+                fontFamily: FONT_UI,
+                fontSize: "13px",
+                fontWeight: 700,
+                cursor: "pointer",
+                transition: "all 200ms ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = "0.9";
+                e.currentTarget.style.transform = "scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              Conocida
+            </button>
+          </div>
+
+          <style>{`
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(8px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
         </div>
-      </div>
+      )}
     </div>
   );
 }
