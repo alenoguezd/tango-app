@@ -197,36 +197,6 @@ export default function PerfilPage() {
 
   const ContentArea = () => (
     <>
-      {/* Status bar */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "24px",
-      }}>
-        <span style={{
-          fontFamily: FONT,
-          fontSize: "14px",
-          fontWeight: 500,
-          color: TEXT_PRI,
-        }}>
-          9:41
-        </span>
-        <div style={{ display: "flex", gap: "4px" }}>
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              style={{
-                width: "3px",
-                height: "3px",
-                borderRadius: "50%",
-                background: TEXT_SEC,
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
       {/* Title */}
       <h1 style={{
         fontFamily: FONT,
