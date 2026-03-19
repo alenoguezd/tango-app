@@ -30,7 +30,7 @@ const BUTTER = tokens.color.butter;
 const BORDER = tokens.color.border;
 const PAGE_BG = tokens.color.page;
 
-const SWIPE_THRESHOLD = 0.3; // 30% of screen width
+const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
 
 export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
@@ -39,12 +39,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
   // Drag state
   const [dragX, setDragX] = useState(0);
+  const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isFlying, setIsFlying] = useState<"left" | "right" | null>(null);
+  const [isFlying, setIsFlying] = useState<"left" | "right" | "down" | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pointerStartX = useRef<number | null>(null);
+  const pointerStartY = useRef<number | null>(null);
   const didDrag = useRef(false);
 
   const total = deck.length;
@@ -59,7 +61,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
   // Handle card swipe
-  const advanceCard = useCallback((direction: "left" | "right") => {
+  const advanceCard = useCallback((direction: "left" | "right" | "down") => {
     const cardToUpdate = current;
     if (!cardToUpdate) return;
 
@@ -68,13 +70,17 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     if (direction === "right") {
       newCard.known = true;
       newCard.difficulty = null;
+    } else if (direction === "down") {
+      newCard.known = false;
+      newCard.difficulty = "difícil";
     } else {
+      // left
       newCard.known = false;
       newCard.difficulty = null;
     }
 
     if (onCardSwiped) {
-      onCardSwiped(cardToUpdate, direction);
+      onCardSwiped(cardToUpdate, direction === "down" ? "left" : direction);
     }
 
     const newDeck = [...deck];
@@ -87,10 +93,19 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         setIndex(index + 1);
         setFlipped(false);
         setDragX(0);
+        setDragY(0);
         setIsFlying(null);
       }, 320);
     }
   }, [index, total, current, deck, onCardSwiped]);
+
+  // Get card dimensions for threshold calculation
+  const getCardDimensions = () => {
+    if (cardRef.current) {
+      return cardRef.current.getBoundingClientRect();
+    }
+    return { width: 560, height: 400 };
+  };
 
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
@@ -98,6 +113,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     pointerStartX.current = e.clientX;
+    pointerStartY.current = e.clientY;
     didDrag.current = false;
     setIsDragging(true);
 
@@ -105,15 +121,18 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   }, [isFlying]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging || pointerStartX.current === null) return;
+    if (!isDragging || pointerStartX.current === null || pointerStartY.current === null) return;
 
     const dx = e.clientX - pointerStartX.current;
-    if (Math.abs(dx) > 6) {
+    const dy = e.clientY - pointerStartY.current;
+
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
       didDrag.current = true;
       e.preventDefault();
     }
 
     setDragX(dx);
+    setDragY(dy);
   }, [isDragging]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
@@ -121,24 +140,37 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     setIsDragging(false);
 
     const dx = e.clientX - (pointerStartX.current ?? e.clientX);
-    const threshold = (window.innerWidth || 390) * SWIPE_THRESHOLD;
+    const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+    const dims = getCardDimensions();
+    const thresholdX = dims.width * SWIPE_THRESHOLD;
+    const thresholdY = dims.height * SWIPE_THRESHOLD;
 
-    if (didDrag.current && Math.abs(dx) >= threshold) {
-      const dir = dx > 0 ? "right" : "left";
-      setIsFlying(dir);
-      advanceCard(dir);
-    } else if (didDrag.current) {
-      // Snap back
-      setDragX(0);
+    if (didDrag.current) {
+      // Check for vertical swipe down first (higher priority)
+      if (dy > thresholdY && Math.abs(dx) < thresholdX) {
+        setIsFlying("down");
+        advanceCard("down");
+      } else if (Math.abs(dx) >= thresholdX && Math.abs(dy) < thresholdY) {
+        // Horizontal swipe
+        const dir = dx > 0 ? "right" : "left";
+        setIsFlying(dir);
+        advanceCard(dir);
+      } else {
+        // Snap back
+        setDragX(0);
+        setDragY(0);
+      }
     }
 
     pointerStartX.current = null;
+    pointerStartY.current = null;
     didDrag.current = false;
   }, [isDragging, advanceCard]);
 
   const onPointerCancel = useCallback(() => {
     setIsDragging(false);
     setDragX(0);
+    setDragY(0);
     pointerStartX.current = null;
     didDrag.current = false;
   }, []);
@@ -155,6 +187,9 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
       } else if (e.key === "ArrowLeft") {
         setIsFlying("left");
         advanceCard("left");
+      } else if (e.key === "ArrowDown") {
+        setIsFlying("down");
+        advanceCard("down");
       } else if (e.key === " ") {
         e.preventDefault();
         setFlipped(!flipped);
@@ -167,28 +202,38 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
   // Calculate drag derived values
   const windowWidth = typeof window !== "undefined" ? window.innerWidth : 390;
-  const dragRatio = dragX / (windowWidth * SWIPE_THRESHOLD);
-  const clampedRatio = Math.max(-1, Math.min(1, dragRatio));
-  const rotation = clampedRatio * 12; // Max 12deg rotation
-  const showGreen = clampedRatio > 0.15;
-  const showRed = clampedRatio < -0.15;
-  const tintOpacity = Math.min(Math.abs(clampedRatio), 1) * 0.25;
+  const dims = getCardDimensions();
+  const thresholdX = dims.width * SWIPE_THRESHOLD;
+  const thresholdY = dims.height * SWIPE_THRESHOLD;
+
+  const dragRatioX = dragX / thresholdX;
+  const dragRatioY = dragY / thresholdY;
+  const clampedRatioX = Math.max(-1, Math.min(1, dragRatioX));
+  const clampedRatioY = Math.max(0, Math.min(1, dragRatioY));
+
+  const rotation = clampedRatioX * 12; // Max 12deg rotation
+  const showGreen = clampedRatioX > 0.15;
+  const showRed = clampedRatioX < -0.15;
+  const showYellow = clampedRatioY > 0.15;
 
   const getTintColor = () => {
     if (isFlying === "right") return `rgba(168, 200, 122, 0.3)`;
     if (isFlying === "left") return `rgba(242, 184, 205, 0.3)`;
-    if (showGreen) return `rgba(168, 200, 122, ${tintOpacity})`;
-    if (showRed) return `rgba(242, 184, 205, ${tintOpacity})`;
+    if (isFlying === "down") return `rgba(245, 220, 122, 0.3)`;
+    if (showGreen) return `rgba(168, 200, 122, 0.15)`;
+    if (showRed) return `rgba(242, 184, 205, 0.15)`;
+    if (showYellow) return `rgba(245, 220, 122, 0.15)`;
     return "transparent";
   };
 
   const getCardTransform = () => {
     if (isFlying === "right") return `translateX(120vw) rotate(20deg)`;
     if (isFlying === "left") return `translateX(-120vw) rotate(-20deg)`;
-    if (isDragging || dragX !== 0) {
-      return `translateX(${dragX}px) rotate(${rotation}deg)`;
+    if (isFlying === "down") return `translateY(120vh) rotate(0deg)`;
+    if (isDragging || dragX !== 0 || dragY !== 0) {
+      return `translateX(${dragX}px) translateY(${dragY}px) rotate(${rotation}deg)`;
     }
-    return "translateX(0) rotate(0deg)";
+    return "translateX(0) translateY(0) rotate(0deg)";
   };
 
   // Stack cards
@@ -497,33 +542,61 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                 transition: "background 80ms linear",
                 zIndex: 2,
                 pointerEvents: "none",
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "flex-start",
-                padding: "20px",
               }}
-            >
-              {(showGreen || isFlying === "right") && (
-                <div style={{
-                  fontSize: "12px",
+            />
+
+            {/* Labels for swipe directions */}
+            {(showGreen || isFlying === "right") && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "20px",
+                  zIndex: 3,
+                  fontSize: "13px",
                   fontWeight: 700,
                   color: SAGE,
-                  opacity: Math.max(0, clampedRatio),
-                }}>
-                  Conocida
-                </div>
-              )}
-              {(showRed || isFlying === "left") && (
-                <div style={{
-                  fontSize: "12px",
+                  opacity: Math.max(0, clampedRatioX),
+                }}
+              >
+                Conocida ✓
+              </div>
+            )}
+
+            {(showRed || isFlying === "left") && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  left: "20px",
+                  zIndex: 3,
+                  fontSize: "13px",
                   fontWeight: 700,
                   color: ROSE,
-                  opacity: Math.max(0, -clampedRatio),
-                }}>
-                  No sé
-                </div>
-              )}
-            </div>
+                  opacity: Math.max(0, -clampedRatioX),
+                }}
+              >
+                No sé
+              </div>
+            )}
+
+            {(showYellow || isFlying === "down") && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  zIndex: 3,
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: "#8B7D00",
+                  opacity: Math.max(0, clampedRatioY),
+                }}
+              >
+                Difícil
+              </div>
+            )}
 
             {/* Card content */}
             <div style={{ position: "relative", zIndex: 1, width: "100%" }}>
@@ -668,6 +741,42 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             }}
           >
             No sé
+          </button>
+
+          <button
+            onClick={() => {
+              setIsFlying("down");
+              advanceCard("down");
+            }}
+            disabled={isFlying !== null}
+            style={{
+              flex: 1,
+              maxWidth: "120px",
+              paddingTop: "12px",
+              paddingBottom: "12px",
+              background: BUTTER,
+              color: "#8B7D00",
+              border: "none",
+              borderRadius: "24px",
+              fontFamily: FONT_UI,
+              fontSize: "13px",
+              fontWeight: 700,
+              cursor: isFlying ? "not-allowed" : "pointer",
+              opacity: isFlying ? 0.5 : 1,
+              transition: "all 200ms ease",
+            }}
+            onMouseEnter={(e) => {
+              if (!isFlying) {
+                e.currentTarget.style.opacity = "0.9";
+                e.currentTarget.style.transform = "scale(1.02)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = isFlying ? "0.5" : "1";
+              e.currentTarget.style.transform = "scale(1)";
+            }}
+          >
+            Difícil
           </button>
 
           <button
