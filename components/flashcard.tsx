@@ -428,34 +428,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
           </div>
         </div>
 
-        {/* No sé - NEWLY ADDED */}
-        <div style={{
-          flex: 1,
-          background: "rgba(242, 184, 205, 0.15)",
-          border: `1.5px solid ${ROSE}`,
-          borderRadius: "16px",
-          padding: "12px 16px",
-          textAlign: "center",
-          transition: "all 200ms ease",
-          transform: noSé > 0 ? "scale(1.05)" : "scale(1)",
-        }}>
-          <div style={{
-            fontSize: "18px",
-            fontWeight: 800,
-            color: ROSE,
-            marginBottom: "2px",
-          }}>
-            {noSé}
-          </div>
-          <div style={{
-            fontSize: "12px",
-            fontWeight: 600,
-            color: ROSE,
-          }}>
-            no sé
-          </div>
-        </div>
-
         {/* Difícil */}
         <div style={{
           flex: 1,
@@ -481,6 +453,34 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             color: "#8B7D00",
           }}>
             difícil
+          </div>
+        </div>
+
+        {/* No sé - NEWLY ADDED */}
+        <div style={{
+          flex: 1,
+          background: "rgba(242, 184, 205, 0.15)",
+          border: `1.5px solid ${ROSE}`,
+          borderRadius: "16px",
+          padding: "12px 16px",
+          textAlign: "center",
+          transition: "all 200ms ease",
+          transform: noSé > 0 ? "scale(1.05)" : "scale(1)",
+        }}>
+          <div style={{
+            fontSize: "18px",
+            fontWeight: 800,
+            color: ROSE,
+            marginBottom: "2px",
+          }}>
+            {noSé}
+          </div>
+          <div style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            color: ROSE,
+          }}>
+            no sé
           </div>
         </div>
       </div>
