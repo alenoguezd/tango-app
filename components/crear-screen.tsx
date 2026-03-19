@@ -177,11 +177,12 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       {/* Title */}
       <h1 style={{
         fontFamily: FONT_UI,
-        fontSize: "32px",
+        fontSize: "48px",
         fontWeight: 800,
-        letterSpacing: "-0.02em",
+        letterSpacing: "-0.01em",
         color: TEXT_PRI,
         margin: "0 0 32px 0",
+        lineHeight: 1,
       }}>
         Nuevo set
       </h1>

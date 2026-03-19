@@ -253,11 +253,12 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           </p>
           <h1 style={{
             fontFamily: FONT_UI,
-            fontSize: "28px",
+            fontSize: "48px",
             fontWeight: 800,
-            letterSpacing: "-0.02em",
+            letterSpacing: "-0.01em",
             color: TEXT_PRI,
             margin: 0,
+            lineHeight: 1,
           }}>
             {userName}
           </h1>
@@ -281,7 +282,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <h2 style={{
               fontFamily: FONT_UI,
-              fontSize: "14px",
+              fontSize: "16px",
               fontWeight: 700,
               color: TEXT_PRI,
               margin: 0,
@@ -396,7 +397,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         }}>
           <h2 style={{
             fontFamily: FONT_UI,
-            fontSize: "17px",
+            fontSize: "20px",
             fontWeight: 700,
             color: TEXT_PRI,
             margin: 0,
