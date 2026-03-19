@@ -41,7 +41,9 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   const [dragX, setDragX] = useState(0);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [isFlying, setIsFlying] = useState<"left" | "right" | "down" | null>(null);
+
+  // Snapshot the card at the moment swipe is triggered to freeze content during exit animation
+  const exitingCardRef = useRef<VocabCard | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,8 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
   const total = deck.length;
   const current = deck[index];
+  // Use exiting card snapshot during animation, otherwise use current
+  const displayCard = exitingCardRef.current || current;
 
   // Phase 1: Fix stat calculation - separate all 4 states explicitly
   const conocidas = deck.filter(c => c.known === true).length;
@@ -84,10 +88,16 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     };
   }, []);
 
+  // CLEANUP EFFECT REMOVED: Classes now removed manually in advanceCard setTimeout
+  // This prevents race condition where cleanup effect would interfere with state updates
+
   // Handle card swipe
   const advanceCard = useCallback((direction: "left" | "right" | "down") => {
-    const cardToUpdate = current;
+    const cardToUpdate = deck[index];
     if (!cardToUpdate) return;
+
+    // BUG 1 FIX: Snapshot the current card to freeze its content during exit animation
+    exitingCardRef.current = cardToUpdate;
 
     const newCard = { ...cardToUpdate };
 
@@ -113,22 +123,34 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
     // Advance to next card
     if (index < total - 1) {
-      // Switch to next card after exit animation completes (250ms)
+      // BUG 2 FIX: Delay index update until exit animation completes (250ms)
+      // CSS class keeps animation playing while index updates safely
+      // PART 1 FIX: Also reset dragX/dragY here to prevent snap-back flicker
+      // GLITCH FIX: Remove CSS classes BEFORE state changes to prevent class/inline style collision
+      // CONTENT FLIP FIX: Reset flipped state at 250ms (same time as index) to prevent brief Spanish display
       setTimeout(() => {
-        setIndex(index + 1);
-      }, 250);
+        // Step 1: Remove exit animation classes FIRST (before any state changes)
+        if (cardRef.current) {
+          cardRef.current.classList.remove("exiting-right", "exiting-left", "exiting-down");
+        }
 
-      // Final cleanup: reset flying state (320ms after swipe)
-      setTimeout(() => {
-        setFlipped(false);
-        setIsFlying(null);
-      }, 320);
+        // Step 2: Now update all state together (single batch, no cleanup effect interference)
+        setIndex(index + 1);
+        setDragX(0);
+        setDragY(0);
+        setFlipped(false); // Reset flip state with index change to prevent brief old state flicker
+        exitingCardRef.current = null; // Clear snapshot after advancing
+      }, 250);
     }
-  }, [index, total, current, deck, onCardSwiped]);
+  }, [index, total, deck, onCardSwiped]);
 
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (isFlying) return;
+    if (cardRef.current?.classList.contains("exiting-right") ||
+        cardRef.current?.classList.contains("exiting-left") ||
+        cardRef.current?.classList.contains("exiting-down")) {
+      return;
+    }
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     pointerStartX.current = e.clientX;
@@ -137,7 +159,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     setIsDragging(true);
 
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }, [isFlying]);
+  }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging || pointerStartX.current === null || pointerStartY.current === null) return;
@@ -167,21 +189,26 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     const thresholdY = dims.height * SWIPE_THRESHOLD;
 
     if (didDrag.current) {
-      // Check for vertical swipe down first (higher priority)
-      if (dy > thresholdY && Math.abs(dx) < thresholdX) {
-        setIsFlying("down");
-        setDragX(0);
-        setDragY(0);
+      // PART 2 FIX: Use dominant direction detection instead of strict AND conditions
+      // This allows diagonal swipes where one direction clearly dominates
+      const isHorizontalDominant = Math.abs(dx) > Math.abs(dy);
+      const isVerticalDominant = Math.abs(dy) > Math.abs(dx);
+
+      if (isVerticalDominant && Math.abs(dy) > thresholdY) {
+        // Vertical swipe dominates and exceeds threshold → DOWN swipe
+        if (cardRef.current) {
+          cardRef.current.classList.add("exiting-down");
+        }
         advanceCard("down");
-      } else if (Math.abs(dx) >= thresholdX && Math.abs(dy) < thresholdY) {
-        // Horizontal swipe
+      } else if (isHorizontalDominant && Math.abs(dx) >= thresholdX) {
+        // Horizontal swipe dominates and exceeds threshold → LEFT/RIGHT swipe
         const dir = dx > 0 ? "right" : "left";
-        setIsFlying(dir);
-        setDragX(0);
-        setDragY(0);
+        if (cardRef.current) {
+          cardRef.current.classList.add(dir === "right" ? "exiting-right" : "exiting-left");
+        }
         advanceCard(dir);
       } else {
-        // Snap back
+        // Snap back: movement is ambiguous (equal components) or both under threshold
         setDragX(0);
         setDragY(0);
       }
@@ -205,31 +232,44 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
     if (!isDesktop) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isFlying) return;
+      if (cardRef.current?.classList.contains("exiting-right") ||
+          cardRef.current?.classList.contains("exiting-left") ||
+          cardRef.current?.classList.contains("exiting-down")) {
+        return;
+      }
       if (e.key === "ArrowRight") {
-        setIsFlying("right");
-        setDragX(0);
-        setDragY(0);
+        if (cardRef.current) {
+          cardRef.current.classList.add("exiting-right");
+        }
+        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("right");
       } else if (e.key === "ArrowLeft") {
-        setIsFlying("left");
-        setDragX(0);
-        setDragY(0);
+        if (cardRef.current) {
+          cardRef.current.classList.add("exiting-left");
+        }
+        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("left");
       } else if (e.key === "ArrowDown") {
-        setIsFlying("down");
-        setDragX(0);
-        setDragY(0);
+        if (cardRef.current) {
+          cardRef.current.classList.add("exiting-down");
+        }
+        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("down");
       } else if (e.key === " ") {
         e.preventDefault();
-        setFlipped(!flipped);
+        // CONTENT FLIP FIX: Don't allow flip while card is exiting animation
+        const isExiting = cardRef.current?.classList.contains("exiting-right") ||
+                          cardRef.current?.classList.contains("exiting-left") ||
+                          cardRef.current?.classList.contains("exiting-down");
+        if (!isExiting) {
+          setFlipped(!flipped);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [flipped, isFlying, isDesktop, advanceCard]);
+  }, [flipped, isDesktop, advanceCard]);
 
   // Calculate drag derived values using cached dimensions
   const dims = cardDimsRef.current;
@@ -247,19 +287,12 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
   const showYellow = clampedRatioY > 0.15;
 
   const getTintColor = () => {
-    if (isFlying === "right") return `rgba(168, 200, 122, 0.3)`;
-    if (isFlying === "left") return `rgba(242, 184, 205, 0.3)`;
-    if (isFlying === "down") return `rgba(245, 220, 122, 0.3)`;
-    if (showGreen) return `rgba(168, 200, 122, 0.15)`;
-    if (showRed) return `rgba(242, 184, 205, 0.15)`;
-    if (showYellow) return `rgba(245, 220, 122, 0.15)`;
+    // BUG 3 FIX: Card background must stay white at all times
+    // No tint colors during drag or exit animation
     return "transparent";
   };
 
   const getCardTransform = () => {
-    if (isFlying === "right") return `translateX(120vw) rotate(20deg)`;
-    if (isFlying === "left") return `translateX(-120vw) rotate(-20deg)`;
-    if (isFlying === "down") return `translateY(120vh) rotate(0deg)`;
     if (isDragging || dragX !== 0 || dragY !== 0) {
       return `translateX(${dragX}px) translateY(${dragY}px) rotate(${rotation}deg)`;
     }
@@ -268,7 +301,19 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
   const getCardTransition = () => {
     if (isDragging) return "none";
-    if (isFlying) return "transform 200ms ease-out, opacity 150ms ease-out";
+
+    // PART 1 FIX: Check if exit animation is running via CSS class
+    // If so, disable inline transition to let CSS class animation take over exclusively
+    const isExiting = cardRef.current?.classList.contains("exiting-right") ||
+                      cardRef.current?.classList.contains("exiting-left") ||
+                      cardRef.current?.classList.contains("exiting-down");
+
+    if (isExiting) return "none"; // CSS class handles transition with !important
+
+    // GLITCH FIX: No transition when drag is reset (dragX=0, dragY=0)
+    // This prevents snap-back animation and rotation artifacts after swipe completes
+    if (dragX === 0 && dragY === 0) return "none";
+
     return "transform 300ms ease-out";
   };
 
@@ -392,7 +437,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             height: "100%",
             width: `${((index + 1) / total) * 100}%`,
             background: TEXT_PRI,
-            transition: isFlying ? "none" : "width 300ms ease",
+            transition: "width 300ms ease",
           }} />
         </div>
         <span style={{
@@ -538,6 +583,8 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               return 3 - item.offset;
             };
 
+            const card = item.card;
+
             return (
               <div
                 key={item.index}
@@ -549,12 +596,37 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                   borderRadius: "24px",
                   padding: "40px 24px",
                   transform: getStackTransform(),
-                  transition: isFlying ? "transform 220ms ease-out" : "none",
+                  transition: "transform 220ms ease-out",
                   zIndex: getStackZIndex(),
                   opacity: 1,
                   pointerEvents: "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
-              />
+              >
+                <p style={{
+                  fontSize: "clamp(36px, 10vw, 56px)",
+                  fontWeight: 800,
+                  color: TEXT_PRI,
+                  margin: "0 0 12px 0",
+                  textAlign: "center",
+                  lineHeight: 1,
+                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                }}>
+                  {card?.kanji}
+                </p>
+                <p style={{
+                  fontSize: "14px",
+                  color: "#5B9FD8",
+                  margin: 0,
+                  textAlign: "center",
+                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                }}>
+                  {card?.kana}
+                </p>
+              </div>
             );
           })}
 
@@ -565,7 +637,15 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
-            onClick={() => !isDragging && setFlipped(!flipped)}
+            onClick={() => {
+              // CONTENT FLIP FIX: Don't allow flip while card is exiting animation
+              const isExiting = cardRef.current?.classList.contains("exiting-right") ||
+                                cardRef.current?.classList.contains("exiting-left") ||
+                                cardRef.current?.classList.contains("exiting-down");
+              if (!isDragging && !isExiting) {
+                setFlipped(!flipped);
+              }
+            }}
             style={{
               position: "absolute",
               inset: 0,
@@ -580,7 +660,6 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               cursor: isDragging ? "grabbing" : "grab",
               transform: getCardTransform(),
               transition: getCardTransition(),
-              opacity: isFlying ? 0 : 1,
               willChange: "transform",
               touchAction: "none",
               zIndex: 3,
@@ -603,7 +682,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
             />
 
             {/* Phase 4: Improved label visibility with better opacity calculation */}
-            {(showGreen || isFlying === "right") && (
+            {(showGreen || cardRef.current?.classList.contains("exiting-right")) && (
               <div
                 style={{
                   position: "absolute",
@@ -620,7 +699,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               </div>
             )}
 
-            {(showRed || isFlying === "left") && (
+            {(showRed || cardRef.current?.classList.contains("exiting-left")) && (
               <div
                 style={{
                   position: "absolute",
@@ -637,7 +716,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               </div>
             )}
 
-            {(showYellow || isFlying === "down") && (
+            {(showYellow || cardRef.current?.classList.contains("exiting-down")) && (
               <div
                 style={{
                   position: "absolute",
@@ -669,7 +748,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                     lineHeight: 1,
                     fontFamily: "'Georgia', 'Times New Roman', serif",
                   }}>
-                    {current?.kanji}
+                    {displayCard?.kanji}
                   </p>
                   <p style={{
                     fontSize: "14px",
@@ -678,7 +757,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                     textAlign: "center",
                     fontFamily: "'Georgia', 'Times New Roman', serif",
                   }}>
-                    {current?.kana}
+                    {displayCard?.kana}
                   </p>
                 </>
               ) : (
@@ -692,7 +771,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                     textAlign: "center",
                     lineHeight: 1.2,
                   }}>
-                    {current?.spanish}
+                    {displayCard?.spanish}
                   </p>
 
                   <div style={{
@@ -709,7 +788,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                     margin: "0 0 8px 0",
                     textAlign: "center",
                   }}>
-                    {current?.kanji && `${current.kanji} · `}
+                    {displayCard?.kanji && `${displayCard.kanji} · `}
                     <span style={{ fontStyle: "italic" }}>v. transitivo</span>
                   </p>
 
@@ -730,17 +809,17 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
                     textAlign: "center",
                     fontFamily: "'Georgia', 'Times New Roman', serif",
                   }}>
-                    {current?.example_usage?.split("\n")[0]}
+                    {displayCard?.example_usage?.split("\n")[0]}
                   </p>
 
-                  {current?.example_usage?.split("\n")[1] && (
+                  {displayCard?.example_usage?.split("\n")[1] && (
                     <p style={{
                       fontSize: "12px",
                       color: TEXT_SEC,
                       margin: "0",
                       textAlign: "center",
                     }}>
-                      {current.example_usage.split("\n")[1]}
+                      {displayCard.example_usage.split("\n")[1]}
                     </p>
                   )}
                 </>
@@ -751,7 +830,11 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
       </div>
 
       {/* Desktop fallback buttons (hidden on mobile) */}
-      {isDesktop && (
+      {isDesktop && (() => {
+        const isAnimating = cardRef.current?.classList.contains("exiting-right") ||
+                            cardRef.current?.classList.contains("exiting-left") ||
+                            cardRef.current?.classList.contains("exiting-down");
+        return (
         <div style={{
           paddingLeft: "16px",
           paddingRight: "16px",
@@ -766,10 +849,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
         }}>
           <button
             onClick={() => {
-              setIsFlying("left");
+              if (cardRef.current) {
+                cardRef.current.classList.add("exiting-left");
+              }
               advanceCard("left");
             }}
-            disabled={isFlying !== null}
+            disabled={cardRef.current?.classList.contains("exiting-right") ||
+                      cardRef.current?.classList.contains("exiting-left") ||
+                      cardRef.current?.classList.contains("exiting-down")}
             style={{
               flex: 1,
               maxWidth: "120px",
@@ -782,18 +869,18 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               fontFamily: FONT_UI,
               fontSize: "13px",
               fontWeight: 700,
-              cursor: isFlying ? "not-allowed" : "pointer",
-              opacity: isFlying ? 0.5 : 1,
+              cursor: isAnimating ? "not-allowed" : "pointer",
+              opacity: isAnimating ? 0.5 : 1,
               transition: "all 200ms ease",
             }}
             onMouseEnter={(e) => {
-              if (!isFlying) {
+              if (!isAnimating) {
                 e.currentTarget.style.opacity = "0.9";
                 e.currentTarget.style.transform = "scale(1.02)";
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = isFlying ? "0.5" : "1";
+              e.currentTarget.style.opacity = isAnimating ? "0.5" : "1";
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
@@ -802,10 +889,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
           <button
             onClick={() => {
-              setIsFlying("down");
+              if (cardRef.current) {
+                cardRef.current.classList.add("exiting-down");
+              }
               advanceCard("down");
             }}
-            disabled={isFlying !== null}
+            disabled={cardRef.current?.classList.contains("exiting-right") ||
+                      cardRef.current?.classList.contains("exiting-left") ||
+                      cardRef.current?.classList.contains("exiting-down")}
             style={{
               flex: 1,
               maxWidth: "120px",
@@ -818,18 +909,18 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               fontFamily: FONT_UI,
               fontSize: "13px",
               fontWeight: 700,
-              cursor: isFlying ? "not-allowed" : "pointer",
-              opacity: isFlying ? 0.5 : 1,
+              cursor: isAnimating ? "not-allowed" : "pointer",
+              opacity: isAnimating ? 0.5 : 1,
               transition: "all 200ms ease",
             }}
             onMouseEnter={(e) => {
-              if (!isFlying) {
+              if (!isAnimating) {
                 e.currentTarget.style.opacity = "0.9";
                 e.currentTarget.style.transform = "scale(1.02)";
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = isFlying ? "0.5" : "1";
+              e.currentTarget.style.opacity = isAnimating ? "0.5" : "1";
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
@@ -838,10 +929,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
           <button
             onClick={() => {
-              setIsFlying("right");
+              if (cardRef.current) {
+                cardRef.current.classList.add("exiting-right");
+              }
               advanceCard("right");
             }}
-            disabled={isFlying !== null}
+            disabled={cardRef.current?.classList.contains("exiting-right") ||
+                      cardRef.current?.classList.contains("exiting-left") ||
+                      cardRef.current?.classList.contains("exiting-down")}
             style={{
               flex: 1,
               maxWidth: "120px",
@@ -854,25 +949,26 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
               fontFamily: FONT_UI,
               fontSize: "13px",
               fontWeight: 700,
-              cursor: isFlying ? "not-allowed" : "pointer",
-              opacity: isFlying ? 0.5 : 1,
+              cursor: isAnimating ? "not-allowed" : "pointer",
+              opacity: isAnimating ? 0.5 : 1,
               transition: "all 200ms ease",
             }}
             onMouseEnter={(e) => {
-              if (!isFlying) {
+              if (!isAnimating) {
                 e.currentTarget.style.opacity = "0.9";
                 e.currentTarget.style.transform = "scale(1.02)";
               }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = isFlying ? "0.5" : "1";
+              e.currentTarget.style.opacity = isAnimating ? "0.5" : "1";
               e.currentTarget.style.transform = "scale(1)";
             }}
           >
             Conocida
           </button>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
