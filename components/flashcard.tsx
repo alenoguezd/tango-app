@@ -113,11 +113,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
 
     // Advance to next card
     if (index < total - 1) {
+      // Switch to next card after exit animation completes (250ms)
       setTimeout(() => {
         setIndex(index + 1);
+      }, 250);
+
+      // Final cleanup: reset flying state (320ms after swipe)
+      setTimeout(() => {
         setFlipped(false);
-        setDragX(0);
-        setDragY(0);
         setIsFlying(null);
       }, 320);
     }
@@ -167,11 +170,15 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
       // Check for vertical swipe down first (higher priority)
       if (dy > thresholdY && Math.abs(dx) < thresholdX) {
         setIsFlying("down");
+        setDragX(0);
+        setDragY(0);
         advanceCard("down");
       } else if (Math.abs(dx) >= thresholdX && Math.abs(dy) < thresholdY) {
         // Horizontal swipe
         const dir = dx > 0 ? "right" : "left";
         setIsFlying(dir);
+        setDragX(0);
+        setDragY(0);
         advanceCard(dir);
       } else {
         // Snap back
@@ -201,12 +208,18 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped }: F
       if (isFlying) return;
       if (e.key === "ArrowRight") {
         setIsFlying("right");
+        setDragX(0);
+        setDragY(0);
         advanceCard("right");
       } else if (e.key === "ArrowLeft") {
         setIsFlying("left");
+        setDragX(0);
+        setDragY(0);
         advanceCard("left");
       } else if (e.key === "ArrowDown") {
         setIsFlying("down");
+        setDragX(0);
+        setDragY(0);
         advanceCard("down");
       } else if (e.key === " ") {
         e.preventDefault();
