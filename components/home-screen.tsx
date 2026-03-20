@@ -178,6 +178,35 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     }
   };
 
+  const handleRenameSet = async (setId: string, currentName: string) => {
+    const newName = prompt("Nuevo nombre del set:", currentName);
+    if (!newName || newName === currentName) return;
+
+    setLocalSets((prev) => {
+      const updated = prev.map((set) =>
+        set.id === setId ? { ...set, title: newName } : set
+      );
+      localStorage.setItem("vocab_sets", JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("sets")
+          .update({ name: newName })
+          .eq("id", setId)
+          .eq("user_id", user.id);
+        showToast("Set renombrado");
+      }
+    } catch (err) {
+      console.error("[Rename] Error:", err);
+      showToast("Error al renombrar el set");
+    }
+  };
+
   const handleDeleteSet = async (setId: string) => {
     if (confirm("¿Eliminar este set? Esta acción no se puede deshacer")) {
       setLocalSets((prev) => {
@@ -453,6 +482,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               onStudy={() => onStudy(set)}
               onShare={() => handleShare(set.id)}
               onToggleFavorite={() => handleToggleFavorite(set.id)}
+              onRename={() => handleRenameSet(set.id, set.title)}
               onDelete={() => handleDeleteSet(set.id)}
             />
           ))}
@@ -611,12 +641,14 @@ function SetCard({
   onStudy,
   onShare,
   onToggleFavorite,
+  onRename,
   onDelete,
 }: {
   set: DeckSet;
   onStudy: () => void;
   onShare: () => void;
   onToggleFavorite: () => void;
+  onRename: () => void;
   onDelete: () => void;
 }) {
   const getTimeSinceStudied = (lastStudied: string) => {
@@ -770,7 +802,7 @@ function SetCard({
 
         {/* Menu button */}
         <div onClick={(e) => e.stopPropagation()}>
-          <MenuButton onDelete={onDelete} />
+          <MenuButton onRename={onRename} onDelete={onDelete} />
         </div>
       </div>
     </div>
@@ -778,7 +810,7 @@ function SetCard({
 }
 
 // ── MenuButton ────────────────────────────────────────────────────────────────────
-function MenuButton({ onDelete }: { onDelete: () => void }) {
+function MenuButton({ onRename, onDelete }: { onRename: () => void; onDelete: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -795,7 +827,7 @@ function MenuButton({ onDelete }: { onDelete: () => void }) {
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
-          color: "#B0A898",
+          color: TEXT_SEC,
         }}
         title="Más opciones"
       >
@@ -805,38 +837,73 @@ function MenuButton({ onDelete }: { onDelete: () => void }) {
       {isOpen && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             right: 0,
-            top: "100%",
-            marginTop: "8px",
-            background: tokens.color.surface,
-            border: `1px solid ${BORDER}`,
-            borderRadius: "8px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            zIndex: 1000,
-            minWidth: "140px",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            zIndex: 9999,
           }}
+          onClick={() => setIsOpen(false)}
         >
-          <button
-            onClick={() => {
-              setIsOpen(false);
-              onDelete();
-            }}
+          <div
             style={{
-              width: "100%",
-              padding: "10px 16px",
-              background: "none",
-              border: "none",
-              textAlign: "left",
-              fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: tokens.color.textError,
-              cursor: "pointer",
+              position: "absolute",
+              right: "16px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: tokens.color.surface,
+              border: `1px solid ${BORDER}`,
+              borderRadius: "8px",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              zIndex: 10000,
+              minWidth: "160px",
+              overflow: "hidden",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            Eliminar
-          </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onRename();
+              }}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: TEXT_PRI,
+                cursor: "pointer",
+                borderBottom: `0.5px solid ${BORDER}`,
+              }}
+            >
+              Renombrar
+            </button>
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                onDelete();
+              }}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "none",
+                border: "none",
+                textAlign: "left",
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: tokens.color.textError,
+                cursor: "pointer",
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
         </div>
       )}
     </div>
