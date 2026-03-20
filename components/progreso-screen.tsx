@@ -17,8 +17,8 @@ const TEXT_RED    = tokens.color.rose;
 
 const CARD_BORDER = tokens.color.border;
 const PROG_FG     = tokens.color.sage;
-const PROG_TRACK  = "#E8E8E8";
-const NAV_PILL    = "#F0F0F0";
+const PROG_TRACK  = tokens.color.bgGrey;
+const NAV_PILL    = tokens.color.navPill;
 const BUTTER      = tokens.color.butter;
 const SAGE        = tokens.color.sage;
 const ROSE        = tokens.color.rose;
@@ -425,7 +425,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
                 width: "134px",
                 height: "5px",
                 borderRadius: "99px",
-                background: "#111",
+                background: tokens.color.progressIndent,
               }}
             />
           </div>
@@ -437,7 +437,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
         <div
           style={{
             height: "100dvh",
-            background: "#F7F6F3",
+            background: tokens.color.bgDesktopPage,
             display: "flex",
             flexDirection: "row",
           }}
@@ -450,7 +450,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "#F7F6F3",
+              background: tokens.color.bgDesktopPage,
             }}
           >
             {/* Safe-area top spacer */}
@@ -497,8 +497,8 @@ function SetProgressCard({
   color: "blue" | "pink";
 }) {
   const pct = set.cardCount > 0 ? Math.round((set.known / set.cardCount) * 100) : 0;
-  const badgeBg = color === "blue" ? "#E0F2E0" : "#FFE5F0";
-  const arrowBg = color === "blue" ? "#E0F2E0" : "#FFE5F0";
+  const badgeBg = color === "blue" ? tokens.color.bgSageSuccess : tokens.color.bgRoseSoft;
+  const arrowBg = color === "blue" ? tokens.color.bgSageSuccess : tokens.color.bgRoseSoft;
   const arrowColor = color === "blue" ? SAGE : ROSE;
 
   return (

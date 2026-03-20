@@ -27,6 +27,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
@@ -79,6 +80,11 @@ export default function Home() {
     e.preventDefault();
     setError("");
 
+    if (!name.trim()) {
+      setError("Por favor ingresa tu nombre");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
       return;
@@ -90,6 +96,11 @@ export default function Home() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
       });
 
       if (error) {
@@ -132,6 +143,7 @@ export default function Home() {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setName("");
     setScreen("splash");
   };
 
@@ -140,6 +152,7 @@ export default function Home() {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+    setName("");
     setError("");
   };
 
@@ -576,6 +589,37 @@ export default function Home() {
           )}
 
           <form onSubmit={handleSignUp}>
+            {/* Name field */}
+            <div style={{ marginBottom: "20px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: TEXT_PRI,
+                  marginBottom: "8px",
+                }}
+              >
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  fontFamily: FONT,
+                  fontSize: "14px",
+                  border: `1px solid #E0E0E0`,
+                  borderRadius: "8px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
             {/* Email field */}
             <div style={{ marginBottom: "20px" }}>
               <label

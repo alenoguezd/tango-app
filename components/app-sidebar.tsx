@@ -1,6 +1,7 @@
 "use client";
 
 import { FolderOpen, Play } from "lucide-react";
+import { tokens } from "@/lib/design-tokens";
 
 interface AppSidebarProps {
   activeTab: "inicio" | "crear" | "progreso" | "perfil";
@@ -12,8 +13,8 @@ export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
     <div style={{
       width: "220px",
       height: "100dvh",
-      background: "#FFFFFF",
-      borderRight: "1px solid #E8E8E8",
+      background: tokens.color.surface,
+      borderRight: `1px solid ${tokens.color.bgGrey}`,
       display: "flex",
       flexDirection: "column",
       padding: "24px 16px",
@@ -25,7 +26,7 @@ export function AppSidebar({ activeTab, onNavigate }: AppSidebarProps) {
         fontFamily: "var(--font-japanese), var(--font-sans)",
         fontSize: "24px",
         fontWeight: 700,
-        color: "#1A1A1A",
+        color: tokens.color.ink,
         letterSpacing: "-0.02em",
         margin: 0,
         textAlign: "center",
@@ -84,14 +85,14 @@ function SidebarNavItem({
         gap: "12px",
         padding: "12px 14px",
         borderRadius: "10px",
-        background: active ? "#F0F0F0" : "transparent",
+        background: active ? tokens.color.navPill : "transparent",
         border: "none",
         cursor: "pointer",
         width: "100%",
         fontFamily: "var(--font-sans)",
         fontSize: "15px",
         fontWeight: active ? 600 : 400,
-        color: active ? "#111111" : "#9A9A9A",
+        color: active ? tokens.color.ink : tokens.color.muted,
         transition: "background 0.15s ease",
       }}
     >

@@ -398,7 +398,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             height: "40px",
             borderRadius: "50%",
             border: `1.5px solid ${BORDER}`,
-            background: "#fff",
+            background: tokens.color.surface,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -436,7 +436,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
         <div style={{
           flex: 1,
           height: "6px",
-          background: "#E0DCD4",
+          background: tokens.color.progressTrack,
           borderRadius: "3px",
           overflow: "hidden",
         }}>
@@ -513,7 +513,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
           <div style={{
             fontSize: "18px",
             fontWeight: 800,
-            color: "#8B7D00",
+            color: tokens.color.textWarning,
             marginBottom: "2px",
           }}>
             {difícil}
@@ -521,7 +521,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
           <div style={{
             fontSize: "12px",
             fontWeight: 600,
-            color: "#8B7D00",
+            color: tokens.color.textWarning,
           }}>
             difícil
           </div>
@@ -598,7 +598,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                 style={{
                   position: "absolute",
                   inset: 0,
-                  background: "#fff",
+                  background: tokens.color.surface,
                   border: `1px solid ${BORDER}`,
                   borderRadius: "24px",
                   padding: "40px 24px",
@@ -626,7 +626,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                 </p>
                 <p style={{
                   fontSize: "14px",
-                  color: "#5B9FD8",
+                  color: tokens.color.textBlue,
                   margin: 0,
                   textAlign: "center",
                   fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -656,7 +656,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             style={{
               position: "absolute",
               inset: 0,
-              background: "#fff",
+              background: tokens.color.surface,
               border: `1px solid ${BORDER}`,
               borderRadius: "24px",
               padding: "40px 24px",
@@ -733,7 +733,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   zIndex: 3,
                   fontSize: "13px",
                   fontWeight: 700,
-                  color: "#8B7D00",
+                  color: tokens.color.textWarning,
                   opacity: Math.max(0, clampedRatioY - 0.1),
                 }}
               >
@@ -759,7 +759,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   </p>
                   <p style={{
                     fontSize: "14px",
-                    color: "#5B9FD8",
+                    color: tokens.color.textBlue,
                     margin: 0,
                     textAlign: "center",
                     fontFamily: "'Georgia', 'Times New Roman', serif",
@@ -870,7 +870,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               paddingTop: "12px",
               paddingBottom: "12px",
               background: ROSE,
-              color: "#993366",
+              color: tokens.color.textError,
               border: "none",
               borderRadius: "24px",
               fontFamily: FONT_UI,
@@ -910,7 +910,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               paddingTop: "12px",
               paddingBottom: "12px",
               background: BUTTER,
-              color: "#8B7D00",
+              color: tokens.color.textWarning,
               border: "none",
               borderRadius: "24px",
               fontFamily: FONT_UI,

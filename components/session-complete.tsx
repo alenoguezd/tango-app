@@ -70,7 +70,7 @@ export function SessionComplete({
             width: "120px",
             height: "120px",
             borderRadius: "50%",
-            background: isPerfect ? "#E0F2E0" : "#FFF4E0",
+            background: isPerfect ? tokens.color.bgSageSuccess : tokens.color.bgButterLight,
             border: `3px solid ${isPerfect ? SAGE : BUTTER}`,
             display: "flex",
             alignItems: "center",
@@ -123,7 +123,7 @@ export function SessionComplete({
           {/* No sé */}
           <div
             style={{
-              background: isPerfect ? "#F5F5F5" : ROSE,
+              background: isPerfect ? tokens.color.bgSubtle : ROSE,
               borderRadius: "12px",
               padding: "16px",
               textAlign: "center",
@@ -135,7 +135,7 @@ export function SessionComplete({
                 fontFamily: FONT,
                 fontSize: "24px",
                 fontWeight: 700,
-                color: isPerfect ? TEXT_SEC : "#A01030",
+                color: isPerfect ? TEXT_SEC : tokens.color.textError,
                 marginBottom: "4px",
               }}
             >
@@ -145,7 +145,7 @@ export function SessionComplete({
               style={{
                 fontFamily: FONT,
                 fontSize: "12px",
-                color: isPerfect ? TEXT_SEC : "#A01030",
+                color: isPerfect ? TEXT_SEC : tokens.color.textError,
                 fontWeight: 500,
               }}
             >
@@ -156,7 +156,7 @@ export function SessionComplete({
           {/* Difícil */}
           <div
             style={{
-              background: isPerfect ? "#F5F5F5" : BUTTER,
+              background: isPerfect ? tokens.color.bgSubtle : BUTTER,
               borderRadius: "12px",
               padding: "16px",
               textAlign: "center",
@@ -168,7 +168,7 @@ export function SessionComplete({
                 fontFamily: FONT,
                 fontSize: "24px",
                 fontWeight: 700,
-                color: isPerfect ? TEXT_SEC : "#6B5500",
+                color: isPerfect ? TEXT_SEC : tokens.color.textWarning,
                 marginBottom: "4px",
               }}
             >
@@ -178,7 +178,7 @@ export function SessionComplete({
               style={{
                 fontFamily: FONT,
                 fontSize: "12px",
-                color: isPerfect ? TEXT_SEC : "#6B5500",
+                color: isPerfect ? TEXT_SEC : tokens.color.textWarning,
                 fontWeight: 500,
               }}
             >
@@ -200,7 +200,7 @@ export function SessionComplete({
                 fontFamily: FONT,
                 fontSize: "24px",
                 fontWeight: 700,
-                color: "#2A5010",
+                color: tokens.color.textSuccess,
                 marginBottom: "4px",
               }}
             >
@@ -210,7 +210,7 @@ export function SessionComplete({
               style={{
                 fontFamily: FONT,
                 fontSize: "12px",
-                color: "#2A5010",
+                color: tokens.color.textSuccess,
                 fontWeight: 500,
               }}
             >
@@ -223,7 +223,7 @@ export function SessionComplete({
         <div
           style={{
             width: "100%",
-            background: isPerfect ? "#E0F2E0" : W,
+            background: isPerfect ? tokens.color.bgSageSuccess : W,
             border: isPerfect ? `1px solid ${SAGE}` : "1px solid #EEEBE6",
             borderRadius: "14px",
             padding: "16px",
@@ -268,7 +268,7 @@ export function SessionComplete({
               width: "100%",
               height: "6px",
               borderRadius: "3px",
-              background: "#E8E8E8",
+              background: tokens.color.bgGrey,
               marginBottom: "8px",
               overflow: "hidden",
             }}

@@ -9,12 +9,12 @@ import { tokens } from "@/lib/design-tokens";
 
 // ── Design tokens ─────────────────────────────────────────────────────
 const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-const BG_PAGE = "#FAFAF8";
-const TEXT_PRI = "#1A1A1A";
-const TEXT_SEC = "#B0A898";
-const SKY = "#B8CEEA";
-const SKY_LIGHT = "#E8F2F9";
-const BORDER = "#EEEBE6";
+const BG_PAGE = tokens.color.page;
+const TEXT_PRI = tokens.color.ink;
+const TEXT_SEC = tokens.color.muted;
+const SKY = tokens.color.sky;
+const SKY_LIGHT = tokens.color.bgSkyLight;
+const BORDER = tokens.color.border;
 const H_PAD = 16;
 const CARD_RADIUS = 14;
 
@@ -213,7 +213,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             <div style={{
               width: "72px",
               height: "72px",
-              background: "#fff",
+              background: tokens.color.surface,
               borderRadius: "18px",
               display: "flex",
               alignItems: "center",
@@ -233,7 +233,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 fontFamily: FONT_UI,
                 fontSize: "16px",
                 fontWeight: 700,
-                color: "#1565C0",
+                color: tokens.color.sky,
                 margin: "0 0 6px 0",
               }}>
                 Subir foto
@@ -242,7 +242,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 fontFamily: FONT_UI,
                 fontSize: "13px",
                 fontWeight: 400,
-                color: "#1565C0",
+                color: tokens.color.sky,
                 margin: 0,
               }}>
                 Kanji, hiragana o rōmaji
@@ -258,7 +258,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             <div style={{
               width: "56px",
               height: "56px",
-              background: "#fff",
+              background: tokens.color.surface,
               borderRadius: "12px",
               flexShrink: 0,
               backgroundImage: `url(${imageUrl})`,
@@ -270,7 +270,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 fontFamily: FONT_UI,
                 fontSize: "12px",
                 fontWeight: 600,
-                color: "#2A5010",
+                color: tokens.color.textSuccess,
                 margin: "0 0 2px 0",
               }}>
                 ✓ Imagen lista
@@ -279,7 +279,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 fontFamily: FONT_UI,
                 fontSize: "11px",
                 fontWeight: 400,
-                color: "#2A5010",
+                color: tokens.color.textSuccess,
                 margin: 0,
               }}>
                 {imageName}
@@ -300,7 +300,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 width: "24px",
                 height: "24px",
                 padding: 0,
-                color: "#2A5010",
+                color: tokens.color.textSuccess,
                 flexShrink: 0,
               }}
             >
@@ -346,14 +346,14 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         disabled={!canGenerate}
         style={{
           width: "100%",
-          background: canGenerate ? TEXT_PRI : "#D9D9D9",
+          background: canGenerate ? TEXT_PRI : tokens.color.bgGrey,
           border: "none",
           borderRadius: "16px",
           padding: "16px 20px",
           fontFamily: FONT_UI,
           fontSize: "15px",
           fontWeight: 700,
-          color: canGenerate ? "#fff" : "#999",
+          color: canGenerate ? tokens.color.surface : TEXT_SEC,
           cursor: canGenerate ? "pointer" : "not-allowed",
           display: "flex",
           alignItems: "center",
@@ -432,7 +432,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           width: "134px",
           height: "5px",
           borderRadius: "99px",
-          background: "#111",
+          background: tokens.color.progressIndent,
         }} />
       </div>
     </div>
@@ -512,11 +512,11 @@ function NavItem({
         width: active ? "64px" : "44px",
         height: "32px",
         borderRadius: "16px",
-        background: active ? "#F0F0F0" : "transparent",
+        background: active ? tokens.color.navPill : "transparent",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: active ? "#1A1A1A" : "#B0A898",
+        color: active ? TEXT_PRI : TEXT_SEC,
         transition: "width 0.15s ease",
       }}>
         {icon}
@@ -525,7 +525,7 @@ function NavItem({
         fontFamily: FONT_UI,
         fontSize: "11px",
         fontWeight: active ? 700 : 400,
-        color: active ? "#1A1A1A" : "#B0A898",
+        color: active ? TEXT_PRI : TEXT_SEC,
       }}>
         {label}
       </span>

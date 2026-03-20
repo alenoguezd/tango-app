@@ -221,7 +221,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     ? Math.round(localSets.reduce((sum, s) => sum + s.progress, 0) / localSets.length)
     : 0;
 
-  const needsStudy = localSets.filter(s => s.progress < 100).length;
+  const needsStudy = localSets.reduce((count, set) => {
+    const unknownCards = (set.cards || []).filter(card => card.known !== true).length;
+    return count + unknownCards;
+  }, 0);
   const sortedSets = [...localSets].sort((a, b) => {
     // Sort by most recently studied first
     const dateA = new Date(a.lastStudied).getTime();
@@ -273,63 +276,88 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       </div>
 
       {/* Meta de hoy Card */}
-      {localSets.length > 0 && (
-        <div style={{
-          background: W,
-          border: `0.5px solid ${BORDER}`,
-          borderRadius: CARD_RADIUS,
-          padding: "16px 14px",
-          marginBottom: SECTION_GAP,
-        }}>
+      {localSets.length > 0 && (() => {
+        // Calculate today's study progress
+        const studyLog = localStorage.getItem("study_log");
+        let cardsStudiedToday = 0;
+
+        if (studyLog) {
+          try {
+            const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split("T")[0];
+
+            const todayEntry = log.find((entry) => entry.date === todayStr);
+            cardsStudiedToday = todayEntry ? todayEntry.cardsStudied : 0;
+          } catch {
+            cardsStudiedToday = 0;
+          }
+        }
+
+        const dailyGoal = 30;
+        const progress = Math.min(100, Math.round((cardsStudiedToday / dailyGoal) * 100));
+
+        return (
           <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "12px",
+            background: W,
+            border: `0.5px solid ${BORDER}`,
+            borderRadius: CARD_RADIUS,
+            padding: "16px 14px",
+            marginBottom: SECTION_GAP,
           }}>
-            <h2 style={{
-              fontFamily: FONT_UI,
-              fontSize: "16px",
-              fontWeight: 700,
-              color: TEXT_PRI,
-              margin: 0,
-            }}>
-              Meta de hoy
-            </h2>
             <div style={{
-              background: "#E8E8E8",
-              borderRadius: "8px",
-              padding: "4px 10px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+            }}>
+              <h2 style={{
+                fontFamily: FONT_UI,
+                fontSize: "16px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                margin: 0,
+              }}>
+                Meta de hoy
+              </h2>
+              <div style={{
+                background: cardsStudiedToday >= dailyGoal ? SAGE : tokens.color.bgGrey,
+                borderRadius: "8px",
+                padding: "4px 10px",
+                fontFamily: FONT_UI,
+                fontSize: "12px",
+                fontWeight: 700,
+                color: cardsStudiedToday >= dailyGoal ? tokens.color.textSuccess : TEXT_SEC,
+              }}>
+                {progress}%
+              </div>
+            </div>
+
+            <p style={{
               fontFamily: FONT_UI,
               fontSize: "12px",
-              fontWeight: 700,
+              fontWeight: 400,
               color: TEXT_SEC,
+              margin: "0 0 8px 0",
             }}>
-              0%
-            </div>
+              {cardsStudiedToday} / {dailyGoal} tarjetas
+            </p>
+
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: TEXT_SEC,
+              margin: 0,
+            }}>
+              {cardsStudiedToday >= dailyGoal
+                ? "¡Meta alcanzada! 🎉"
+                : `Completa ${dailyGoal - cardsStudiedToday} más para mantener tu racha`}
+            </p>
           </div>
-
-          <p style={{
-            fontFamily: FONT_UI,
-            fontSize: "12px",
-            fontWeight: 400,
-            color: TEXT_SEC,
-            margin: "0 0 8px 0",
-          }}>
-            0 / 30 tarjetas
-          </p>
-
-          <p style={{
-            fontFamily: FONT_UI,
-            fontSize: "11px",
-            fontWeight: 400,
-            color: TEXT_SEC,
-            margin: 0,
-          }}>
-            Completa 30 tarjetas hoy para mantener tu racha
-          </p>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Repasar CTA */}
       {needsStudy > 0 && (
@@ -340,7 +368,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}
           aria-label={`Empezar a repasar ${needsStudy} tarjetas, tiempo estimado 2 minutos`}
           style={{
-            background: "#000",
+            background: TEXT_PRI,
             borderRadius: "28px",
             padding: "16px 20px",
             marginBottom: SECTION_GAP,
@@ -359,7 +387,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontFamily: FONT_UI,
               fontSize: "14px",
               fontWeight: 700,
-              color: "#fff",
+              color: tokens.color.surface,
               margin: "0 0 2px 0",
             }}>
               {needsStudy} tarjetas por repasar
@@ -368,7 +396,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontFamily: FONT_UI,
               fontSize: "11px",
               fontWeight: 400,
-              color: "#999",
+              color: TEXT_SEC,
               margin: 0,
             }}>
               Empieza ahora · ~2 min
@@ -451,14 +479,14 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         onClick={() => onNavigate("crear")}
         style={{
           width: "100%",
-          background: "#000",
+          background: TEXT_PRI,
           border: "none",
           borderRadius: "24px",
           padding: "14px 20px",
           fontFamily: FONT_UI,
           fontSize: "14px",
           fontWeight: 700,
-          color: "#fff",
+          color: tokens.color.surface,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
@@ -604,16 +632,16 @@ function SetCard({
   };
 
   // Progress bar color
-  let barColor = "#F5DC7A";
+  let barColor = tokens.color.butter;
   let progressText = "Sin empezar";
   if (set.progress > 50) {
-    barColor = "#A8C87A";
+    barColor = tokens.color.sage;
     progressText = `${set.progress}%`;
   } else if (set.progress > 0) {
-    barColor = "#F5DC7A";
+    barColor = tokens.color.butter;
     progressText = `${set.progress}%`;
   } else if (set.progress < 30 && set.progress > 0) {
-    barColor = "#F2B8CD";
+    barColor = tokens.color.rose;
   }
 
   const [isPressed, setIsPressed] = useState(false);
@@ -625,8 +653,8 @@ function SetCard({
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
       style={{
-        background: isPressed ? "#F8F8F8" : "#fff",
-        border: `0.5px solid #EEEBE6`,
+        background: isPressed ? tokens.color.bgHover : tokens.color.surface,
+        border: `0.5px solid ${BORDER}`,
         borderRadius: CARD_RADIUS,
         padding: "14px",
         cursor: "pointer",
@@ -645,32 +673,32 @@ function SetCard({
           fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
           fontSize: "14px",
           fontWeight: 700,
-          color: "#1A1A1A",
+          color: TEXT_PRI,
           margin: 0,
         }}>
           {set.title}
         </h3>
         {set.progress > 0 ? (
           <div style={{
-            background: "#E8F4D8",
+            background: tokens.color.bgSageSoft,
             borderRadius: "8px",
             padding: "4px 10px",
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: "11px",
             fontWeight: 700,
-            color: "#2A5010",
+            color: tokens.color.textSuccess,
           }}>
             {set.progress}%
           </div>
         ) : (
           <div style={{
-            background: "#E8E8E8",
+            background: tokens.color.bgGrey,
             borderRadius: "8px",
             padding: "4px 10px",
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: "11px",
             fontWeight: 600,
-            color: "#999",
+            color: TEXT_SEC,
           }}>
             Sin empezar
           </div>
@@ -681,7 +709,7 @@ function SetCard({
       <p style={{
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         fontSize: "11px",
-        color: "#B0A898",
+        color: TEXT_SEC,
         margin: "0 0 10px 0",
       }}>
         {set.cardCount} tarjetas · {getTimeSinceStudied(set.lastStudied)}
@@ -700,7 +728,7 @@ function SetCard({
           width: "100%",
           height: "4px",
           borderRadius: "2px",
-          background: "#EEEBE6",
+          background: BORDER,
         }}>
           <div style={{
             position: "absolute",
@@ -723,13 +751,13 @@ function SetCard({
             width: "32px",
             height: "32px",
             borderRadius: "10px",
-            background: "#E8F2F9",
+            background: tokens.color.bgSkyLight,
             border: "none",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             cursor: "pointer",
-            color: "#B8CEEA",
+            color: tokens.color.sky,
             flexShrink: 0,
           }}
           title="Compartir"
@@ -758,7 +786,7 @@ function MenuButton({ onDelete }: { onDelete: () => void }) {
           width: "32px",
           height: "32px",
           borderRadius: "10px",
-          background: "#F5F5F5",
+          background: tokens.color.bgSubtle,
           border: "none",
           display: "flex",
           alignItems: "center",
@@ -778,8 +806,8 @@ function MenuButton({ onDelete }: { onDelete: () => void }) {
             right: 0,
             top: "100%",
             marginTop: "8px",
-            background: "#fff",
-            border: "1px solid #EEEBE6",
+            background: tokens.color.surface,
+            border: `1px solid ${BORDER}`,
             borderRadius: "8px",
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             zIndex: 1000,
@@ -800,7 +828,7 @@ function MenuButton({ onDelete }: { onDelete: () => void }) {
               fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
               fontSize: "13px",
               fontWeight: 500,
-              color: "#D0312D",
+              color: tokens.color.textError,
               cursor: "pointer",
             }}
           >
@@ -844,11 +872,11 @@ function NavItem({
         width: active ? "64px" : "44px",
         height: "32px",
         borderRadius: "16px",
-        background: active ? "#F0F0F0" : "transparent",
+        background: active ? tokens.color.navPill : "transparent",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: active ? "#1A1A1A" : "#B0A898",
+        color: active ? TEXT_PRI : TEXT_SEC,
         transition: "width 0.15s ease",
       }}>
         {icon}
@@ -857,7 +885,7 @@ function NavItem({
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
         fontSize: "11px",
         fontWeight: active ? 700 : 400,
-        color: active ? "#1A1A1A" : "#B0A898",
+        color: active ? TEXT_PRI : TEXT_SEC,
       }}>
         {label}
       </span>

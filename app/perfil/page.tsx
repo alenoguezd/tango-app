@@ -47,6 +47,9 @@ export default function PerfilPage() {
 
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
   const [createdAt, setCreatedAt] = useState("");
   const [setsCount, setSetsCount] = useState(0);
   const [cardsCount, setCardsCount] = useState(0);
@@ -77,8 +80,15 @@ export default function PerfilPage() {
       }
 
       setEmail(user.email || "");
-      const name = user.email?.split("@")[0] || "";
-      setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+
+      // Get name from metadata, fallback to email
+      const metadataName = (user.user_metadata?.full_name as string) || "";
+      const fallbackName = user.email?.split("@")[0] || "";
+      const displayName = metadataName || fallbackName;
+
+      setFullName(metadataName);
+      setEditName(metadataName);
+      setUserName(displayName.charAt(0).toUpperCase() + displayName.slice(1));
 
       if (user.created_at) {
         const date = new Date(user.created_at);
@@ -146,6 +156,31 @@ export default function PerfilPage() {
       setError("Error al cargar datos del perfil");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveName = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: editName,
+        },
+      });
+
+      if (error) {
+        setError("Error al guardar el nombre");
+        return;
+      }
+
+      setFullName(editName);
+      setUserName(editName.charAt(0).toUpperCase() + editName.slice(1));
+      setIsEditingName(false);
+      setError(null);
+    } catch (err) {
+      setError("Error al guardar el nombre");
     }
   };
 
@@ -302,15 +337,98 @@ export default function PerfilPage() {
         </div>
 
         {/* Name and email */}
-        <h2 style={{
-          fontFamily: FONT,
-          fontSize: "20px",
-          fontWeight: 700,
-          color: TEXT_PRI,
-          margin: "12px 0 4px",
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          marginBottom: "4px",
         }}>
-          {userName}
-        </h2>
+          {isEditingName ? (
+            <div style={{
+              display: "flex",
+              gap: "8px",
+              alignItems: "center",
+              flex: 1,
+            }}>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  fontFamily: FONT,
+                  fontSize: "16px",
+                  fontWeight: 700,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "8px",
+                  boxSizing: "border-box",
+                }}
+              />
+              <button
+                onClick={handleSaveName}
+                style={{
+                  padding: "8px 16px",
+                  background: SAGE,
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontFamily: FONT,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Guardar
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingName(false);
+                  setEditName(fullName);
+                }}
+                style={{
+                  padding: "8px 16px",
+                  background: "transparent",
+                  color: TEXT_SEC,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "8px",
+                  fontFamily: FONT,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <>
+              <h2 style={{
+                fontFamily: FONT,
+                fontSize: "20px",
+                fontWeight: 700,
+                color: TEXT_PRI,
+                margin: 0,
+              }}>
+                {userName}
+              </h2>
+              <button
+                onClick={() => setIsEditingName(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  fontSize: "16px",
+                }}
+              >
+                ✏️
+              </button>
+            </>
+          )}
+        </div>
         <p style={{
           fontFamily: FONT,
           fontSize: "13px",
