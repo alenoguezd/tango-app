@@ -18,7 +18,7 @@ interface FlashcardProps {
   cards: VocabCard[];
   title?: string;
   onBack?: () => void;
-  onCardSwiped?: (card: VocabCard, direction: "left" | "right") => void;
+  onCardSwiped?: (card: VocabCard, direction: "left" | "right", cardIndex: number) => void;
   onSessionComplete?: () => void;
 }
 
@@ -149,7 +149,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
     }
 
     if (onCardSwiped) {
-      onCardSwiped(newCard, direction === "down" ? "left" : direction);
+      onCardSwiped(newCard, direction === "down" ? "left" : direction, index);
     }
 
     const newDeck = [...deck];

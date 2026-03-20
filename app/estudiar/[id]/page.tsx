@@ -139,8 +139,8 @@ export default function EstudiarPage() {
     }
   };
 
-  const handleCardSwiped = async (card: VocabCard, direction: "left" | "right") => {
-    // Save progress to localStorage using card.id
+  const handleCardSwiped = async (card: VocabCard, direction: "left" | "right", cardIndex: number) => {
+    // Save progress to localStorage using card index from Flashcard
     const savedSets = localStorage.getItem("vocab_sets");
     if (savedSets && set) {
       try {
@@ -155,17 +155,12 @@ export default function EstudiarPage() {
           // Update last studied timestamp
           sets[setIndex].lastStudied = new Date().toISOString();
 
-          // Track individual card progress using card.id
-          if (direction === "right") {
-            // Mark card as known
-            const cardIndex = sets[setIndex].cards.findIndex((c) => c.id === card.id);
-            if (cardIndex !== -1) {
+          // Update card at the current index (from Flashcard component)
+          // This is more reliable than trying to match by ID
+          if (cardIndex >= 0 && cardIndex < sets[setIndex].cards.length) {
+            if (direction === "right") {
               sets[setIndex].cards[cardIndex].known = true;
-            }
-          } else if (direction === "left") {
-            // Mark card as not known (needs review)
-            const cardIndex = sets[setIndex].cards.findIndex((c) => c.id === card.id);
-            if (cardIndex !== -1) {
+            } else {
               sets[setIndex].cards[cardIndex].known = false;
             }
           }
