@@ -195,6 +195,7 @@ export default function EstudiarPage() {
                 .from("sets")
                 .update({
                   cards: sets[setIndex].cards,
+                  progress: sets[setIndex].progress,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", set.id)
