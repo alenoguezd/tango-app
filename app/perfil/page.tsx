@@ -351,6 +351,7 @@ export default function PerfilPage() {
               flex: 1,
             }}>
               <input
+                autoFocus
                 type="text"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}

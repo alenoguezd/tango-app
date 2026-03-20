@@ -86,8 +86,11 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       try {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          const name = user.email.split("@")[0];
+        if (user) {
+          // Try to use full_name from metadata, fallback to email
+          const fullName = (user.user_metadata?.full_name as string) || "";
+          const emailName = user.email?.split("@")[0] || "";
+          const name = fullName || emailName;
           const displayName = name.charAt(0).toUpperCase() + name.slice(1);
           setUserName(displayName);
           setUserInitials(displayName.slice(0, 2).toUpperCase());
