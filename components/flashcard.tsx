@@ -149,7 +149,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
     }
 
     if (onCardSwiped) {
-      onCardSwiped(cardToUpdate, direction === "down" ? "left" : direction);
+      onCardSwiped(newCard, direction === "down" ? "left" : direction);
     }
 
     const newDeck = [...deck];
