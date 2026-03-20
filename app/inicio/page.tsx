@@ -77,31 +77,43 @@ export default function InicioPage() {
       }));
 
       console.log("[Inicio] Sets mapped from Supabase:", supabaseSets);
-      setSets(supabaseSets);
 
-      // Merge with localStorage to preserve any newly created sets not yet in Supabase
+      // Load from localStorage first (it has the latest progress from studying)
+      let displaySets = supabaseSets;
       try {
         const localSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
 
-        // Find sets that are in localStorage but not in Supabase (newly created)
-        const newLocalSets = localSets.filter((localSet: any) =>
-          !supabaseSets.some((remoteSet) => remoteSet.id === localSet.id)
-        );
+        if (localSets.length > 0) {
+          // Merge: Use localStorage as the source for display (has latest progress)
+          // but sync back to Supabase data structure
+          const mergedSets = localSets.map((localSet: any) => {
+            // Find matching Supabase set to get any remote-only fields
+            const remoteSet = supabaseSets.find((s) => s.id === localSet.id);
+            return {
+              ...remoteSet, // Supabase fields as base
+              ...localSet,  // localStorage fields override (has latest progress)
+            };
+          });
 
-        // Merge: Supabase sets (source of truth) + local-only sets (not yet synced)
-        const mergedSets = [...supabaseSets, ...newLocalSets];
+          // Also include any sets that were in Supabase but not localStorage
+          const supabaseOnlySets = supabaseSets.filter((remoteSet) =>
+            !mergedSets.some((s) => s.id === remoteSet.id)
+          );
 
-        localStorage.setItem("vocab_sets", JSON.stringify(mergedSets));
-        console.log("[Inicio] Sets merged with localStorage:", {
-          fromSupabase: supabaseSets.length,
-          newLocalSets: newLocalSets.length,
-          total: mergedSets.length
-        });
+          displaySets = [...mergedSets, ...supabaseOnlySets];
+          localStorage.setItem("vocab_sets", JSON.stringify(displaySets));
+          console.log("[Inicio] Sets loaded from localStorage with Supabase updates:", {
+            fromLocal: mergedSets.length,
+            fromSupabaseOnly: supabaseOnlySets.length,
+            total: displaySets.length
+          });
+        }
       } catch (err) {
         console.error("[Inicio] Failed to merge with localStorage:", err);
-        // Fallback: just save Supabase sets
-        localStorage.setItem("vocab_sets", JSON.stringify(supabaseSets));
       }
+
+      // Set display state with merged sets (localStorage takes priority for progress)
+      setSets(displaySets);
     } catch (error) {
       console.error("[Inicio] Error loading sets:", error);
     } finally {
