@@ -372,7 +372,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           aria-label={`Empezar a repasar ${needsStudy} tarjetas, tiempo estimado 2 minutos`}
           style={{
             background: TEXT_PRI,
-            borderRadius: "28px",
+            borderRadius: CARD_RADIUS,
             padding: "16px 20px",
             marginBottom: SECTION_GAP,
             display: "flex",
