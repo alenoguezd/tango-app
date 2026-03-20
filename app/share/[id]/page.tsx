@@ -86,7 +86,6 @@ export default async function SharePage({ params }: { params: { id: string } }) 
       </div>
     );
   } catch (err) {
-    console.error("Error fetching shared set:", err);
     notFound();
   }
 }

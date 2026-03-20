@@ -152,7 +152,6 @@ export default function PerfilPage() {
         }
       }
     } catch (err) {
-      console.error("[Perfil] Error loading user data:", err);
       setError("Error al cargar datos del perfil");
     } finally {
       setLoading(false);
@@ -226,7 +225,6 @@ export default function PerfilPage() {
       await supabase.auth.signOut();
       router.push("/");
     } catch (err) {
-      console.error("[Perfil] Logout error:", err);
       setError("Error al cerrar sesión");
     }
   };

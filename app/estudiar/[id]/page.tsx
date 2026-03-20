@@ -79,7 +79,6 @@ export default function EstudiarPage() {
 
   const loadSetData = async () => {
     try {
-      console.log("[Estudiar] Loading set:", setId);
 
       // Try to load from Supabase first
       const { data, error } = await supabase
@@ -89,7 +88,6 @@ export default function EstudiarPage() {
         .single();
 
       if (!error && data) {
-        console.log("[Estudiar] Set loaded from Supabase:", data);
         const found: StudySet = {
           id: data.id,
           title: data.name,
@@ -114,14 +112,12 @@ export default function EstudiarPage() {
         setSet(found);
       } else {
         // Fallback to localStorage
-        console.log("[Estudiar] Supabase load failed, trying localStorage");
         const savedSets = localStorage.getItem("vocab_sets");
         if (savedSets) {
           let sets: StudySet[] = JSON.parse(savedSets);
           let found = sets.find((s) => s.id === setId);
 
           if (found) {
-            console.log("[Estudiar] Set loaded from localStorage:", found);
             // Migrate cards if they don't have IDs
             if (found.cards && !found.cards[0]?.id) {
               found.cards = migrateCards(found.cards);
@@ -133,7 +129,6 @@ export default function EstudiarPage() {
         }
       }
     } catch (error) {
-      console.error("[Estudiar] Error loading set:", error);
     } finally {
       setLoading(false);
     }
@@ -197,11 +192,9 @@ export default function EstudiarPage() {
                 .eq("user_id", user.id);
             }
           } catch (err) {
-            console.log("Supabase progress save failed, using localStorage fallback");
           }
         }
       } catch (error) {
-        console.error("Error saving progress:", error);
       }
     }
   };
@@ -213,7 +206,6 @@ export default function EstudiarPage() {
   const handleSaveSet = async () => {
     if (!set || !currentUserId) return;
 
-    console.log("[Estudiar] Saving set to user account. Set ID:", setId, "Current User:", currentUserId);
 
     try {
       const newSetId = crypto.randomUUID();
@@ -229,7 +221,6 @@ export default function EstudiarPage() {
         progress: 0,
       };
 
-      console.log("[Estudiar] Inserting new set:", newSet);
 
       // Save to Supabase
       const { error } = await supabase
@@ -237,17 +228,14 @@ export default function EstudiarPage() {
         .insert(newSet);
 
       if (error) {
-        console.error("[Estudiar] Error saving set:", error);
         setSaveMessage("Error al guardar el set");
         setTimeout(() => setSaveMessage(null), 3000);
         return;
       }
 
-      console.log("[Estudiar] Set saved successfully with ID:", newSetId);
       setSaveMessage("¡Set guardado en tu cuenta!");
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (err) {
-      console.error("[Estudiar] Error saving set:", err);
       setSaveMessage("Error al guardar el set");
       setTimeout(() => setSaveMessage(null), 3000);
     }

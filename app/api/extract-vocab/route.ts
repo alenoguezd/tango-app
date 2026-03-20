@@ -10,12 +10,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { image, mediaType } = body;
 
-    console.log("📥 API request received");
-    console.log("Image data length:", image?.length);
-    console.log("Media type:", mediaType);
 
     if (!image) {
-      console.error("❌ No image data provided");
       return NextResponse.json(
         { error: "Image data is required" },
         { status: 400 }
@@ -27,15 +23,12 @@ export async function POST(request: NextRequest) {
     let normalizedMediaType = (mediaType || "image/jpeg").toLowerCase();
 
     if (!validMediaTypes.includes(normalizedMediaType)) {
-      console.warn(`Invalid media type: ${mediaType}, defaulting to image/jpeg`);
       normalizedMediaType = "image/jpeg";
     }
 
     // Clean base64 data (remove any whitespace)
     const cleanBase64 = image.replace(/\s/g, "");
 
-    console.log(`Processing image with media type: ${normalizedMediaType}`);
-    console.log(`Base64 data length: ${cleanBase64.length}`);
 
     const message = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -77,13 +70,11 @@ Each object must have these exact fields:
     }
 
     let rawText = content.text.trim();
-    console.log("Claude raw response:", rawText);
 
     // Extract JSON from markdown code blocks if present
     const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       rawText = jsonMatch[1].trim();
-      console.log("Extracted JSON from markdown:", rawText);
     }
 
     // Try to find JSON array or object if still wrapped with extra text
@@ -92,10 +83,8 @@ Each object must have these exact fields:
 
     if (jsonArrayMatch) {
       rawText = jsonArrayMatch[0];
-      console.log("Extracted JSON array:", rawText);
     } else if (jsonObjectMatch) {
       rawText = jsonObjectMatch[0];
-      console.log("Extracted JSON object:", rawText);
     }
 
     const vocabulary = JSON.parse(rawText);
@@ -103,13 +92,10 @@ Each object must have these exact fields:
     // Ensure we're returning an array of cards
     const cards = Array.isArray(vocabulary) ? vocabulary : (vocabulary.cards || []);
 
-    console.log(`✅ Returning ${cards.length} cards`);
     return NextResponse.json({ cards });
   } catch (error) {
-    console.error("Error processing image:", error);
 
     if (error instanceof SyntaxError) {
-      console.error("JSON parsing error:", error.message);
       return NextResponse.json(
         {
           error: "Failed to parse vocabulary from Claude response",
@@ -121,7 +107,6 @@ Each object must have these exact fields:
 
     if (error instanceof Error) {
       const errorMessage = error.message;
-      console.error("Error message:", errorMessage);
 
       // Check for Anthropic API-specific errors
       if (errorMessage.includes("Could not process image")) {

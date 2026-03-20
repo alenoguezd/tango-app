@@ -46,7 +46,6 @@ export default function InicioPage() {
 
   const loadSets = async (userId: string) => {
     try {
-      console.log("[Inicio] Loading sets for user:", userId);
       // Load from Supabase
       const { data, error } = await supabase
         .from("sets")
@@ -54,17 +53,9 @@ export default function InicioPage() {
         .eq("user_id", userId);
 
       if (error) {
-        console.error("[Inicio] Supabase select error:", {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint,
-          fullError: JSON.stringify(error)
-        });
         throw error;
       }
 
-      console.log("[Inicio] Sets loaded from Supabase:", data);
 
       const supabaseSets = (data || []).map((set: any) => ({
         id: set.id,
@@ -76,7 +67,6 @@ export default function InicioPage() {
         favorite: set.is_favorite || false,
       }));
 
-      console.log("[Inicio] Sets mapped from Supabase:", supabaseSets);
 
       // Load from localStorage first (it has the latest progress from studying)
       let displaySets = supabaseSets;
@@ -102,20 +92,13 @@ export default function InicioPage() {
 
           displaySets = [...mergedSets, ...supabaseOnlySets];
           localStorage.setItem("vocab_sets", JSON.stringify(displaySets));
-          console.log("[Inicio] Sets loaded from localStorage with Supabase updates:", {
-            fromLocal: mergedSets.length,
-            fromSupabaseOnly: supabaseOnlySets.length,
-            total: displaySets.length
-          });
         }
       } catch (err) {
-        console.error("[Inicio] Failed to merge with localStorage:", err);
       }
 
       // Set display state with merged sets (localStorage takes priority for progress)
       setSets(displaySets);
     } catch (error) {
-      console.error("[Inicio] Error loading sets:", error);
     } finally {
       setLoading(false);
     }

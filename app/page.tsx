@@ -53,7 +53,6 @@ export default function Home() {
         return;
       }
     } catch (error) {
-      console.error("Auth check error:", error);
     }
     setMounted(true);
   };
