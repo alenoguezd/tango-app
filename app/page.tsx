@@ -41,7 +41,13 @@ export default function Home() {
 
   const checkAuthAndMount = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        // Invalid or missing refresh token - clear session and show login
+        await supabase.auth.signOut().catch(() => {});
+        setMounted(true);
+        return;
+      }
       if (user) {
         router.push("/inicio");
         return;
