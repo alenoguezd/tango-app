@@ -63,9 +63,9 @@ export default function EstudiarPage() {
 
   const checkAuthAndLoadSet = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
 
-      if (!user) {
+      if (error || !user) {
         router.push("/");
         return;
       }
@@ -178,7 +178,7 @@ export default function EstudiarPage() {
           // Try to save to Supabase
           try {
             const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error } = await supabase.auth.getUser();
 
             if (user) {
               await supabase
