@@ -33,6 +33,43 @@ const PAGE_BG = tokens.color.page;
 
 const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
 
+// Audio functions for swipe feedback
+function playCorrect() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 600;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Silently fail if AudioContext is not available
+  }
+}
+
+function playWrong() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 200;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.2, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + 0.3);
+  } catch {
+    // Silently fail if AudioContext is not available
+  }
+}
+
 export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
   const [index, setIndex] = useState(0);
@@ -139,13 +176,16 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
       newCard.difficulty = null;
       // Log this study activity for streak tracking
       logStudyActivity();
+      playCorrect();
     } else if (direction === "down") {
       newCard.known = false;
       newCard.difficulty = "difícil";
+      playWrong();
     } else {
       // left
       newCard.known = false;
       newCard.difficulty = null;
+      playWrong();
     }
 
     if (onCardSwiped) {
