@@ -56,6 +56,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const [setName, setSetName] = useState("");
   const [state, setState] = useState<CrearState>("idle");
   const [createdCards, setCreatedCards] = useState<any[]>([]);
+  const [limitError, setLimitError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -75,6 +76,15 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   async function handleGenerate() {
     if (!imageUrl || state !== "idle" || !setName.trim()) return;
+
+    // Check set limit before proceeding
+    const MAX_SETS = 3;
+    const existingSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
+    if (existingSets.length >= MAX_SETS) {
+      setLimitError(true);
+      return;
+    }
+    setLimitError(false);
 
     const finalName = setName.trim();
     setState("loading");
@@ -169,7 +179,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
     }
   }
 
-  const canGenerate = !!imageUrl && !!setName.trim() && state === "idle";
+  const existingSetsCount = JSON.parse(localStorage.getItem("vocab_sets") || "[]").length;
+  const canGenerate = !!imageUrl && !!setName.trim() && state === "idle" && existingSetsCount < 3;
 
   // ===== Main Content =====
   const mainContent = (
@@ -363,6 +374,18 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       >
         {state === "loading" ? "Procesando..." : "Generar tarjetas →"}
       </button>
+
+      {limitError && (
+        <p style={{
+          fontSize: "13px",
+          fontWeight: 600,
+          color: tokens.color.textError,
+          textAlign: "center",
+          marginTop: "12px",
+        }}>
+          Has alcanzado el límite de 3 sets. Mejora tu plan para crear más.
+        </p>
+      )}
 
       <input
         ref={fileInputRef}

@@ -510,18 +510,20 @@ export default function PerfilPage() {
               30/3
             </p>
           </div>
-          <div style={{
-            background: "#FFE5F0",
-            borderRadius: "50px",
-            padding: "6px 12px",
-            fontFamily: FONT,
-            fontSize: "11px",
-            fontWeight: 700,
-            color: TEXT_RED,
-            whiteSpace: "nowrap",
-          }}>
-            Límite superado
-          </div>
+          {setsCreatedThisMonth >= maxSetsMonth && (
+            <div style={{
+              background: "#FFE5F0",
+              borderRadius: "50px",
+              padding: "6px 12px",
+              fontFamily: FONT,
+              fontSize: "11px",
+              fontWeight: 700,
+              color: TEXT_RED,
+              whiteSpace: "nowrap",
+            }}>
+              Límite superado
+            </div>
+          )}
         </div>
 
         {/* Progress bar */}
