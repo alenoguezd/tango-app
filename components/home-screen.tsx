@@ -6,13 +6,14 @@ import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
+import { getDueCards, type CardProgress } from "@/lib/sm2";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
   id: string;
   title: string;
   cardCount: number;
-  progress: number;
+  progress: CardProgress[] | number; // CardProgress[] for SM-2, number for backward compat
   lastStudied: string;
   cards: VocabCard[];
   color?: "blue" | "pink";
@@ -263,9 +264,30 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     }
   };
 
-  // Calculate stats
+  // Helper function to get due cards for a set
+  const getDueCardsForSet = (progress: CardProgress[]): CardProgress[] => {
+    return getDueCards(progress || []);
+  };
+
+  // Calculate stats including due cards
+  const setStats = localSets.map((set) => {
+    const progress = (set.progress || []) as CardProgress[];
+    const dueCards = getDueCardsForSet(progress);
+    return {
+      setId: set.id,
+      dueCount: dueCards.length,
+    };
+  });
+
+  const totalDueCards = setStats.reduce((sum, stat) => sum + stat.dueCount, 0);
+
   const avgProgress = localSets.length > 0
-    ? Math.round(localSets.reduce((sum, s) => sum + s.progress, 0) / localSets.length)
+    ? Math.round(localSets.reduce((sum, s) => {
+        const progress = (s.progress || []) as CardProgress[];
+        return sum + (progress.length > 0 ? Math.round(
+          (progress.filter((c) => c.known === true).length / progress.length) * 100
+        ) : s.progress as unknown as number);
+      }, 0) / localSets.length)
     : 0;
 
   const needsStudy = localSets.reduce((count, set) => {
@@ -396,6 +418,16 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontSize: "11px",
               fontWeight: 400,
               color: TEXT_SEC,
+              margin: "0 0 8px 0",
+            }}>
+              {totalDueCards} tarjeta{totalDueCards !== 1 ? "s" : ""} para hoy
+            </p>
+
+            <p style={{
+              fontFamily: FONT_UI,
+              fontSize: "11px",
+              fontWeight: 400,
+              color: TEXT_SEC,
               margin: 0,
             }}>
               {cardsStudiedToday >= dailyGoal
@@ -490,17 +522,21 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           gap: "12px",
           marginBottom: "24px",
         }}>
-          {sortedSets.map((set) => (
-            <SetCard
-              key={set.id}
-              set={set}
-              onStudy={() => onStudy(set)}
-              onShare={() => handleShare(set.id)}
-              onToggleFavorite={() => handleToggleFavorite(set.id)}
-              onRename={() => handleRenameSet(set.id, set.title)}
-              onDelete={() => handleDeleteSet(set.id)}
-            />
-          ))}
+          {sortedSets.map((set) => {
+            const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
+            return (
+              <SetCard
+                key={set.id}
+                set={set}
+                dueCount={dueCount}
+                onStudy={() => onStudy(set)}
+                onShare={() => handleShare(set.id)}
+                onToggleFavorite={() => handleToggleFavorite(set.id)}
+                onRename={() => handleRenameSet(set.id, set.title)}
+                onDelete={() => handleDeleteSet(set.id)}
+              />
+            );
+          })}
         </div>
       ) : (
         <div style={{
@@ -653,6 +689,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 // ── SetCard ────────────────────────────────────────────────────────────────────
 function SetCard({
   set,
+  dueCount = 0,
   onStudy,
   onShare,
   onToggleFavorite,
@@ -660,6 +697,7 @@ function SetCard({
   onDelete,
 }: {
   set: DeckSet;
+  dueCount?: number;
   onStudy: () => void;
   onShare: () => void;
   onToggleFavorite: () => void;
@@ -756,14 +794,49 @@ function SetCard({
       </div>
 
       {/* Metadata */}
-      <p style={{
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        fontSize: "11px",
-        color: TEXT_SEC,
-        margin: "0 0 10px 0",
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "10px",
       }}>
-        {set.cardCount} tarjetas · {getTimeSinceStudied(set.lastStudied)}
-      </p>
+        <p style={{
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+          fontSize: "11px",
+          color: TEXT_SEC,
+          margin: 0,
+        }}>
+          {set.cardCount} tarjetas · {getTimeSinceStudied(set.lastStudied)}
+        </p>
+        {/* Due Cards Badge */}
+        {dueCount > 0 ? (
+          <div style={{
+            background: BUTTER,
+            borderRadius: "6px",
+            padding: "2px 8px",
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+            fontSize: "10px",
+            fontWeight: 700,
+            color: TEXT_PRI,
+            flexShrink: 0,
+          }}>
+            {dueCount} due
+          </div>
+        ) : (
+          <div style={{
+            background: SAGE,
+            borderRadius: "6px",
+            padding: "2px 8px",
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+            fontSize: "10px",
+            fontWeight: 700,
+            color: TEXT_PRI,
+            flexShrink: 0,
+          }}>
+            Al día ✓
+          </div>
+        )}
+      </div>
 
       {/* Action Row: Progress Bar + Share + Menu */}
       <div style={{
