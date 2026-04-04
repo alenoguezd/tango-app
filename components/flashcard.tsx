@@ -665,7 +665,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   {card?.kanji}
                 </p>
                 <p style={{
-                  fontSize: "14px",
+                  fontSize: "24px",
                   color: tokens.color.textBlue,
                   margin: 0,
                   textAlign: "center",
@@ -798,7 +798,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                     {displayCard?.kanji}
                   </p>
                   <p style={{
-                    fontSize: "14px",
+                    fontSize: "24px",
                     color: tokens.color.textBlue,
                     margin: 0,
                     textAlign: "center",
@@ -811,7 +811,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                 <>
                   {/* Back: English and details */}
                   <p style={{
-                    fontSize: "clamp(20px, 6vw, 32px)",
+                    fontSize: "clamp(26px, 7vw, 38px)",
                     fontWeight: 800,
                     color: TEXT_PRI,
                     margin: "0 0 16px 0",
