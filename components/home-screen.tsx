@@ -6,7 +6,7 @@ import { type VocabCard } from "@/components/flashcard";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
-import { getDueCards, type CardProgress } from "@/lib/sm2";
+import { getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -265,10 +265,22 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   };
 
   // Helper function to get due cards for a set
-  const getDueCardsForSet = (progress: CardProgress[] | number | undefined): CardProgress[] => {
+  const getDueCardsForSet = (progress: CardProgress[] | number | undefined, cardCount: number): CardProgress[] => {
     // Guard: if not an array, return empty array
     if (!Array.isArray(progress)) {
       return [];
+    }
+    // If progress array is empty (never studied), all cards are due
+    if (progress.length === 0) {
+      // Return synthetic CardProgress array for all cards
+      return Array.from({ length: cardCount }, (_, i) => ({
+        cardId: i.toString(),
+        known: false,
+        interval: 1,
+        easeFactor: 2.5,
+        nextReview: getTodayString(),
+        repetitions: 0,
+      }));
     }
     return getDueCards(progress);
   };
@@ -276,7 +288,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   // Calculate stats including due cards
   const setStats = localSets.map((set) => {
     const progress = (set.progress || []) as CardProgress[];
-    const dueCards = getDueCardsForSet(progress);
+    const dueCards = getDueCardsForSet(progress, set.cardCount);
     return {
       setId: set.id,
       dueCount: dueCards.length,

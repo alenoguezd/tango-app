@@ -182,7 +182,22 @@ export default function EstudiarPage() {
 
   // Helper: Calculate and set due cards
   const calculateAndSetDueCards = (studySet: StudySet) => {
-    const due = getDueCards(studySet.progress);
+    let due: CardProgress[];
+
+    // If progress is empty (never studied), all cards are due
+    if (!Array.isArray(studySet.progress) || studySet.progress.length === 0) {
+      due = studySet.cards.map((card, index) => ({
+        cardId: card.id || index.toString(),
+        known: false,
+        interval: 1,
+        easeFactor: 2.5,
+        nextReview: getTodayString(),
+        repetitions: 0,
+      }));
+    } else {
+      due = getDueCards(studySet.progress);
+    }
+
     setDueCardIds(new Set(due.map((c) => c.cardId)));
   };
 
