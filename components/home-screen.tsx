@@ -551,75 +551,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               ))}
             </div>
           </div>
-
-          {/* Descubrir Section */}
-          <div style={{ padding: "0 16px 24px" }}>
-            <h2 style={{
-              fontFamily: FONT_UI,
-              fontSize: "18px",
-              fontWeight: 700,
-              color: TEXT_PRI,
-              margin: "0 0 12px 0",
-            }}>
-              Descubrir
-            </h2>
-            <div style={{
-              display: "flex",
-              gap: "12px",
-              overflowX: "auto",
-              paddingBottom: "8px",
-            }}>
-              {[
-                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
-                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
-                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  style={{
-                    minWidth: "150px",
-                    background: "white",
-                    border: `0.5px solid ${BORDER}`,
-                    borderRadius: "12px",
-                    padding: "12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
-                  }}
-                >
-                  <p style={{ fontSize: "28px", margin: 0 }}>{item.emoji}</p>
-                  <p style={{
-                    fontFamily: FONT_UI,
-                    fontSize: "13px",
-                    fontWeight: 700,
-                    color: TEXT_PRI,
-                    margin: 0,
-                  }}>
-                    {item.name}
-                  </p>
-                  <p style={{
-                    fontFamily: FONT_UI,
-                    fontSize: "11px",
-                    color: TEXT_SEC,
-                    margin: 0,
-                  }}>
-                    {item.count} tarjetas
-                  </p>
-                  <div style={{
-                    background: item.tagColor,
-                    color: item.tagTextColor,
-                    borderRadius: "6px",
-                    padding: "2px 8px",
-                    fontSize: "10px",
-                    fontWeight: 600,
-                    width: "fit-content",
-                  }}>
-                    {item.tag}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Bottom Nav */}
@@ -1086,10 +1017,10 @@ function SetGridCard({
         }} />
       </div>
 
-      {/* Menu Button - Bottom Right */}
+      {/* Menu Button - Top Right (below due chip) */}
       <div style={{
         position: "absolute",
-        bottom: "12px",
+        top: "48px",
         right: "12px",
       }}>
         <button
