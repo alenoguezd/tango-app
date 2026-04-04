@@ -6,12 +6,19 @@ import { Flashcard, type VocabCard } from "@/components/flashcard";
 import { SessionComplete } from "@/components/session-complete";
 import { AppSidebar } from "@/components/app-sidebar";
 import { createClient } from "@/lib/supabase";
+import {
+  type CardProgress,
+  calculateSM2,
+  getDueCards,
+  migrateProgress,
+  getTodayString,
+} from "@/lib/sm2";
 
 interface StudySet {
   id: string;
   title: string;
   cardCount: number;
-  progress: number;
+  progress: CardProgress[];
   lastStudied: string;
   cards: VocabCard[];
   userId?: string;
@@ -50,6 +57,7 @@ export default function EstudiarPage() {
   const isMobile = windowWidth < 1024;
 
   const [set, setSet] = useState<StudySet | null>(null);
+  const [dueCardIds, setDueCardIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -79,8 +87,7 @@ export default function EstudiarPage() {
 
   const loadSetData = async () => {
     try {
-
-      // Try to load from Supabase first
+      // 1. Try loading by set ID (owned sets)
       const { data, error } = await supabase
         .from("sets")
         .select("*")
@@ -88,43 +95,39 @@ export default function EstudiarPage() {
         .single();
 
       if (!error && data) {
-        const found: StudySet = {
-          id: data.id,
-          title: data.name,
-          cardCount: (data.cards || []).length,
-          progress: data.progress || 0,
-          lastStudied: data.updated_at || data.created_at || new Date().toISOString(),
-          cards: data.cards || [],
-          userId: data.user_id,
-        };
-
-        // Migrate cards if needed
-        if (found.cards && !found.cards[0]?.id) {
-          found.cards = migrateCards(found.cards);
-        }
-
-        // Calculate previous mastery
-        const prev = found.cards ? Math.round(
-          (found.cards.filter((c) => c.known === true).length / found.cards.length) * 100
-        ) : 0;
-        setPreviousMastery(prev);
-        setOriginalSetName(found.title);
+        const found = processSetData(data);
         setSet(found);
+        calculateAndSetDueCards(found);
       } else {
-        // Fallback to localStorage
-        const savedSets = localStorage.getItem("vocab_sets");
-        if (savedSets) {
-          let sets: StudySet[] = JSON.parse(savedSets);
-          let found = sets.find((s) => s.id === setId);
+        // 2. Try loading by share_token (shared links)
+        const { data: sharedData, error: sharedError } = await supabase
+          .from("sets")
+          .select("*")
+          .eq("share_token", setId)
+          .eq("is_public", true)
+          .single();
 
-          if (found) {
-            // Migrate cards if they don't have IDs
-            if (found.cards && !found.cards[0]?.id) {
-              found.cards = migrateCards(found.cards);
-              sets = sets.map((s) => s.id === setId ? found : s);
-              localStorage.setItem("vocab_sets", JSON.stringify(sets));
+        if (!sharedError && sharedData) {
+          const found = processSetData(sharedData);
+          setSet(found);
+          calculateAndSetDueCards(found);
+        } else {
+          // 3. Fallback to localStorage
+          const savedSets = localStorage.getItem("vocab_sets");
+          if (savedSets) {
+            let sets: StudySet[] = JSON.parse(savedSets);
+            let found = sets.find((s) => s.id === setId);
+
+            if (found) {
+              // Migrate cards if they don't have IDs
+              if (found.cards && !found.cards[0]?.id) {
+                found.cards = migrateCards(found.cards);
+                sets = sets.map((s) => s.id === setId ? found : s);
+                localStorage.setItem("vocab_sets", JSON.stringify(sets));
+              }
+              setSet(found);
+              calculateAndSetDueCards(found);
             }
-            setSet(found);
           }
         }
       }
@@ -134,68 +137,128 @@ export default function EstudiarPage() {
     }
   };
 
+  // Helper: Process set data from Supabase and run SM-2 migration
+  const processSetData = (data: Record<string, unknown>): StudySet => {
+    // Migrate cards if needed
+    let cards = (data.cards || []) as VocabCard[];
+    if (cards && !cards[0]?.id) {
+      cards = migrateCards(cards);
+    }
+
+    // Ensure progress is an array of CardProgress
+    let progress = (data.progress || []) as CardProgress[];
+    if (!Array.isArray(progress)) {
+      // Old format: progress was a number, reconstruct from card.known
+      progress = cards.map((card) => ({
+        cardId: card.id || "",
+        known: card.known || false,
+        interval: 1,
+        easeFactor: 2.5,
+        nextReview: getTodayString(),
+        repetitions: 0,
+      }));
+    } else {
+      // Run migration to ensure all cards have SM-2 fields
+      progress = migrateProgress(progress as (CardProgress | Record<string, unknown>)[]);
+    }
+
+    // Calculate previous mastery
+    const prev = cards ? Math.round(
+      (cards.filter((c) => c.known === true).length / cards.length) * 100
+    ) : 0;
+    setPreviousMastery(prev);
+    setOriginalSetName(data.name as string || "");
+
+    return {
+      id: data.id as string,
+      title: data.name as string,
+      cardCount: cards.length,
+      progress,
+      lastStudied: (data.updated_at || data.created_at || new Date().toISOString()) as string,
+      cards,
+      userId: data.user_id as string | undefined,
+    };
+  };
+
+  // Helper: Calculate and set due cards
+  const calculateAndSetDueCards = (studySet: StudySet) => {
+    const due = getDueCards(studySet.progress);
+    setDueCardIds(new Set(due.map((c) => c.cardId)));
+  };
+
   const handleCardSwiped = async (card: VocabCard, direction: "left" | "right", cardIndex: number) => {
-    // Save progress to localStorage using card index from Flashcard
-    const savedSets = localStorage.getItem("vocab_sets");
-    if (savedSets && set) {
-      try {
-        const sets: StudySet[] = JSON.parse(savedSets);
-        const setIndex = sets.findIndex((s) => s.id === set.id);
-        if (setIndex !== -1) {
-          // Initialize progress if not exists
-          if (!Array.isArray(sets[setIndex].progress)) {
-            sets[setIndex].progress = 0;
-          }
+    if (!set) return;
 
-          // Update last studied timestamp
-          sets[setIndex].lastStudied = new Date().toISOString();
+    try {
+      // Determine quality: right (swipe) = known (1), left = repasar (0)
+      const quality = direction === "right" ? 1 : 0;
 
-          // Update card at the current index (from Flashcard component)
-          // This is more reliable than trying to match by ID
-          if (cardIndex >= 0 && cardIndex < sets[setIndex].cards.length) {
-            if (direction === "right") {
-              sets[setIndex].cards[cardIndex].known = true;
-            } else {
-              sets[setIndex].cards[cardIndex].known = false;
-            }
-          }
+      // Find the card in progress array
+      const cardId = card.id || cardIndex.toString();
+      const progressIndex = set.progress.findIndex((p) => p.cardId === cardId);
 
-          // Calculate progress based on actual card states (after all updates)
-          const knownCount = sets[setIndex].cards.filter((c) => c.known === true).length;
-          sets[setIndex].progress = sets[setIndex].cards.length > 0
-            ? Math.round((knownCount / sets[setIndex].cards.length) * 100)
-            : 0;
-
-          localStorage.setItem("vocab_sets", JSON.stringify(sets));
-
-          // Update component state with the latest card data
-          setSet({
-            ...set,
-            cards: sets[setIndex].cards,
-            progress: sets[setIndex].progress,
-          });
-
-          // Try to save to Supabase
-          try {
-            const supabase = createClient();
-            const { data: { user }, error } = await supabase.auth.getUser();
-
-            if (user) {
-              await supabase
-                .from("sets")
-                .update({
-                  cards: sets[setIndex].cards,
-                  progress: sets[setIndex].progress,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", set.id)
-                .eq("user_id", user.id);
-            }
-          } catch (err) {
-          }
-        }
-      } catch (error) {
+      if (progressIndex === -1) {
+        console.warn(`Card ${cardId} not found in progress array`);
+        return;
       }
+
+      // Calculate new SM-2 metrics
+      const newCardProgress = calculateSM2(set.progress[progressIndex], quality);
+
+      // Update progress array
+      const updatedProgress = [...set.progress];
+      updatedProgress[progressIndex] = newCardProgress;
+
+      // Also update card.known for consistency
+      const updatedCards = [...set.cards];
+      updatedCards[cardIndex].known = quality === 1;
+
+      // Update local state
+      const updatedSet: StudySet = {
+        ...set,
+        progress: updatedProgress,
+        cards: updatedCards,
+        lastStudied: new Date().toISOString(),
+      };
+
+      setSet(updatedSet);
+      calculateAndSetDueCards(updatedSet);
+
+      // Save to localStorage
+      const savedSets = localStorage.getItem("vocab_sets");
+      if (savedSets) {
+        try {
+          const sets: StudySet[] = JSON.parse(savedSets);
+          const setIndex = sets.findIndex((s) => s.id === set.id);
+          if (setIndex !== -1) {
+            sets[setIndex] = updatedSet;
+            localStorage.setItem("vocab_sets", JSON.stringify(sets));
+          }
+        } catch (err) {
+          console.error("Failed to save to localStorage:", err);
+        }
+      }
+
+      // Save to Supabase in background
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (user) {
+          await supabase
+            .from("sets")
+            .update({
+              cards: updatedCards,
+              progress: updatedProgress,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", set.id)
+            .eq("user_id", user.id);
+        }
+      } catch (err) {
+        console.error("Failed to save to Supabase:", err);
+      }
+    } catch (error) {
+      console.error("Error in handleCardSwiped:", error);
     }
   };
 
@@ -346,6 +409,35 @@ export default function EstudiarPage() {
   // ===== MOBILE LAYOUT (< 1024px) =====
   if (isMobile) {
     const isSharedSet = set.userId && set.userId !== currentUserId;
+    const dueCards = set.cards.filter((card) => dueCardIds.has(card.id || ""));
+
+    // Show "all caught up" state when no cards are due
+    if (dueCards.length === 0) {
+      return (
+        <div style={{ height: "100dvh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "24px", padding: "20px" }}>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "48px", margin: "0 0 12px 0" }}>🎉</p>
+            <h2 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 8px 0" }}>¡Al día!</h2>
+            <p style={{ fontSize: "14px", color: "#B0A898", margin: 0 }}>Vuelve mañana para más tarjetas</p>
+          </div>
+          <button
+            onClick={handleBack}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#1A1A1A",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Volver a inicio
+          </button>
+        </div>
+      );
+    }
 
     return (
       <div style={{ height: "100dvh", display: "flex", flexDirection: "column" }}>
@@ -391,7 +483,7 @@ export default function EstudiarPage() {
         )}
         <div style={{ flex: 1, minHeight: 0 }}>
           <Flashcard
-            cards={set.cards}
+            cards={dueCards}
             title={set.title}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
@@ -404,6 +496,50 @@ export default function EstudiarPage() {
 
   // ===== DESKTOP LAYOUT (≥ 1024px) =====
   const isSharedSet = set.userId && set.userId !== currentUserId;
+  const dueCards = set.cards.filter((card) => dueCardIds.has(card.id || ""));
+
+  // Show "all caught up" state when no cards are due
+  if (dueCards.length === 0) {
+    return (
+      <div style={{
+        height: "100dvh",
+        background: "#F7F6F3",
+        display: "flex",
+        flexDirection: "row",
+      }}>
+        <AppSidebar activeTab="inicio" onNavigate={handleNavigate} />
+        <div style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: "24px",
+        }}>
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: "64px", margin: "0 0 16px 0" }}>🎉</p>
+            <h2 style={{ fontSize: "32px", fontWeight: 700, margin: "0 0 12px 0" }}>¡Al día!</h2>
+            <p style={{ fontSize: "16px", color: "#B0A898", margin: 0 }}>Vuelve mañana para más tarjetas</p>
+          </div>
+          <button
+            onClick={handleBack}
+            style={{
+              padding: "12px 32px",
+              backgroundColor: "#1A1A1A",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Volver a inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -465,7 +601,7 @@ export default function EstudiarPage() {
         )}
         <div style={{ flex: 1, minHeight: 0 }}>
           <Flashcard
-            cards={set.cards}
+            cards={dueCards}
             title={set.title}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}

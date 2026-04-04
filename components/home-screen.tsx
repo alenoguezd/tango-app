@@ -110,21 +110,36 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
   const handleShare = async (setId: string) => {
     const supabase = createClient();
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("sets")
-          .update({ is_public: true })
-          .eq("id", setId)
-          .eq("user_id", user.id);
-      }
-    } catch (err) {
-      console.log("Could not set public status in Supabase");
+
+    // 1. Check auth first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showToast("Inicia sesión para compartir");
+      return;
     }
 
-    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/share/${setId}`;
+    // 2. Generate unique share token
+    const shareToken = crypto.randomUUID();
 
+    // 3. Update Supabase with error handling
+    const { error } = await supabase
+      .from("sets")
+      .update({
+        is_public: true,
+        share_token: shareToken,
+        shared_at: new Date().toISOString(),
+      })
+      .eq("id", setId)
+      .eq("user_id", user.id);
+
+    // 4. Only copy link if update succeeded
+    if (error) {
+      showToast("Error al compartir");
+      return;
+    }
+
+    // 5. Copy share link
+    const url = `${typeof window !== "undefined" ? window.location.origin : ""}/estudiar/${shareToken}`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(url);
