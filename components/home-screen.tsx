@@ -322,26 +322,25 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             justifyContent: "space-between",
             alignItems: "center",
           }}>
-            <div>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "14px",
-                fontWeight: 400,
-                color: TEXT_SEC,
-                margin: 0,
-              }}>
-                おはよう,
-              </p>
-              <h1 style={{
-                fontFamily: FONT_UI,
-                fontSize: "28px",
+            <h1 style={{
+              fontFamily: FONT_UI,
+              fontSize: "18px",
+              fontWeight: 400,
+              color: TEXT_SEC,
+              margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}>
+              おはよう,
+              <span style={{
+                fontSize: "18px",
                 fontWeight: 800,
                 color: SAGE,
-                margin: "2px 0 0 0",
               }}>
                 {userFirstName}
-              </h1>
-            </div>
+              </span>
+            </h1>
             <div style={{
               width: "48px",
               height: "48px",
@@ -379,37 +378,39 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             borderRadius: "20px",
             padding: "20px",
             display: "flex",
-            flexDirection: "column",
-            gap: "12px",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}>
-            <p style={{
-              fontFamily: FONT_UI,
-              fontSize: "11px",
-              fontWeight: 700,
-              color: SAGE,
-              margin: 0,
-              letterSpacing: "1px",
-            }}>
-              PARA HOY
-            </p>
-            <p style={{
-              fontFamily: FONT_UI,
-              fontSize: "36px",
-              fontWeight: 800,
-              color: "white",
-              margin: 0,
-              lineHeight: 1,
-            }}>
-              {totalDueCards}
-            </p>
-            <p style={{
-              fontFamily: FONT_UI,
-              fontSize: "12px",
-              color: "#999",
-              margin: 0,
-            }}>
-              tarjetas listas para repasar
-            </p>
+            <div>
+              <p style={{
+                fontFamily: FONT_UI,
+                fontSize: "11px",
+                fontWeight: 700,
+                color: SAGE,
+                margin: 0,
+                letterSpacing: "1px",
+              }}>
+                PARA HOY
+              </p>
+              <p style={{
+                fontFamily: FONT_UI,
+                fontSize: "36px",
+                fontWeight: 800,
+                color: "white",
+                margin: "8px 0 4px 0",
+                lineHeight: 1,
+              }}>
+                {totalDueCards}
+              </p>
+              <p style={{
+                fontFamily: FONT_UI,
+                fontSize: "12px",
+                color: "#999",
+                margin: 0,
+              }}>
+                tarjetas listas para repasar
+              </p>
+            </div>
             {firstDueSet && (
               <button
                 onClick={() => onStudy(firstDueSet)}
@@ -422,8 +423,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                   fontWeight: 700,
                   color: TEXT_PRI,
                   cursor: "pointer",
-                  marginTop: "8px",
-                  alignSelf: "flex-start",
+                  flexShrink: 0,
                 }}
               >
                 Estudiar →
@@ -623,26 +623,25 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         alignItems: "center",
         marginBottom: "32px",
       }}>
-        <div>
-          <p style={{
-            fontFamily: FONT_UI,
-            fontSize: "14px",
-            fontWeight: 400,
-            color: TEXT_SEC,
-            margin: 0,
-          }}>
-            おはよう,
-          </p>
-          <h1 style={{
-            fontFamily: FONT_UI,
-            fontSize: "36px",
+        <h1 style={{
+          fontFamily: FONT_UI,
+          fontSize: "24px",
+          fontWeight: 400,
+          color: TEXT_SEC,
+          margin: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          おはよう,
+          <span style={{
+            fontSize: "24px",
             fontWeight: 800,
             color: SAGE,
-            margin: "4px 0 0 0",
           }}>
             {userFirstName}
-          </h1>
-        </div>
+          </span>
+        </h1>
         <div style={{
           width: "64px",
           height: "64px",
@@ -933,6 +932,7 @@ function SetGridCard({
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
       style={{
+        position: "relative",
         background: isPressed ? "#F0F0F0" : "white",
         border: `0.5px solid ${BORDER}`,
         borderRadius: "16px",
@@ -945,34 +945,33 @@ function SetGridCard({
         gap: "12px",
       }}
     >
-      {/* Icon and Due Chip */}
+      {/* Due Chip - Absolute positioned top-right */}
       <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
+        position: "absolute",
+        top: "12px",
+        right: "12px",
+        background: dueCount > 0 ? BUTTER : "#D4EDBA",
+        borderRadius: "8px",
+        padding: "4px 10px",
+        fontSize: "10px",
+        fontWeight: 700,
+        color: "#1A1A1A",
       }}>
-        <div style={{
-          fontSize: "32px",
-          width: "48px",
-          height: "48px",
-          background: dueCount > 0 ? "#FFE5CC" : "#E8F5E9",
-          borderRadius: "12px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}>
-          {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
-        </div>
-        <div style={{
-          background: dueCount > 0 ? BUTTER : "#D4EDBA",
-          borderRadius: "8px",
-          padding: "4px 10px",
-          fontSize: "10px",
-          fontWeight: 700,
-          color: "#1A1A1A",
-        }}>
-          {dueCount > 0 ? `${dueCount} due` : "Al día ✓"}
-        </div>
+        {dueCount > 0 ? `${dueCount} due` : "Al día ✓"}
+      </div>
+
+      {/* Icon */}
+      <div style={{
+        fontSize: "32px",
+        width: "48px",
+        height: "48px",
+        background: dueCount > 0 ? "#FFE5CC" : "#E8F5E9",
+        borderRadius: "12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
       </div>
 
       {/* Title */}
@@ -1009,132 +1008,6 @@ function SetGridCard({
           background: progressPercent > 50 ? "#A8C87A" : progressPercent > 0 ? "#F5DC7A" : "#EEEBE6",
           transition: "width 200ms ease",
         }} />
-      </div>
-
-      {/* Actions */}
-      <div style={{
-        display: "flex",
-        gap: "6px",
-        justifyContent: "flex-end",
-      }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onShare();
-          }}
-          style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "8px",
-            background: SKY_LIGHT,
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: SKY,
-            padding: 0,
-          }}
-          title="Compartir"
-        >
-          <Share2 style={{ width: "14px", height: "14px" }} />
-        </button>
-
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "8px",
-              background: "#F0F0F0",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: "#B0A898",
-              padding: 0,
-            }}
-            title="Más opciones"
-          >
-            <MoreVertical style={{ width: "14px", height: "14px" }} />
-          </button>
-
-          {menuOpen && (
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 9999,
-              }}
-              onClick={() => setMenuOpen(false)}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  right: "0",
-                  top: "32px",
-                  background: "white",
-                  border: `0.5px solid ${BORDER}`,
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 10000,
-                  minWidth: "140px",
-                  overflow: "hidden",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    onRename();
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    textAlign: "left",
-                    fontFamily: FONT_UI,
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    color: "#1A1A1A",
-                    cursor: "pointer",
-                    borderBottom: `0.5px solid ${BORDER}`,
-                  }}
-                >
-                  Renombrar
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    onDelete();
-                  }}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "none",
-                    border: "none",
-                    textAlign: "left",
-                    fontFamily: FONT_UI,
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    color: "#E74C3C",
-                    cursor: "pointer",
-                  }}
-                >
-                  Eliminar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

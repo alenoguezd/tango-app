@@ -208,9 +208,24 @@ export default function EstudiarPage() {
       // Determine quality: right (swipe) = known (1), left = repasar (0)
       const quality = direction === "right" ? 1 : 0;
 
+      // Ensure progress is an array (defensive guard for old format)
+      let progressArray = Array.isArray(set.progress) ? set.progress : [];
+
+      // If progress is empty, initialize it with all cards
+      if (progressArray.length === 0 && set.cards.length > 0) {
+        progressArray = set.cards.map((c, idx) => ({
+          cardId: c.id || idx.toString(),
+          known: false,
+          interval: 1,
+          easeFactor: 2.5,
+          nextReview: getTodayString(),
+          repetitions: 0,
+        }));
+      }
+
       // Find the card in progress array
       const cardId = card.id || cardIndex.toString();
-      const progressIndex = set.progress.findIndex((p) => p.cardId === cardId);
+      const progressIndex = progressArray.findIndex((p) => p.cardId === cardId);
 
       if (progressIndex === -1) {
         console.warn(`Card ${cardId} not found in progress array`);
@@ -218,10 +233,10 @@ export default function EstudiarPage() {
       }
 
       // Calculate new SM-2 metrics
-      const newCardProgress = calculateSM2(set.progress[progressIndex], quality);
+      const newCardProgress = calculateSM2(progressArray[progressIndex], quality);
 
       // Update progress array
-      const updatedProgress = [...set.progress];
+      const updatedProgress = [...progressArray];
       updatedProgress[progressIndex] = newCardProgress;
 
       // Also update card.known for consistency
