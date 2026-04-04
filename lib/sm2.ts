@@ -81,6 +81,11 @@ export function calculateSM2(
  * @returns Cards where nextReview <= today OR nextReview is undefined/null
  */
 export function getDueCards(progress: CardProgress[]): CardProgress[] {
+  // Defensive guard: if not an array, return empty array
+  if (!Array.isArray(progress)) {
+    return [];
+  }
+
   const today = getTodayString();
 
   return progress.filter((card) => {

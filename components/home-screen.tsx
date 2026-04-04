@@ -265,8 +265,12 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   };
 
   // Helper function to get due cards for a set
-  const getDueCardsForSet = (progress: CardProgress[]): CardProgress[] => {
-    return getDueCards(progress || []);
+  const getDueCardsForSet = (progress: CardProgress[] | number | undefined): CardProgress[] => {
+    // Guard: if not an array, return empty array
+    if (!Array.isArray(progress)) {
+      return [];
+    }
+    return getDueCards(progress);
   };
 
   // Calculate stats including due cards
