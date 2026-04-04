@@ -37,7 +37,7 @@ const ROSE = "#F2B8CD";
 const BUTTER = "#F5DC7A";
 const BORDER = "#EEEBE6";
 const BG_DARK = "#1A1A1A";
-const BG_PAGE = "#F5F4F0";
+const BG_PAGE = "#F5F4F0"; // Warm off-white background
 const SKY = tokens.color.sky;
 const SKY_LIGHT = "#E3F2FD";
 
@@ -324,18 +324,18 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <h1 style={{
               fontFamily: FONT_UI,
-              fontSize: "18px",
-              fontWeight: 400,
+              fontSize: "28px",
+              fontWeight: 600,
               color: TEXT_SEC,
               margin: 0,
               display: "flex",
               alignItems: "center",
-              gap: "6px",
+              gap: "8px",
             }}>
               おはよう,
               <span style={{
-                fontSize: "18px",
-                fontWeight: 800,
+                fontSize: "28px",
+                fontWeight: 700,
                 color: SAGE,
               }}>
                 {userFirstName}
@@ -417,8 +417,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 style={{
                   background: SAGE,
                   border: "none",
-                  borderRadius: "10px",
-                  padding: "10px 16px",
+                  borderRadius: "50px",
+                  padding: "12px 24px",
                   fontSize: "12px",
                   fontWeight: 700,
                   color: TEXT_PRI,
@@ -480,6 +480,77 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               })}
             </div>
           ) : null}
+
+          {/* Descubrir Section */}
+          <div style={{ padding: "0 16px 24px" }}>
+            <h2 style={{
+              fontFamily: FONT_UI,
+              fontSize: "16px",
+              fontWeight: 700,
+              color: TEXT_PRI,
+              margin: "0 0 12px 0",
+            }}>
+              Descubrir
+            </h2>
+            <div style={{
+              display: "flex",
+              gap: "12px",
+              overflowX: "auto",
+              paddingBottom: "8px",
+              WebkitOverflowScrolling: "touch",
+            }}>
+              {[
+                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
+                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
+                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
+                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    minWidth: "140px",
+                    background: "white",
+                    border: `0.5px solid ${BORDER}`,
+                    borderRadius: "12px",
+                    padding: "12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px",
+                  }}
+                >
+                  <p style={{ fontSize: "24px", margin: 0 }}>{item.emoji}</p>
+                  <p style={{
+                    fontFamily: FONT_UI,
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: TEXT_PRI,
+                    margin: 0,
+                  }}>
+                    {item.name}
+                  </p>
+                  <p style={{
+                    fontFamily: FONT_UI,
+                    fontSize: "10px",
+                    color: TEXT_SEC,
+                    margin: 0,
+                  }}>
+                    {item.count} tarjetas
+                  </p>
+                  <div style={{
+                    background: item.tagColor,
+                    color: item.tagTextColor,
+                    borderRadius: "6px",
+                    padding: "2px 8px",
+                    fontSize: "9px",
+                    fontWeight: 600,
+                    width: "fit-content",
+                  }}>
+                    {item.tag}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* Descubrir Section */}
           <div style={{ padding: "0 16px 24px" }}>
@@ -625,18 +696,18 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       }}>
         <h1 style={{
           fontFamily: FONT_UI,
-          fontSize: "24px",
-          fontWeight: 400,
+          fontSize: "30px",
+          fontWeight: 600,
           color: TEXT_SEC,
           margin: 0,
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: "10px",
         }}>
           おはよう,
           <span style={{
-            fontSize: "24px",
-            fontWeight: 800,
+            fontSize: "30px",
+            fontWeight: 700,
             color: SAGE,
           }}>
             {userFirstName}
@@ -718,8 +789,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             style={{
               background: SAGE,
               border: "none",
-              borderRadius: "12px",
-              padding: "14px 28px",
+              borderRadius: "50px",
+              padding: "14px 32px",
               fontSize: "14px",
               fontWeight: 700,
               color: TEXT_PRI,
@@ -879,14 +950,17 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
       textAlign: "center",
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
+      gap: "8px",
+      alignItems: "center",
+      justifyContent: "center",
     }}>
       <p style={{
         fontFamily: FONT_UI,
-        fontSize: "18px",
-        fontWeight: 700,
+        fontSize: "20px",
+        fontWeight: 500,
         color: "#1A1A1A",
         margin: 0,
+        lineHeight: 1,
       }}>
         {value}
       </p>
@@ -895,6 +969,7 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
         fontSize: "11px",
         color: "#B0A898",
         margin: 0,
+        textTransform: "capitalize",
       }}>
         {label}
       </p>
@@ -962,14 +1037,15 @@ function SetGridCard({
 
       {/* Icon */}
       <div style={{
-        fontSize: "32px",
-        width: "48px",
-        height: "48px",
+        fontSize: "20px",
+        width: "40px",
+        height: "40px",
         background: dueCount > 0 ? "#FFE5CC" : "#E8F5E9",
-        borderRadius: "12px",
+        borderRadius: "10px",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexShrink: 0,
       }}>
         {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
       </div>
@@ -1008,6 +1084,107 @@ function SetGridCard({
           background: progressPercent > 50 ? "#A8C87A" : progressPercent > 0 ? "#F5DC7A" : "#EEEBE6",
           transition: "width 200ms ease",
         }} />
+      </div>
+
+      {/* Menu Button - Bottom Right */}
+      <div style={{
+        position: "absolute",
+        bottom: "12px",
+        right: "12px",
+      }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(!menuOpen);
+          }}
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "8px",
+            background: "#F0F0F0",
+            border: "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: "#B0A898",
+            padding: 0,
+          }}
+          title="Más opciones"
+        >
+          <MoreVertical style={{ width: "14px", height: "14px" }} />
+        </button>
+
+        {menuOpen && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+            }}
+            onClick={() => setMenuOpen(false)}
+          >
+            <div
+              style={{
+                position: "absolute",
+                right: "0",
+                bottom: "40px",
+                background: "white",
+                border: `0.5px solid ${BORDER}`,
+                borderRadius: "8px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                zIndex: 10000,
+                minWidth: "140px",
+                overflow: "hidden",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onRename();
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  fontFamily: FONT_UI,
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                  cursor: "pointer",
+                  borderBottom: `0.5px solid ${BORDER}`,
+                }}
+              >
+                Renombrar
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen(false);
+                  onDelete();
+                }}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: "none",
+                  border: "none",
+                  textAlign: "left",
+                  fontFamily: FONT_UI,
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "#E74C3C",
+                  cursor: "pointer",
+                }}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
