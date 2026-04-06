@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { AppSidebar } from "./app-sidebar";
+import { BottomNav } from "@/components/bottom-nav";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
 
@@ -188,12 +189,10 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       {/* Title */}
       <h1 style={{
         fontFamily: FONT_UI,
-        fontSize: "48px",
-        fontWeight: 800,
-        letterSpacing: "-0.01em",
+        fontSize: "22px",
+        fontWeight: 500,
         color: TEXT_PRI,
         margin: "0 0 32px 0",
-        lineHeight: 1,
       }}>
         Nuevo set
       </h1>
@@ -425,22 +424,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       </div>
 
       {/* Bottom navigation */}
-      <nav style={{
-        flexShrink: 0,
-        width: "100%",
-        background: "#fff",
-        borderTop: `1px solid ${BORDER}`,
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "space-around",
-        paddingTop: "10px",
-        paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
-      }}>
-        <NavItem label="Inicio" active={false} icon={<HomeIcon />} onClick={() => onNavigate("inicio")} />
-        <NavItem label="Crear" active icon={<CreateIcon />} onClick={() => {}} />
-        <NavItem label="Progreso" active={false} icon={<PlayIcon />} onClick={() => onNavigate("progreso")} />
-        <NavItem label="Perfil" active={false} icon={<PersonIcon />} onClick={() => onNavigate("perfil")} />
-      </nav>
+      <BottomNav active="crear" onNavigate={onNavigate} />
 
       {/* iOS home indicator */}
       <div aria-hidden style={{
@@ -503,92 +487,3 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   return isMobile ? mobileContent : desktopContent;
 }
 
-// ── NavItem ────────────────────────────────────────────────────────────────────
-function NavItem({
-  label,
-  icon,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "3px",
-        minHeight: "48px",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: 0,
-      }}
-    >
-      <div style={{
-        width: active ? "64px" : "44px",
-        height: "32px",
-        borderRadius: "16px",
-        background: active ? tokens.color.navPill : "transparent",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: active ? TEXT_PRI : TEXT_SEC,
-        transition: "width 0.15s ease",
-      }}>
-        {icon}
-      </div>
-      <span style={{
-        fontFamily: FONT_UI,
-        fontSize: "11px",
-        fontWeight: active ? 700 : 400,
-        color: active ? TEXT_PRI : TEXT_SEC,
-      }}>
-        {label}
-      </span>
-    </button>
-  );
-}
-
-// ── Icons ──────────────────────────────────────────────────────────────────────
-function HomeIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <polyline points="9 22 9 12 15 12 15 22" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function CreateIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="3" y="3" width="18" height="18" rx="2" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="1.8" />
-      <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" />
-    </svg>
-  );
-}
-
-function PersonIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M3 20c0-4.418 4.03-8 9-8s9 3.582 9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}

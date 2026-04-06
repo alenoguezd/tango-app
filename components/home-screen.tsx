@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share2, MoreVertical, Home, Camera, BarChart3, User } from "lucide-react";
+import { Share2, MoreVertical } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
@@ -13,6 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { BottomNav } from "@/components/bottom-nav";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -596,21 +597,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         </div>
 
         {/* Bottom Nav */}
-        <nav style={{
-          flexShrink: 0,
-          width: "100%",
-          background: "white",
-          borderTop: `1px solid ${BORDER}`,
-          display: "flex",
-          justifyContent: "space-around",
-          paddingTop: "8px",
-          paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
-        }}>
-          <NavIconItem icon={Home} label="Inicio" active onClick={() => {}} />
-          <NavIconItem icon={Camera} label="Crear" active={false} onClick={() => onNavigate("crear")} />
-          <NavIconItem icon={BarChart3} label="Progreso" active={false} onClick={() => onNavigate("progreso")} />
-          <NavIconItem icon={User} label="Perfil" active={false} onClick={() => {}} />
-        </nav>
+        <BottomNav active="inicio" onNavigate={onNavigate} />
 
         {/* Bottom Safe Area */}
         <div aria-hidden style={{
@@ -1153,43 +1140,3 @@ function SetGridCard({
   );
 }
 
-// ── Nav Icon Item Component ────────────────────────────────────────────────────
-function NavIconItem({
-  icon: Icon,
-  label,
-  active,
-  onClick,
-}: {
-  icon: React.ComponentType<{ width: number; height: number }>;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "4px",
-        minHeight: "48px",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: "0",
-      }}
-    >
-      <Icon width={20} height={20} color={active ? "#1A1A1A" : "#B0A898"} />
-      <span style={{
-        fontFamily: FONT_UI,
-        fontSize: "10px",
-        fontWeight: active ? 700 : 400,
-        color: active ? "#1A1A1A" : "#B0A898",
-      }}>
-        {label}
-      </span>
-    </button>
-  );
-}
