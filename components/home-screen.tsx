@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Share2, MoreVertical } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
@@ -14,6 +14,9 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { BottomNav } from "@/components/bottom-nav";
+import { PageTitle } from "@/components/ui/page-title";
+import { StatPill } from "@/components/ui/stat-pill";
+import { Avatar } from "@/components/ui/avatar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -36,27 +39,14 @@ interface HomeScreenProps {
   onLogout?: () => void;
 }
 
-// ── Design tokens ────────────────────────────────────────────────────────
-const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-const TEXT_PRI = "#1A1A1A";
-const TEXT_SEC = tokens.color.muted;
-const SAGE = "#A8C87A";
-const ROSE = "#F2B8CD";
-const BUTTER = "#F5DC7A";
-const BORDER = "#EEEBE6";
-const BG_DARK = "#1A1A1A";
-const BG_PAGE = tokens.color.page;
-const SKY = tokens.color.sky;
-const SKY_LIGHT = "#E3F2FD";
-
-const EMOJI_ICONS = [
-  { emoji: "🍜", label: "Comida" },
-  { emoji: "🚇", label: "Transporte" },
-  { emoji: "🏪", label: "Tienda" },
-  { emoji: "👋", label: "Saludos" },
+// ── Pastel colors array (from tokens) ────────────────────────────────────────
+const PASTEL_COLORS = [
+  tokens.color.pastel.pink,
+  tokens.color.pastel.blue,
+  tokens.color.pastel.green,
+  tokens.color.pastel.peach,
+  tokens.color.pastel.purple,
 ];
-
-const PASTEL_COLORS = ["#FDDDE6", "#C8DFFF", "#C8EAAA", "#FDE8C8", "#E8D5F5"];
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
@@ -338,7 +328,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         height: "100dvh",
         maxWidth: "375px",
         margin: "0 auto",
-        background: BG_PAGE,
+        background: tokens.color.page,
         display: "flex",
         flexDirection: "column",
       }}>
@@ -358,64 +348,53 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         }}>
           {/* Greeting */}
           <div style={{
-            padding: "16px",
+            padding: tokens.spacing["4"],
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}>
             <h1 style={{
-              fontFamily: FONT_UI,
-              fontSize: "28px",
-              fontWeight: 600,
-              color: TEXT_SEC,
+              fontFamily: tokens.typography.family.ui,
+              fontSize: tokens.typography.size["3xl"],
+              fontWeight: tokens.typography.weight.medium,
+              lineHeight: tokens.typography.lineHeight.tight,
+              color: tokens.color.muted,
               margin: 0,
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: tokens.spacing["2"],
             }}>
               おはよう,
               <span style={{
-                fontSize: "28px",
-                fontWeight: 700,
-                color: SAGE,
+                fontSize: tokens.typography.size["3xl"],
+                fontWeight: tokens.typography.weight.bold,
+                color: tokens.color.sage,
               }}>
                 {userFirstName}
               </span>
             </h1>
-            <div style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "50%",
-              background: ROSE,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: FONT_UI,
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "white",
-            }}>
-              {userInitials}
-            </div>
+            <Avatar initials={userInitials} size={48} backgroundColor={tokens.color.rose} />
           </div>
 
           {/* Streak */}
           <div style={{
-            padding: "0 16px 12px",
-            fontSize: "12px",
-            color: TEXT_SEC,
+            padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["3"]}`,
+            fontSize: tokens.typography.size.sm,
+            fontWeight: tokens.typography.weight.regular,
+            lineHeight: tokens.typography.lineHeight.normal,
+            color: tokens.color.muted,
             display: "flex",
             alignItems: "center",
-            gap: "6px",
+            gap: tokens.spacing["2"],
           }}>
-            <span style={{ color: "#F5A623", fontSize: "16px" }}>●</span>
+            <span style={{ color: tokens.color.orange, fontSize: tokens.typography.size.lg }}>●</span>
             Viernes · racha de 7 días
           </div>
 
           {/* PARA HOY Banner */}
           <div style={{
             margin: "0 16px 24px",
-            background: BG_DARK,
+            background: tokens.color.ink,
             borderRadius: "20px",
             padding: "20px",
             display: "flex",
@@ -424,17 +403,17 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           }}>
             <div>
               <p style={{
-                fontFamily: FONT_UI,
+                fontFamily: tokens.typography.family.ui,
                 fontSize: "11px",
                 fontWeight: 700,
-                color: SAGE,
+                color: tokens.color.sage,
                 margin: 0,
                 letterSpacing: "1px",
               }}>
                 PARA HOY
               </p>
               <p style={{
-                fontFamily: FONT_UI,
+                fontFamily: tokens.typography.family.ui,
                 fontSize: "36px",
                 fontWeight: 800,
                 color: "white",
@@ -444,7 +423,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 {totalDueCards}
               </p>
               <p style={{
-                fontFamily: FONT_UI,
+                fontFamily: tokens.typography.family.ui,
                 fontSize: "12px",
                 color: "#999",
                 margin: 0,
@@ -456,13 +435,13 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               <button
                 onClick={() => onStudy(firstDueSet)}
                 style={{
-                  background: SAGE,
+                  background: tokens.color.sage,
                   border: "none",
                   borderRadius: "50px",
                   padding: "12px 24px",
                   fontSize: "12px",
                   fontWeight: 700,
-                  color: TEXT_PRI,
+                  color: tokens.color.ink,
                   cursor: "pointer",
                   flexShrink: 0,
                 }}
@@ -487,10 +466,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           {/* Mis Sets Header */}
           {localSets.length > 0 && (
             <h2 style={{
-              fontFamily: FONT_UI,
+              fontFamily: tokens.typography.family.ui,
               fontSize: "18px",
               fontWeight: 700,
-              color: TEXT_PRI,
+              color: tokens.color.ink,
               margin: 0,
               padding: "0 16px 12px",
             }}>
@@ -529,10 +508,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           {/* Descubrir Section */}
           <div style={{ padding: "0 16px 24px" }}>
             <h2 style={{
-              fontFamily: FONT_UI,
+              fontFamily: tokens.typography.family.ui,
               fontSize: "16px",
               fontWeight: 700,
-              color: TEXT_PRI,
+              color: tokens.color.ink,
               margin: "0 0 12px 0",
               paddingLeft: 0,
             }}>
@@ -546,17 +525,17 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               WebkitOverflowScrolling: "touch",
             }}>
               {[
-                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
-                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
-                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
-                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
+                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
+                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
+                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
+                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
               ].map((item, i) => (
                 <div
                   key={i}
                   style={{
                     minWidth: "140px",
                     background: "white",
-                    border: `0.5px solid ${BORDER}`,
+                    border: `0.5px solid ${tokens.color.border}`,
                     borderRadius: "12px",
                     padding: "12px",
                     display: "flex",
@@ -566,18 +545,18 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 >
                   <p style={{ fontSize: "24px", margin: 0 }}>{item.emoji}</p>
                   <p style={{
-                    fontFamily: FONT_UI,
+                    fontFamily: tokens.typography.family.ui,
                     fontSize: "12px",
                     fontWeight: 700,
-                    color: TEXT_PRI,
+                    color: tokens.color.ink,
                     margin: 0,
                   }}>
                     {item.name}
                   </p>
                   <p style={{
-                    fontFamily: FONT_UI,
+                    fontFamily: tokens.typography.family.ui,
                     fontSize: "10px",
-                    color: TEXT_SEC,
+                    color: tokens.color.muted,
                     margin: 0,
                   }}>
                     {item.count} tarjetas
@@ -626,7 +605,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             bottom: "80px",
             left: "50%",
             transform: "translateX(-50%)",
-            background: TEXT_PRI,
+            background: tokens.color.ink,
             color: "white",
             padding: "12px 20px",
             borderRadius: "8px",
@@ -645,7 +624,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   return (
     <div style={{
       minHeight: "100dvh",
-      background: BG_PAGE,
+      background: tokens.color.page,
       padding: "40px",
       maxWidth: "1280px",
       margin: "0 auto",
@@ -658,10 +637,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         marginBottom: "32px",
       }}>
         <h1 style={{
-          fontFamily: FONT_UI,
+          fontFamily: tokens.typography.family.ui,
           fontSize: "30px",
           fontWeight: 600,
-          color: TEXT_SEC,
+          color: tokens.color.muted,
           margin: 0,
           display: "flex",
           alignItems: "center",
@@ -671,7 +650,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           <span style={{
             fontSize: "30px",
             fontWeight: 700,
-            color: SAGE,
+            color: tokens.color.sage,
           }}>
             {userFirstName}
           </span>
@@ -680,11 +659,11 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           width: "64px",
           height: "64px",
           borderRadius: "50%",
-          background: ROSE,
+          background: tokens.color.rose,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: FONT_UI,
+          fontFamily: tokens.typography.family.ui,
           fontSize: "20px",
           fontWeight: 700,
           color: "white",
@@ -696,7 +675,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       {/* Streak */}
       <div style={{
         fontSize: "13px",
-        color: TEXT_SEC,
+        color: tokens.color.muted,
         display: "flex",
         alignItems: "center",
         gap: "6px",
@@ -708,7 +687,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* PARA HOY Banner */}
       <div style={{
-        background: BG_DARK,
+        background: tokens.color.ink,
         borderRadius: "24px",
         padding: "32px",
         marginBottom: "32px",
@@ -718,17 +697,17 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       }}>
         <div>
           <p style={{
-            fontFamily: FONT_UI,
+            fontFamily: tokens.typography.family.ui,
             fontSize: "12px",
             fontWeight: 700,
-            color: SAGE,
+            color: tokens.color.sage,
             margin: "0 0 12px 0",
             letterSpacing: "1px",
           }}>
             PARA HOY
           </p>
           <p style={{
-            fontFamily: FONT_UI,
+            fontFamily: tokens.typography.family.ui,
             fontSize: "48px",
             fontWeight: 800,
             color: "white",
@@ -738,7 +717,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             {totalDueCards}
           </p>
           <p style={{
-            fontFamily: FONT_UI,
+            fontFamily: tokens.typography.family.ui,
             fontSize: "13px",
             color: "#999",
             margin: 0,
@@ -750,13 +729,13 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           <button
             onClick={() => onStudy(firstDueSet)}
             style={{
-              background: SAGE,
+              background: tokens.color.sage,
               border: "none",
               borderRadius: "50px",
               padding: "14px 32px",
               fontSize: "14px",
               fontWeight: 700,
-              color: TEXT_PRI,
+              color: tokens.color.ink,
               cursor: "pointer",
             }}
           >
@@ -779,10 +758,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       {/* Mis Sets Header */}
       {localSets.length > 0 && (
         <h2 style={{
-          fontFamily: FONT_UI,
+          fontFamily: tokens.typography.family.ui,
           fontSize: "20px",
           fontWeight: 700,
-          color: TEXT_PRI,
+          color: tokens.color.ink,
           margin: "0 0 20px 0",
         }}>
           Mis sets
@@ -819,10 +798,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* Descubrir Section */}
       <h2 style={{
-        fontFamily: FONT_UI,
+        fontFamily: tokens.typography.family.ui,
         fontSize: "20px",
         fontWeight: 700,
-        color: TEXT_PRI,
+        color: tokens.color.ink,
         margin: "0 0 20px 0",
       }}>
         Descubrir
@@ -833,15 +812,15 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         gap: "20px",
       }}>
         {[
-          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: SKY_LIGHT, tagTextColor: SKY },
-          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
-          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: ROSE, tagTextColor: "white" },
+          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
+          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
+          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
         ].map((item, i) => (
           <div
             key={i}
             style={{
               background: "white",
-              border: `0.5px solid ${BORDER}`,
+              border: `0.5px solid ${tokens.color.border}`,
               borderRadius: "16px",
               padding: "20px",
               display: "flex",
@@ -851,18 +830,18 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           >
             <p style={{ fontSize: "40px", margin: 0 }}>{item.emoji}</p>
             <p style={{
-              fontFamily: FONT_UI,
+              fontFamily: tokens.typography.family.ui,
               fontSize: "15px",
               fontWeight: 700,
-              color: TEXT_PRI,
+              color: tokens.color.ink,
               margin: 0,
             }}>
               {item.name}
             </p>
             <p style={{
-              fontFamily: FONT_UI,
+              fontFamily: tokens.typography.family.ui,
               fontSize: "12px",
-              color: TEXT_SEC,
+              color: tokens.color.muted,
               margin: 0,
             }}>
               {item.count} tarjetas
@@ -889,7 +868,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           bottom: "40px",
           left: "50%",
           transform: "translateX(-50%)",
-          background: TEXT_PRI,
+          background: tokens.color.ink,
           color: "white",
           padding: "14px 24px",
           borderRadius: "8px",
@@ -905,44 +884,6 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 }
 
 // ── Stat Pill Component ────────────────────────────────────────────────────────
-function StatPill({ label, value }: { label: string; value: number | string }) {
-  return (
-    <div style={{
-      flex: 1,
-      background: "white",
-      border: `0.5px solid ${BORDER}`,
-      borderRadius: "12px",
-      padding: "16px",
-      textAlign: "center",
-      display: "flex",
-      flexDirection: "column",
-      gap: "8px",
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      <p style={{
-        fontFamily: FONT_UI,
-        fontSize: "20px",
-        fontWeight: 500,
-        color: "#1A1A1A",
-        margin: 0,
-        lineHeight: 1,
-      }}>
-        {value}
-      </p>
-      <p style={{
-        fontFamily: FONT_UI,
-        fontSize: "11px",
-        color: TEXT_SEC,
-        margin: 0,
-        textTransform: "capitalize",
-      }}>
-        {label}
-      </p>
-    </div>
-  );
-}
-
 // ── Set Grid Card Component ────────────────────────────────────────────────────
 function SetGridCard({
   set,
@@ -980,7 +921,7 @@ function SetGridCard({
       style={{
         position: "relative",
         background: isPressed ? "#F0F0F0" : "white",
-        border: `0.5px solid ${BORDER}`,
+        border: `0.5px solid ${tokens.color.border}`,
         borderRadius: "16px",
         padding: "16px",
         cursor: "pointer",
@@ -996,7 +937,7 @@ function SetGridCard({
         position: "absolute",
         top: "12px",
         right: "12px",
-        background: dueCount > 0 ? BUTTER : "#D4EDBA",
+        background: dueCount > 0 ? tokens.color.butter : "#D4EDBA",
         borderRadius: "8px",
         padding: "4px 10px",
         fontSize: "10px",
@@ -1023,7 +964,7 @@ function SetGridCard({
 
       {/* Title */}
       <h3 style={{
-        fontFamily: FONT_UI,
+        fontFamily: tokens.typography.family.ui,
         fontSize: "14px",
         fontWeight: 700,
         color: "#1A1A1A",
@@ -1034,9 +975,9 @@ function SetGridCard({
 
       {/* Card Count */}
       <p style={{
-        fontFamily: FONT_UI,
+        fontFamily: tokens.typography.family.ui,
         fontSize: "11px",
-        color: TEXT_SEC,
+        color: tokens.color.muted,
         margin: 0,
       }}>
         {set.cardCount} tarjetas
@@ -1088,7 +1029,7 @@ function SetGridCard({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: TEXT_SEC,
+                color: tokens.color.muted,
               }}>
                 <MoreVertical style={{ width: "14px", height: "14px" }} />
               </div>

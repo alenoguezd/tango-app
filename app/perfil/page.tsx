@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, ChevronRight, FolderOpen, Play } from "lucide-react";
+import { Eye, EyeOff, ChevronRight } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
+import { PageTitle } from "@/components/ui/page-title";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const FONT = "var(--font-sans)";
@@ -263,17 +264,7 @@ export default function PerfilPage() {
   const ContentArea = () => (
     <>
       {/* Title */}
-      <h1 style={{
-        fontFamily: FONT,
-        fontSize: "48px",
-        fontWeight: 800,
-        letterSpacing: "-0.01em",
-        color: TEXT_PRI,
-        lineHeight: 1,
-        margin: "0 0 24px",
-      }}>
-        Perfil
-      </h1>
+      <PageTitle>Perfil</PageTitle>
 
       {error && (
         <div style={{

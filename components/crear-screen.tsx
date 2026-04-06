@@ -7,6 +7,7 @@ import { AppSidebar } from "./app-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
+import { PageTitle } from "@/components/ui/page-title";
 
 // ── Design tokens ─────────────────────────────────────────────────────
 const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
@@ -187,15 +188,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const mainContent = (
     <div style={{ padding: `0 ${H_PAD}px` }}>
       {/* Title */}
-      <h1 style={{
-        fontFamily: FONT_UI,
-        fontSize: "22px",
-        fontWeight: 500,
-        color: TEXT_PRI,
-        margin: "0 0 32px 0",
-      }}>
-        Nuevo set
-      </h1>
+      <PageTitle>Nuevo set</PageTitle>
 
       {/* Upload Zone */}
       <div

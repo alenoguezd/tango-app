@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FolderOpen, Play, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 import { tokens } from "@/lib/design-tokens";
+import { PageTitle } from "@/components/ui/page-title";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
@@ -165,17 +166,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             marginBottom: `${SECTION_GAP}px`,
           }}
         >
-          <h1
-            style={{
-              fontFamily: FONT,
-              fontSize: "22px",
-              fontWeight: 500,
-              color: TEXT_PRI,
-              margin: 0,
-            }}
-          >
-            Progreso
-          </h1>
+          <PageTitle>Progreso</PageTitle>
           {currentStreak > 0 && (
             <div
               style={{

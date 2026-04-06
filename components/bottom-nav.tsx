@@ -1,16 +1,19 @@
 "use client";
 
 import { Home, Camera, BarChart3, User } from "lucide-react";
+import { tokens } from "@/lib/design-tokens";
 
 interface BottomNavProps {
   active: "inicio" | "crear" | "progreso" | "perfil";
   onNavigate: (tab: "inicio" | "crear" | "progreso" | "perfil") => void;
 }
 
-const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-const TEXT_PRI = "#1A1A1A";
-const TEXT_SEC = "#8A7F74";
-const BORDER = "#EEEBE6";
+const NAV_LABELS = {
+  inicio: "Ir a Inicio",
+  crear: "Ir a Crear",
+  progreso: "Ir a Progreso",
+  perfil: "Ir a Perfil",
+};
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   const items = [
@@ -25,24 +28,26 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
       style={{
         flexShrink: 0,
         width: "100%",
-        background: "white",
-        borderTop: `1px solid ${BORDER}`,
+        background: tokens.color.surface,
+        borderTop: `1px solid ${tokens.color.border}`,
         display: "flex",
         justifyContent: "space-around",
-        paddingTop: "10px",
-        paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px) + 10px)",
+        paddingTop: tokens.spacing["3"],
+        paddingBottom: `max(${tokens.spacing["5"]}, env(safe-area-inset-bottom, 0px) + ${tokens.spacing["3"]})`,
       }}
     >
       {items.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
           onClick={() => onNavigate(id)}
+          aria-label={NAV_LABELS[id]}
+          aria-current={active === id ? "page" : undefined}
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: "4px",
+            gap: tokens.spacing["1"],
             minHeight: "48px",
             background: "none",
             border: "none",
@@ -53,14 +58,15 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
           <Icon
             width={20}
             height={20}
-            color={active === id ? TEXT_PRI : TEXT_SEC}
+            color={active === id ? tokens.color.ink : tokens.color.muted}
           />
           <span
             style={{
-              fontFamily: FONT_UI,
-              fontSize: "10px",
-              fontWeight: active === id ? 700 : 400,
-              color: active === id ? TEXT_PRI : TEXT_SEC,
+              fontFamily: tokens.typography.family.ui,
+              fontSize: tokens.typography.size.xs,
+              fontWeight: active === id ? tokens.typography.weight.bold : tokens.typography.weight.regular,
+              lineHeight: tokens.typography.lineHeight.tight,
+              color: active === id ? tokens.color.ink : tokens.color.muted,
             }}
           >
             {label}
