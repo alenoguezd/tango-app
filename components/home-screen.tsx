@@ -393,10 +393,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
           {/* PARA HOY Banner */}
           <div style={{
-            margin: "0 16px 24px",
+            margin: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
             background: tokens.color.ink,
             borderRadius: "20px",
-            padding: "20px",
+            padding: tokens.spacing["5"],
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -417,7 +417,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                 fontSize: "36px",
                 fontWeight: 800,
                 color: "white",
-                margin: "8px 0 4px 0",
+                margin: `${tokens.spacing["2"]} 0 ${tokens.spacing["1"]} 0`,
                 lineHeight: 1,
               }}>
                 {totalDueCards}
@@ -438,7 +438,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                   background: tokens.color.sage,
                   border: "none",
                   borderRadius: "50px",
-                  padding: "12px 24px",
+                  padding: `${tokens.spacing["3"]} ${tokens.spacing["6"]}`,
                   fontSize: "12px",
                   fontWeight: 700,
                   color: tokens.color.ink,
@@ -454,8 +454,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           {/* Stats Pills */}
           <div style={{
             display: "flex",
-            gap: "8px",
-            padding: "0 16px 24px",
+            gap: tokens.spacing["2"],
+            padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
             overflow: "hidden",
           }}>
             <StatPill label="Tarjetas" value={totalCards} />
@@ -471,7 +471,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontWeight: 700,
               color: tokens.color.ink,
               margin: 0,
-              padding: "0 16px 12px",
+              padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["3"]}`,
             }}>
               Mis sets
             </h2>
@@ -482,8 +482,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             <div style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "8px",
-              padding: "0 16px 24px",
+              gap: tokens.spacing["2"],
+              padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
             }}>
               {localSets.map((set, index) => {
                 const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
@@ -506,20 +506,20 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           ) : null}
 
           {/* Descubrir Section */}
-          <div style={{ padding: "0 16px 24px" }}>
+          <div style={{ padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}` }}>
             <h2 style={{
               fontFamily: tokens.typography.family.ui,
               fontSize: "16px",
               fontWeight: 700,
               color: tokens.color.ink,
-              margin: "0 0 12px 0",
+              margin: `0 0 ${tokens.spacing["3"]} 0`,
               paddingLeft: 0,
             }}>
               Descubrir
             </h2>
             <div style={{
               display: "flex",
-              gap: "12px",
+              gap: tokens.spacing["3"],
               overflowX: "auto",
               paddingBottom: "8px",
               WebkitOverflowScrolling: "touch",
@@ -537,10 +537,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                     background: "white",
                     border: `0.5px solid ${tokens.color.border}`,
                     borderRadius: "12px",
-                    padding: "12px",
+                    padding: tokens.spacing["3"],
                     display: "flex",
                     flexDirection: "column",
-                    gap: "8px",
+                    gap: tokens.spacing["2"],
                   }}
                 >
                   <p style={{ fontSize: "24px", margin: 0 }}>{item.emoji}</p>
@@ -565,7 +565,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
                     background: item.tagColor,
                     color: item.tagTextColor,
                     borderRadius: "6px",
-                    padding: "2px 8px",
+                    padding: `${tokens.spacing["1"]} ${tokens.spacing["2"]}`,
                     fontSize: "9px",
                     fontWeight: 600,
                     width: "fit-content",
@@ -607,7 +607,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             transform: "translateX(-50%)",
             background: tokens.color.ink,
             color: "white",
-            padding: "12px 20px",
+            padding: `${tokens.spacing["3"]} ${tokens.spacing["5"]}`,
             borderRadius: "8px",
             fontSize: "12px",
             fontWeight: 600,
@@ -625,7 +625,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     <div style={{
       minHeight: "100dvh",
       background: tokens.color.page,
-      padding: "40px",
+      padding: tokens.spacing["10"],
       maxWidth: "1280px",
       margin: "0 auto",
     }}>
@@ -644,7 +644,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           margin: 0,
           display: "flex",
           alignItems: "center",
-          gap: "10px",
+          gap: tokens.spacing["2"],
         }}>
           おはよう,
           <span style={{
@@ -678,7 +678,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         color: tokens.color.muted,
         display: "flex",
         alignItems: "center",
-        gap: "6px",
+        gap: tokens.spacing["2"],
         marginBottom: "32px",
       }}>
         <span style={{ color: "#F5A623", fontSize: "16px" }}>●</span>
@@ -689,7 +689,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       <div style={{
         background: tokens.color.ink,
         borderRadius: "24px",
-        padding: "32px",
+        padding: tokens.spacing["8"],
         marginBottom: "32px",
         display: "flex",
         justifyContent: "space-between",
@@ -701,7 +701,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             fontSize: "12px",
             fontWeight: 700,
             color: tokens.color.sage,
-            margin: "0 0 12px 0",
+            margin: `0 0 ${tokens.spacing["3"]} 0`,
             letterSpacing: "1px",
           }}>
             PARA HOY
@@ -711,7 +711,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             fontSize: "48px",
             fontWeight: 800,
             color: "white",
-            margin: "0 0 8px 0",
+            margin: `0 0 ${tokens.spacing["2"]} 0`,
             lineHeight: 1,
           }}>
             {totalDueCards}
@@ -732,7 +732,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               background: tokens.color.sage,
               border: "none",
               borderRadius: "50px",
-              padding: "14px 32px",
+              padding: `${tokens.spacing["3"]} ${tokens.spacing["8"]}`,
               fontSize: "14px",
               fontWeight: 700,
               color: tokens.color.ink,
@@ -747,7 +747,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       {/* Stats Pills */}
       <div style={{
         display: "flex",
-        gap: "16px",
+        gap: tokens.spacing["4"],
         marginBottom: "32px",
       }}>
         <StatPill label="Tarjetas" value={totalCards} />
@@ -762,7 +762,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           fontSize: "20px",
           fontWeight: 700,
           color: tokens.color.ink,
-          margin: "0 0 20px 0",
+          margin: `0 0 ${tokens.spacing["5"]} 0`,
         }}>
           Mis sets
         </h2>
@@ -773,7 +773,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "20px",
+          gap: tokens.spacing["5"],
           marginBottom: "40px",
         }}>
           {localSets.map((set, index) => {
@@ -802,14 +802,14 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         fontSize: "20px",
         fontWeight: 700,
         color: tokens.color.ink,
-        margin: "0 0 20px 0",
+        margin: `0 0 ${tokens.spacing["5"]} 0`,
       }}>
         Descubrir
       </h2>
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "20px",
+        gap: tokens.spacing["5"],
       }}>
         {[
           { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
@@ -822,10 +822,10 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               background: "white",
               border: `0.5px solid ${tokens.color.border}`,
               borderRadius: "16px",
-              padding: "20px",
+              padding: tokens.spacing["5"],
               display: "flex",
               flexDirection: "column",
-              gap: "12px",
+              gap: tokens.spacing["3"],
             }}
           >
             <p style={{ fontSize: "40px", margin: 0 }}>{item.emoji}</p>
@@ -850,7 +850,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               background: item.tagColor,
               color: item.tagTextColor,
               borderRadius: "8px",
-              padding: "4px 12px",
+              padding: `${tokens.spacing["1"]} ${tokens.spacing["3"]}`,
               fontSize: "11px",
               fontWeight: 600,
               width: "fit-content",
@@ -870,7 +870,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           transform: "translateX(-50%)",
           background: tokens.color.ink,
           color: "white",
-          padding: "14px 24px",
+          padding: `${tokens.spacing["3"]} ${tokens.spacing["6"]}`,
           borderRadius: "8px",
           fontSize: "13px",
           fontWeight: 600,
@@ -923,13 +923,13 @@ function SetGridCard({
         background: isPressed ? "#F0F0F0" : "white",
         border: `0.5px solid ${tokens.color.border}`,
         borderRadius: "16px",
-        padding: "16px",
+        padding: tokens.spacing["4"],
         cursor: "pointer",
         transform: isPressed ? "scale(0.98)" : "scale(1)",
         transition: "all 100ms ease",
         display: "flex",
         flexDirection: "column",
-        gap: "12px",
+        gap: tokens.spacing["3"],
       }}
     >
       {/* Due Chip - Absolute positioned top-right */}
@@ -939,7 +939,7 @@ function SetGridCard({
         right: "12px",
         background: dueCount > 0 ? tokens.color.butter : "#D4EDBA",
         borderRadius: "8px",
-        padding: "4px 10px",
+        padding: `${tokens.spacing["1"]} ${tokens.spacing["2"]}`,
         fontSize: "10px",
         fontWeight: 700,
         color: "#1A1A1A",

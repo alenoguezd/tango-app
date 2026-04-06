@@ -25,10 +25,11 @@ const BUTTER      = tokens.color.butter;
 const SAGE        = tokens.color.sage;
 const ROSE        = tokens.color.rose;
 
-const ROW_GAP     = 16;
-const COL_GAP     = 12;
-const H_PAD       = 16;
-const SECTION_GAP = 24;
+// Spacing tokens (from tokens.spacing scale)
+const ROW_GAP     = tokens.spacing["4"];     // 16px
+const COL_GAP     = tokens.spacing["3"];     // 12px
+const H_PAD       = tokens.spacing["4"];     // 16px
+const SECTION_GAP = tokens.spacing["6"];     // 24px
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface VocabCard {

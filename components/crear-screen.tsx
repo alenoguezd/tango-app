@@ -17,8 +17,8 @@ const TEXT_SEC = tokens.color.muted;
 const SKY = tokens.color.sky;
 const SKY_LIGHT = tokens.color.bgSkyLight;
 const BORDER = tokens.color.border;
-const H_PAD = 16;
-const CARD_RADIUS = 14;
+const H_PAD = tokens.spacing["4"];     // 16px
+const CARD_RADIUS = tokens.radius.card;  // 14px
 
 type CrearState = "idle" | "loading" | "success";
 

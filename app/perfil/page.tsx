@@ -271,7 +271,7 @@ export default function PerfilPage() {
           background: "#FFE5E5",
           border: `1px solid ${TEXT_RED}`,
           borderRadius: "8px",
-          padding: "12px 16px",
+          padding: `${tokens.spacing["3"]} ${tokens.spacing["4"]}`,
           marginBottom: "20px",
           fontFamily: FONT,
           fontSize: "14px",
@@ -286,7 +286,7 @@ export default function PerfilPage() {
         background: W,
         border: `1px solid ${BORDER}`,
         borderRadius: "16px",
-        padding: "24px 20px",
+        padding: `${tokens.spacing["6"]} ${tokens.spacing["5"]}`,
         textAlign: "center",
         marginBottom: "24px",
       }}>
@@ -330,13 +330,13 @@ export default function PerfilPage() {
         <div style={{
           display: "flex",
           alignItems: "center",
-          gap: "8px",
+          gap: tokens.spacing["2"],
           marginBottom: "4px",
         }}>
           {isEditingName ? (
             <div style={{
               display: "flex",
-              gap: "8px",
+              gap: tokens.spacing["2"],
               alignItems: "center",
               flex: 1,
             }}>
@@ -347,7 +347,7 @@ export default function PerfilPage() {
                 onChange={(e) => setEditName(e.target.value)}
                 style={{
                   flex: 1,
-                  padding: "8px 12px",
+                  padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
                   fontFamily: FONT,
                   fontSize: "16px",
                   fontWeight: 700,
@@ -359,7 +359,7 @@ export default function PerfilPage() {
               <button
                 onClick={handleSaveName}
                 style={{
-                  padding: "8px 16px",
+                  padding: `${tokens.spacing["2"]} ${tokens.spacing["4"]}`,
                   background: SAGE,
                   color: "white",
                   border: "none",
@@ -378,7 +378,7 @@ export default function PerfilPage() {
                   setEditName(fullName);
                 }}
                 style={{
-                  padding: "8px 16px",
+                  padding: `${tokens.spacing["2"]} ${tokens.spacing["4"]}`,
                   background: "transparent",
                   color: TEXT_SEC,
                   border: `1px solid ${BORDER}`,
@@ -409,7 +409,7 @@ export default function PerfilPage() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  padding: "4px",
+                  padding: tokens.spacing["1"],
                   display: "flex",
                   alignItems: "center",
                   fontSize: "16px",
@@ -424,7 +424,7 @@ export default function PerfilPage() {
           fontFamily: FONT,
           fontSize: "13px",
           color: TEXT_SEC,
-          margin: "0 0 12px",
+          margin: `0 0 ${tokens.spacing["3"]}`,
         }}>
           {email}
         </p>
@@ -434,7 +434,7 @@ export default function PerfilPage() {
           <div style={{
             background: BUTTER,
             borderRadius: "50px",
-            padding: "8px 14px",
+            padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
             display: "inline-flex",
             alignItems: "center",
             gap: "6px",
@@ -453,7 +453,7 @@ export default function PerfilPage() {
       <div style={{
         display: "grid",
         gridTemplateColumns: "1fr 1fr 1fr",
-        gap: "12px",
+        gap: tokens.spacing["3"],
         marginBottom: "24px",
       }}>
         <StatCard label="sets creados" value={String(setsCount)} background={SAGE_LIGHT} />
@@ -466,7 +466,7 @@ export default function PerfilPage() {
         background: W,
         border: `1px solid ${BORDER}`,
         borderRadius: "16px",
-        padding: "20px",
+        padding: tokens.spacing["5"],
         marginBottom: "24px",
       }}>
         <div style={{
@@ -481,7 +481,7 @@ export default function PerfilPage() {
               fontSize: "16px",
               fontWeight: 700,
               color: TEXT_PRI,
-              margin: "0 0 4px",
+              margin: `0 0 ${tokens.spacing["1"]}`,
             }}>
               Plan gratuito
             </h3>
@@ -506,7 +506,7 @@ export default function PerfilPage() {
             <div style={{
               background: "#FFE5F0",
               borderRadius: "50px",
-              padding: "6px 12px",
+              padding: `${tokens.spacing["1"]} ${tokens.spacing["3"]}`,
               fontFamily: FONT,
               fontSize: "11px",
               fontWeight: 700,
@@ -542,7 +542,7 @@ export default function PerfilPage() {
           color: "white",
           border: "none",
           borderRadius: "50px",
-          padding: "14px 16px",
+          padding: `${tokens.spacing["3"]} ${tokens.spacing["4"]}`,
           fontFamily: FONT,
           fontSize: "14px",
           fontWeight: 700,
@@ -560,7 +560,7 @@ export default function PerfilPage() {
           fontWeight: 700,
           letterSpacing: "0.07em",
           color: TEXT_SEC,
-          margin: "0 0 12px",
+          margin: `0 0 ${tokens.spacing["3"]}`,
           textTransform: "uppercase",
         }}>
           Cuenta
@@ -571,7 +571,7 @@ export default function PerfilPage() {
           background: W,
           border: `1px solid ${BORDER}`,
           borderRadius: "14px",
-          padding: "16px",
+          padding: tokens.spacing["4"],
           marginBottom: "12px",
           display: "flex",
           justifyContent: "space-between",
@@ -582,7 +582,7 @@ export default function PerfilPage() {
               fontFamily: FONT,
               fontSize: "11px",
               color: TEXT_SEC,
-              margin: "0 0 4px",
+              margin: `0 0 ${tokens.spacing["1"]}`,
               fontWeight: 600,
             }}>
               Correo
@@ -607,7 +607,7 @@ export default function PerfilPage() {
             background: W,
             border: `1px solid ${BORDER}`,
             borderRadius: "14px",
-            padding: "16px",
+            padding: tokens.spacing["4"],
             marginBottom: "12px",
             display: "flex",
             justifyContent: "space-between",
@@ -631,17 +631,17 @@ export default function PerfilPage() {
           <form onSubmit={handleChangePassword} style={{
             background: "#F5F5F5",
             borderRadius: "14px",
-            padding: "16px",
+            padding: tokens.spacing["4"],
             marginBottom: "12px",
             display: "flex",
             flexDirection: "column",
-            gap: "12px",
+            gap: tokens.spacing["3"],
           }}>
             {passwordError && (
               <div style={{
                 background: "#FFE5E5",
                 color: TEXT_RED,
-                padding: "8px 12px",
+                padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
                 borderRadius: "8px",
                 fontSize: "12px",
               }}>
@@ -667,7 +667,7 @@ export default function PerfilPage() {
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   style={{
                     width: "100%",
-                    padding: "10px 12px",
+                    padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
                     fontFamily: FONT,
                     fontSize: "13px",
                     border: `1px solid ${BORDER}`,
@@ -712,7 +712,7 @@ export default function PerfilPage() {
                   onChange={(e) => setNewPassword(e.target.value)}
                   style={{
                     width: "100%",
-                    padding: "10px 12px",
+                    padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
                     fontFamily: FONT,
                     fontSize: "13px",
                     border: `1px solid ${BORDER}`,
@@ -756,7 +756,7 @@ export default function PerfilPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "10px 12px",
+                  padding: `${tokens.spacing["2"]} ${tokens.spacing["3"]}`,
                   fontFamily: FONT,
                   fontSize: "13px",
                   border: `1px solid ${BORDER}`,
@@ -776,7 +776,7 @@ export default function PerfilPage() {
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
-                  padding: "10px",
+                  padding: tokens.spacing["2"],
                   fontFamily: FONT,
                   fontSize: "12px",
                   fontWeight: 600,
@@ -795,7 +795,7 @@ export default function PerfilPage() {
                   color: TEXT_SEC,
                   border: `1px solid ${BORDER}`,
                   borderRadius: "8px",
-                  padding: "10px",
+                  padding: tokens.spacing["2"],
                   fontFamily: FONT,
                   fontSize: "12px",
                   fontWeight: 600,
@@ -816,7 +816,7 @@ export default function PerfilPage() {
             background: W,
             border: `1px solid ${BORDER}`,
             borderRadius: "14px",
-            padding: "16px",
+            padding: tokens.spacing["4"],
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -924,7 +924,7 @@ export default function PerfilPage() {
           <div style={{
             maxWidth: "680px",
             margin: "0 auto",
-            padding: "0 16px",
+            padding: `0 ${tokens.spacing["4"]}`,
             width: "100%",
           }}>
             <ContentArea />
@@ -945,7 +945,7 @@ function StatCard({ label, value, background }: { label: string; value: string; 
     <div style={{
       background,
       borderRadius: "12px",
-      padding: "16px 12px",
+      padding: `${tokens.spacing["4"]} ${tokens.spacing["3"]}`,
       textAlign: "center",
       display: "flex",
       flexDirection: "column",
