@@ -39,13 +39,13 @@ interface HomeScreenProps {
 // ── Design tokens ────────────────────────────────────────────────────────
 const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 const TEXT_PRI = "#1A1A1A";
-const TEXT_SEC = "#B0A898";
+const TEXT_SEC = tokens.color.muted;
 const SAGE = "#A8C87A";
 const ROSE = "#F2B8CD";
 const BUTTER = "#F5DC7A";
 const BORDER = "#EEEBE6";
 const BG_DARK = "#1A1A1A";
-const BG_PAGE = "#F5F4F0"; // Warm off-white background
+const BG_PAGE = tokens.color.page;
 const SKY = tokens.color.sky;
 const SKY_LIGHT = "#E3F2FD";
 
@@ -930,7 +930,7 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
       <p style={{
         fontFamily: FONT_UI,
         fontSize: "11px",
-        color: "#B0A898",
+        color: TEXT_SEC,
         margin: 0,
         textTransform: "capitalize",
       }}>
@@ -1033,7 +1033,7 @@ function SetGridCard({
       <p style={{
         fontFamily: FONT_UI,
         fontSize: "11px",
-        color: "#B0A898",
+        color: TEXT_SEC,
         margin: 0,
       }}>
         {set.cardCount} tarjetas
@@ -1065,21 +1065,30 @@ function SetGridCard({
             <button
               onClick={(e) => e.stopPropagation()}
               style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "8px",
-                background: "#F0F0F0",
-                border: "none",
+                minWidth: "44px",
+                minHeight: "44px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
-                color: "#B0A898",
+                border: "none",
+                background: "none",
                 padding: 0,
               }}
               title="Más opciones"
             >
-              <MoreVertical style={{ width: "14px", height: "14px" }} />
+              <div style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                background: "#F0F0F0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: TEXT_SEC,
+              }}>
+                <MoreVertical style={{ width: "14px", height: "14px" }} />
+              </div>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

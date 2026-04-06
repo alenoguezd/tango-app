@@ -9,7 +9,7 @@ interface BottomNavProps {
 
 const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 const TEXT_PRI = "#1A1A1A";
-const TEXT_SEC = "#B0A898";
+const TEXT_SEC = "#8A7F74";
 const BORDER = "#EEEBE6";
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {

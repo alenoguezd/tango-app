@@ -26,7 +26,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
         <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>
           {data.name}
         </h1>
-        <p style={{ fontSize: "13px", color: "#B0A898", marginBottom: "24px" }}>
+        <p style={{ fontSize: "13px", color: "#8A7F74", marginBottom: "24px" }}>
           Este set ha sido compartido contigo
         </p>
 
@@ -56,7 +56,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
                   </h3>
                   <p style={{
                     fontSize: "13px",
-                    color: "#B0A898",
+                    color: "#8A7F74",
                     margin: "0 0 8px 0",
                   }}>
                     {card.kana && `Kana: ${card.kana}`}
@@ -75,11 +75,11 @@ export default async function SharePage({ params }: { params: { id: string } }) 
             </div>
           </div>
         ) : (
-          <p style={{ color: "#B0A898" }}>No hay tarjetas en este set</p>
+          <p style={{ color: "#8A7F74" }}>No hay tarjetas en este set</p>
         )}
 
         <div style={{ marginTop: "24px", padding: "16px", background: "#F5F5F5", borderRadius: "8px" }}>
-          <p style={{ fontSize: "11px", color: "#B0A898", margin: 0 }}>
+          <p style={{ fontSize: "11px", color: "#8A7F74", margin: 0 }}>
             💡 Este es un set compartido. Para estudiar y crear tus propios sets, inicia sesión en la aplicación.
           </p>
         </div>

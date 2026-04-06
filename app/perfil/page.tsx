@@ -948,7 +948,7 @@ export default function PerfilPage() {
 function StatCard({ label, value, background }: { label: string; value: string; background: string }) {
   const FONT = "var(--font-sans)";
   const TEXT_PRI = "#1A1A1A";
-  const TEXT_SEC = "#B0A898";
+  const TEXT_SEC = "#8A7F74";
 
   return (
     <div style={{

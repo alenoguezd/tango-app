@@ -434,6 +434,16 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
         <button
           onClick={onBack}
           style={{
+            minWidth: "44px",
+            minHeight: "44px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+          }}
+          aria-label="Volver"
+        >
+          <div style={{
             width: "40px",
             height: "40px",
             borderRadius: "50%",
@@ -442,12 +452,10 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            cursor: "pointer",
             color: TEXT_SEC,
-          }}
-          aria-label="Volver"
-        >
-          <ArrowLeft size={20} strokeWidth={2} />
+          }}>
+            <ArrowLeft size={20} strokeWidth={2} />
+          </div>
         </button>
 
         <h1 style={{
@@ -875,6 +883,28 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
           </div>
         </div>
       </div>
+
+      {/* Keyboard hint (desktop only) */}
+      {isDesktop && (
+        <div style={{
+          paddingLeft: "16px",
+          paddingRight: "16px",
+          paddingBottom: "8px",
+          maxWidth: "600px",
+          margin: "0 auto",
+          width: "100%",
+          boxSizing: "border-box",
+          textAlign: "center",
+        }}>
+          <p style={{
+            fontSize: "12px",
+            color: TEXT_SEC,
+            margin: 0,
+          }}>
+            ← Repasar · Voltear [espacio] · Aprendida →
+          </p>
+        </div>
+      )}
 
       {/* Desktop fallback buttons (hidden on mobile) */}
       {isDesktop && (() => {

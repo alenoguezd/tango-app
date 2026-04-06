@@ -27,14 +27,14 @@
   --text-card-grammar:  10px;  /* weight 400, color: muted      */
 
   /* Colors */
-  --color-page: #FAFAF8;
+  --color-page: #F5F4F0;
   --color-surface: #FFFFFF;
   --color-sage: #A8C87A;
   --color-rose: #F2B8CD;
   --color-butter: #F5DC7A;
   --color-sky: #B8CEEA;
   --color-ink: #1A1A1A;
-  --color-muted: #B0A898;
+  --color-muted: #8A7F74;
   --color-border: #EEEBE6;
 
   /* Radius */
@@ -42,7 +42,7 @@
   --radius-btn: 50px;
 
   /* Semantic token mappings for Tailwind */
-  --background: #FAFAF8;
+  --background: #F5F4F0;
   --foreground: #1A1A1A;
   --card: #FFFFFF;
   --card-foreground: #1A1A1A;
@@ -52,7 +52,7 @@
   --primary-foreground: #FFFFFF;
   --secondary: #A8C87A;
   --secondary-foreground: #1A1A1A;
-  --muted: #B0A898;
+  --muted: #8A7F74;
   --muted-foreground: #FFFFFF;
   --accent: #A8C87A;
   --accent-foreground: #1A1A1A;
@@ -67,7 +67,7 @@
   --chart-4: #F5DC7A;
   --chart-5: #B0A898;
   --radius: 14px;
-  --sidebar: #FAFAF8;
+  --sidebar: #F5F4F0;
   --sidebar-foreground: #1A1A1A;
   --sidebar-primary: #1A1A1A;
   --sidebar-primary-foreground: #FFFFFF;
@@ -88,7 +88,7 @@
   --primary-foreground: #1A1A1A;
   --secondary: #A8C87A;
   --secondary-foreground: #1A1A1A;
-  --muted: #B0A898;
+  --muted: #8A7F74;
   --muted-foreground: #FAFAF8;
   --accent: #A8C87A;
   --accent-foreground: #1A1A1A;
@@ -151,6 +151,10 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+  }
+  *:focus-visible {
+    outline: 2px solid #A8C87A;
+    outline-offset: 2px;
   }
   body {
     @apply bg-background text-foreground;

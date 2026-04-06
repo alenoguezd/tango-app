@@ -7,14 +7,14 @@
 export const tokens = {
   color: {
     // Core colors
-    page: "#FAFAF8",
+    page: "#F5F4F0",
     surface: "#FFFFFF",
     sage: "#A8C87A",
     rose: "#F2B8CD",
     butter: "#F5DC7A",
     sky: "#B8CEEA",
     ink: "#1A1A1A",
-    muted: "#B0A898",
+    muted: "#8A7F74",
     border: "#EEEBE6",
 
     // Semantic text colors

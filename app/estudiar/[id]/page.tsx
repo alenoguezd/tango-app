@@ -448,7 +448,7 @@ export default function EstudiarPage() {
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: "48px", margin: "0 0 12px 0" }}>🎉</p>
             <h2 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 8px 0" }}>¡Al día!</h2>
-            <p style={{ fontSize: "14px", color: "#B0A898", margin: 0 }}>Vuelve mañana para más tarjetas</p>
+            <p style={{ fontSize: "14px", color: "#8A7F74", margin: 0 }}>Vuelve mañana para más tarjetas</p>
           </div>
           <button
             onClick={handleBack}
@@ -549,7 +549,7 @@ export default function EstudiarPage() {
           <div style={{ textAlign: "center" }}>
             <p style={{ fontSize: "64px", margin: "0 0 16px 0" }}>🎉</p>
             <h2 style={{ fontSize: "32px", fontWeight: 700, margin: "0 0 12px 0" }}>¡Al día!</h2>
-            <p style={{ fontSize: "16px", color: "#B0A898", margin: 0 }}>Vuelve mañana para más tarjetas</p>
+            <p style={{ fontSize: "16px", color: "#8A7F74", margin: 0 }}>Vuelve mañana para más tarjetas</p>
           </div>
           <button
             onClick={handleBack}
