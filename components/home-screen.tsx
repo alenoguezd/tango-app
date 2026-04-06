@@ -6,6 +6,13 @@ import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
 import { getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -47,6 +54,8 @@ const EMOJI_ICONS = [
   { emoji: "🏪", label: "Tienda" },
   { emoji: "👋", label: "Saludos" },
 ];
+
+const PASTEL_COLORS = ["#FDDDE6", "#C8DFFF", "#C8EAAA", "#FDE8C8", "#E8D5F5"];
 
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
@@ -244,6 +253,34 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     }
   };
 
+  const handleResetProgress = async (setId: string) => {
+    if (confirm("¿Reiniciar el progreso de este set? Todas las tarjetas volverán a estar disponibles para estudiar.")) {
+      setLocalSets((prev) => {
+        const updated = prev.map((set) =>
+          set.id === setId ? { ...set, progress: [] } : set
+        );
+        localStorage.setItem("vocab_sets", JSON.stringify(updated));
+        return updated;
+      });
+
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from("sets")
+            .update({ progress: [] })
+            .eq("id", setId)
+            .eq("user_id", user.id);
+          showToast("Progreso reiniciado");
+        }
+      } catch (err) {
+        console.error("[Reset Progress] Error:", err);
+        showToast("Error al reiniciar el progreso");
+      }
+    }
+  };
+
   // Helper function to get due cards for a set
   const getDueCardsForSet = (progress: CardProgress[] | number | undefined, cardCount: number): CardProgress[] => {
     if (!Array.isArray(progress)) {
@@ -317,7 +354,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         }}>
           {/* Greeting */}
           <div style={{
-            padding: "16px 16px 8px",
+            padding: "16px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -360,7 +397,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
           {/* Streak */}
           <div style={{
-            padding: "0 16px 16px",
+            padding: "0 16px 12px",
             fontSize: "12px",
             color: TEXT_SEC,
             display: "flex",
@@ -434,7 +471,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           {/* Stats Pills */}
           <div style={{
             display: "flex",
-            gap: "12px",
+            gap: "8px",
             padding: "0 16px 24px",
             overflow: "hidden",
           }}>
@@ -450,7 +487,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontSize: "18px",
               fontWeight: 700,
               color: TEXT_PRI,
-              margin: "0 0 12px 16px",
+              margin: 0,
+              padding: "0 16px 12px",
             }}>
               Mis sets
             </h2>
@@ -461,20 +499,23 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             <div style={{
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
-              gap: "12px",
+              gap: "8px",
               padding: "0 16px 24px",
             }}>
-              {localSets.map((set) => {
+              {localSets.map((set, index) => {
                 const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
                 return (
                   <SetGridCard
                     key={set.id}
                     set={set}
                     dueCount={dueCount}
+                    index={index}
                     onStudy={() => onStudy(set)}
                     onShare={() => handleShare(set.id)}
                     onRename={() => handleRenameSet(set.id, set.title)}
                     onDelete={() => handleDeleteSet(set.id)}
+                    onToggleFavorite={() => handleToggleFavorite(set.id)}
+                    onResetProgress={() => handleResetProgress(set.id)}
                   />
                 );
               })}
@@ -489,6 +530,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
               fontWeight: 700,
               color: TEXT_PRI,
               margin: "0 0 12px 0",
+              paddingLeft: 0,
             }}>
               Descubrir
             </h2>
@@ -765,17 +807,20 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           gap: "20px",
           marginBottom: "40px",
         }}>
-          {localSets.map((set) => {
+          {localSets.map((set, index) => {
             const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
             return (
               <SetGridCard
                 key={set.id}
                 set={set}
                 dueCount={dueCount}
+                index={index}
                 onStudy={() => onStudy(set)}
                 onShare={() => handleShare(set.id)}
                 onRename={() => handleRenameSet(set.id, set.title)}
                 onDelete={() => handleDeleteSet(set.id)}
+                onToggleFavorite={() => handleToggleFavorite(set.id)}
+                onResetProgress={() => handleResetProgress(set.id)}
               />
             );
           })}
@@ -912,20 +957,25 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
 function SetGridCard({
   set,
   dueCount,
+  index,
   onStudy,
   onShare,
   onRename,
   onDelete,
+  onToggleFavorite,
+  onResetProgress,
 }: {
   set: DeckSet;
   dueCount: number;
+  index: number;
   onStudy: () => void;
   onShare: () => void;
   onRename: () => void;
   onDelete: () => void;
+  onToggleFavorite: () => void;
+  onResetProgress: () => void;
 }) {
   const [isPressed, setIsPressed] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const progress = (set.progress || []) as CardProgress[];
   const knownCount = Array.isArray(progress) ? progress.filter((c) => c.known === true).length : 0;
@@ -971,7 +1021,7 @@ function SetGridCard({
         fontSize: "20px",
         width: "40px",
         height: "40px",
-        background: dueCount > 0 ? "#FFE5CC" : "#E8F5E9",
+        background: PASTEL_COLORS[index % 5],
         borderRadius: "10px",
         display: "flex",
         alignItems: "center",
@@ -1017,105 +1067,87 @@ function SetGridCard({
         }} />
       </div>
 
-      {/* Menu Button - Top Right (below due chip) */}
+      {/* Menu Button - Bottom Right */}
       <div style={{
         position: "absolute",
-        top: "48px",
+        bottom: "12px",
         right: "12px",
       }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setMenuOpen(!menuOpen);
-          }}
-          style={{
-            width: "28px",
-            height: "28px",
-            borderRadius: "8px",
-            background: "#F0F0F0",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "#B0A898",
-            padding: 0,
-          }}
-          title="Más opciones"
-        >
-          <MoreVertical style={{ width: "14px", height: "14px" }} />
-        </button>
-
-        {menuOpen && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-            }}
-            onClick={() => setMenuOpen(false)}
-          >
-            <div
-              style={{
-                position: "absolute",
-                right: "0",
-                bottom: "40px",
-                background: "white",
-                border: `0.5px solid ${BORDER}`,
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                zIndex: 10000,
-                minWidth: "140px",
-                overflow: "hidden",
-              }}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
               onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "28px",
+                height: "28px",
+                borderRadius: "8px",
+                background: "#F0F0F0",
+                border: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: "#B0A898",
+                padding: 0,
+              }}
+              title="Más opciones"
             >
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(false);
-                  onRename();
-                }}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  fontFamily: FONT_UI,
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "#1A1A1A",
-                  cursor: "pointer",
-                  borderBottom: `0.5px solid ${BORDER}`,
-                }}
-              >
-                Renombrar
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen(false);
-                  onDelete();
-                }}
-                style={{
-                  width: "100%",
-                  padding: "10px 14px",
-                  background: "none",
-                  border: "none",
-                  textAlign: "left",
-                  fontFamily: FONT_UI,
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  color: "#E74C3C",
-                  cursor: "pointer",
-                }}
-              >
-                Eliminar
-              </button>
-            </div>
-          </div>
-        )}
+              <MoreVertical style={{ width: "14px", height: "14px" }} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onStudy();
+              }}
+            >
+              Estudiar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onRename();
+              }}
+            >
+              Renombrar
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+            >
+              {set.favorite ? "Quitar de favoritos" : "Favorito"}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onShare();
+              }}
+            >
+              Compartir
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onResetProgress();
+              }}
+            >
+              Reiniciar progreso
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              style={{ color: "#E74C3C" }}
+            >
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
