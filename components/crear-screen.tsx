@@ -415,7 +415,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       {/* Scrollable content */}
       <div style={{
         flex: 1,
-        overflowY: "scroll",
+        overflowY: "auto",
         WebkitOverflowScrolling: "touch",
         height: "0",
         paddingBottom: "100px",

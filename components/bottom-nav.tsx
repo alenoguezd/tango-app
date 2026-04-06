@@ -29,8 +29,8 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
         borderTop: `1px solid ${BORDER}`,
         display: "flex",
         justifyContent: "space-around",
-        paddingTop: "8px",
-        paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px) + 8px)",
+        paddingTop: "10px",
+        paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px) + 10px)",
       }}
     >
       {items.map(({ id, label, icon: Icon }) => (

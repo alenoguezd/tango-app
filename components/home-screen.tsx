@@ -336,6 +336,8 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
     return (
       <div style={{
         height: "100dvh",
+        maxWidth: "375px",
+        margin: "0 auto",
         background: BG_PAGE,
         display: "flex",
         flexDirection: "column",
@@ -349,8 +351,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         {/* Scrollable Content */}
         <div style={{
           flex: 1,
-          overflowY: "scroll",
+          overflowY: "auto",
           WebkitOverflowScrolling: "touch",
+          height: "0",
           paddingBottom: "100px",
         }}>
           {/* Greeting */}

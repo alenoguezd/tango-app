@@ -356,7 +356,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
           {/* ── Scrollable body ── */}
           <div style={{
             flex: 1,
-            overflowY: 'scroll',
+            overflowY: 'auto',
             WebkitOverflowScrolling: 'touch',
             height: '0',
             paddingBottom: "100px"
