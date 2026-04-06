@@ -934,6 +934,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             disabled={cardRef.current?.classList.contains("exiting-right") ||
                       cardRef.current?.classList.contains("exiting-left") ||
                       cardRef.current?.classList.contains("exiting-down")}
+            aria-label="Marcar como no sé"
             style={{
               flex: 1,
               maxWidth: "120px",
@@ -974,6 +975,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             disabled={cardRef.current?.classList.contains("exiting-right") ||
                       cardRef.current?.classList.contains("exiting-left") ||
                       cardRef.current?.classList.contains("exiting-down")}
+            aria-label="Marcar como difícil"
             style={{
               flex: 1,
               maxWidth: "120px",
@@ -1014,6 +1016,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             disabled={cardRef.current?.classList.contains("exiting-right") ||
                       cardRef.current?.classList.contains("exiting-left") ||
                       cardRef.current?.classList.contains("exiting-down")}
+            aria-label="Marcar como conocida"
             style={{
               flex: 1,
               maxWidth: "120px",

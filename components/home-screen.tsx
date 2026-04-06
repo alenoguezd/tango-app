@@ -1008,6 +1008,7 @@ function SetGridCard({
           <DropdownMenuTrigger asChild>
             <button
               onClick={(e) => e.stopPropagation()}
+              aria-label={`Opciones para ${set.title}`}
               style={{
                 minWidth: "44px",
                 minHeight: "44px",
@@ -1041,6 +1042,7 @@ function SetGridCard({
                 e.stopPropagation();
                 onStudy();
               }}
+              aria-label="Estudiar este set"
             >
               Estudiar
             </DropdownMenuItem>
@@ -1049,6 +1051,7 @@ function SetGridCard({
                 e.stopPropagation();
                 onRename();
               }}
+              aria-label="Renombrar este set"
             >
               Renombrar
             </DropdownMenuItem>
@@ -1057,6 +1060,7 @@ function SetGridCard({
                 e.stopPropagation();
                 onToggleFavorite();
               }}
+              aria-label={set.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
             >
               {set.favorite ? "Quitar de favoritos" : "Favorito"}
             </DropdownMenuItem>
@@ -1065,6 +1069,7 @@ function SetGridCard({
                 e.stopPropagation();
                 onShare();
               }}
+              aria-label="Compartir este set"
             >
               Compartir
             </DropdownMenuItem>
@@ -1073,6 +1078,7 @@ function SetGridCard({
                 e.stopPropagation();
                 onResetProgress();
               }}
+              aria-label="Reiniciar progreso de este set"
             >
               Reiniciar progreso
             </DropdownMenuItem>
@@ -1083,6 +1089,7 @@ function SetGridCard({
                 onDelete();
               }}
               style={{ color: "#E74C3C" }}
+              aria-label="Eliminar este set"
             >
               Eliminar
             </DropdownMenuItem>
