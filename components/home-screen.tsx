@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Settings, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
@@ -13,10 +13,12 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { BottomNav } from "@/components/bottom-nav";
+import { AppNav } from "@/components/app-nav";
 import { PageTitle } from "@/components/ui/page-title";
 import { StatPill } from "@/components/ui/stat-pill";
 import { Avatar } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface DeckSet {
@@ -324,167 +326,77 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   // ===== MOBILE LAYOUT =====
   if (isMobile) {
     return (
-      <div style={{
-        height: "100dvh",
-        maxWidth: "375px",
-        margin: "0 auto",
-        background: tokens.color.page,
-        display: "flex",
-        flexDirection: "column",
-      }}>
+      <div className="h-screen max-w-[390px] mx-auto flex flex-col" style={{ background: tokens.color.page }}>
         {/* Top Safe Area */}
-        <div aria-hidden style={{
-          flexShrink: 0,
-          height: "max(16px, env(safe-area-inset-top, 0px))",
-        }} />
+        <div aria-hidden className="flex-shrink-0 h-[max(16px,env(safe-area-inset-top,0px))]" />
 
         {/* Scrollable Content */}
-        <div style={{
-          flex: 1,
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
-          height: "0",
-          paddingBottom: "100px",
-        }}>
+        <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch] pb-[100px]">
           {/* Greeting */}
-          <div style={{
-            padding: tokens.spacing["4"],
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <h1 style={{
-              fontFamily: tokens.typography.family.ui,
-              fontSize: tokens.typography.size["3xl"],
-              fontWeight: tokens.typography.weight.medium,
-              lineHeight: tokens.typography.lineHeight.tight,
-              color: tokens.color.muted,
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: tokens.spacing["2"],
-            }}>
-              おはよう,
-              <span style={{
-                fontSize: tokens.typography.size["3xl"],
-                fontWeight: tokens.typography.weight.bold,
-                color: tokens.color.sage,
-              }}>
-                {userFirstName}
-              </span>
+          <div className="px-4 py-4 flex justify-between items-center">
+            <h1 className="text-xl font-semibold leading-tight" style={{ color: tokens.color.ink }}>
+              Hi, {userFirstName}
             </h1>
-            <Avatar initials={userInitials} size={48} backgroundColor={tokens.color.rose} />
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              aria-label="Configuración"
+            >
+              <Settings size={16} />
+            </Button>
           </div>
 
           {/* Streak */}
-          <div style={{
-            padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["3"]}`,
-            fontSize: tokens.typography.size.sm,
-            fontWeight: tokens.typography.weight.regular,
-            lineHeight: tokens.typography.lineHeight.normal,
-            color: tokens.color.muted,
-            display: "flex",
-            alignItems: "center",
-            gap: tokens.spacing["2"],
-          }}>
-            <span style={{ color: tokens.color.orange, fontSize: tokens.typography.size.lg }}>●</span>
-            Viernes · racha de 7 días
+          <div className="px-4 pb-3 flex items-center gap-2 text-sm font-normal leading-normal" style={{ color: tokens.color.muted }}>
+            <Flame size={16} style={{ color: tokens.color.orange }} />
+            <span>Racha de 7 días</span>
           </div>
 
-          {/* PARA HOY Banner */}
-          <div style={{
-            margin: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
-            background: tokens.color.ink,
-            borderRadius: "20px",
-            padding: tokens.spacing["5"],
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <div>
-              <p style={{
-                fontFamily: tokens.typography.family.ui,
-                fontSize: "11px",
-                fontWeight: 700,
-                color: tokens.color.sage,
-                margin: 0,
-                letterSpacing: "1px",
-              }}>
-                PARA HOY
+          {/* Today Card */}
+          <div className="mx-4 mb-6 rounded-lg p-5 text-white" style={{ background: tokens.color.ink }}>
+            <div className="mb-4">
+              <p className="text-xs font-semibold" style={{ color: tokens.color.muted }}>
+                Today
               </p>
-              <p style={{
-                fontFamily: tokens.typography.family.ui,
-                fontSize: "36px",
-                fontWeight: 800,
-                color: "white",
-                margin: `${tokens.spacing["2"]} 0 ${tokens.spacing["1"]} 0`,
-                lineHeight: 1,
-              }}>
+              <p className="text-4xl font-bold leading-none mt-1">
                 {totalDueCards}
               </p>
-              <p style={{
-                fontFamily: tokens.typography.family.ui,
-                fontSize: "12px",
-                color: "#999",
-                margin: 0,
-              }}>
-                tarjetas listas para repasar
-              </p>
             </div>
-            {firstDueSet && (
-              <button
-                onClick={() => onStudy(firstDueSet)}
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-200"
                 style={{
-                  background: tokens.color.sage,
-                  border: "none",
-                  borderRadius: "50px",
-                  padding: `${tokens.spacing["3"]} ${tokens.spacing["6"]}`,
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: tokens.color.ink,
-                  cursor: "pointer",
-                  flexShrink: 0,
+                  width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
+                  background: tokens.color.butter,
                 }}
-              >
-                Estudiar →
-              </button>
-            )}
+              />
+            </div>
           </div>
 
           {/* Stats Pills */}
-          <div style={{
-            display: "flex",
-            gap: tokens.spacing["2"],
-            padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
-            overflow: "hidden",
-          }}>
+          <div className="flex gap-2 px-4 mb-6 overflow-hidden">
             <StatPill label="Tarjetas" value={totalCards} />
             <StatPill label="Dominadas" value={`${avgMastery}%`} />
             <StatPill label="Para hoy" value={setsWithDue} />
           </div>
 
-          {/* Mis Sets Header */}
+          {/* Sets Header */}
           {localSets.length > 0 && (
-            <h2 style={{
-              fontFamily: tokens.typography.family.ui,
-              fontSize: "18px",
-              fontWeight: 700,
-              color: tokens.color.ink,
-              margin: 0,
-              padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["3"]}`,
-            }}>
-              Mis sets
-            </h2>
+            <div className="px-4 pb-3 flex justify-between items-center">
+              <h2 className="text-lg font-bold leading-tight" style={{ color: tokens.color.ink, margin: 0 }}>
+                Sets
+              </h2>
+              <Button variant="ghost" size="sm" className="text-xs">
+                See all
+              </Button>
+            </div>
           )}
 
           {/* Sets Grid */}
           {localSets.length > 0 ? (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: tokens.spacing["2"],
-              padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}`,
-            }}>
+            <div className="grid grid-cols-2 gap-2 px-4 mb-6">
               {localSets.map((set, index) => {
                 const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
                 return (
@@ -506,70 +418,33 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           ) : null}
 
           {/* Descubrir Section */}
-          <div style={{ padding: `0 ${tokens.spacing["4"]} ${tokens.spacing["6"]}` }}>
-            <h2 style={{
-              fontFamily: tokens.typography.family.ui,
-              fontSize: "16px",
-              fontWeight: 700,
-              color: tokens.color.ink,
-              margin: `0 0 ${tokens.spacing["3"]} 0`,
-              paddingLeft: 0,
-            }}>
+          <div className="px-4 mb-6">
+            <h2 className="text-base font-bold mb-3" style={{ color: tokens.color.ink }}>
               Descubrir
             </h2>
-            <div style={{
-              display: "flex",
-              gap: tokens.spacing["3"],
-              overflowX: "auto",
-              paddingBottom: "8px",
-              WebkitOverflowScrolling: "touch",
-            }}>
+            <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2">
               {[
-                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
-                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
-                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
-                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
+                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
+                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
+                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
+                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
               ].map((item, i) => (
                 <div
                   key={i}
-                  style={{
-                    minWidth: "140px",
-                    background: "white",
-                    border: `0.5px solid ${tokens.color.border}`,
-                    borderRadius: "12px",
-                    padding: tokens.spacing["3"],
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: tokens.spacing["2"],
-                  }}
+                  className="min-w-[140px] bg-white border rounded-lg p-3 flex flex-col gap-2"
+                  style={{ borderColor: tokens.color.border }}
                 >
-                  <p style={{ fontSize: "24px", margin: 0 }}>{item.emoji}</p>
-                  <p style={{
-                    fontFamily: tokens.typography.family.ui,
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: tokens.color.ink,
-                    margin: 0,
-                  }}>
+                  <p className="text-2xl m-0">{item.emoji}</p>
+                  <p className="text-xs font-bold m-0" style={{ color: tokens.color.ink }}>
                     {item.name}
                   </p>
-                  <p style={{
-                    fontFamily: tokens.typography.family.ui,
-                    fontSize: "10px",
-                    color: tokens.color.muted,
-                    margin: 0,
-                  }}>
+                  <p className="text-[10px] m-0" style={{ color: tokens.color.muted }}>
                     {item.count} tarjetas
                   </p>
-                  <div style={{
-                    background: item.tagColor,
-                    color: item.tagTextColor,
-                    borderRadius: "6px",
-                    padding: `${tokens.spacing["1"]} ${tokens.spacing["2"]}`,
-                    fontSize: "9px",
-                    fontWeight: 600,
-                    width: "fit-content",
-                  }}>
+                  <div
+                    className="rounded-xs px-2 py-1 text-[9px] font-semibold w-fit"
+                    style={{ background: item.tagBg, color: item.tagText }}
+                  >
                     {item.tag}
                   </div>
                 </div>
@@ -578,41 +453,20 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           </div>
         </div>
 
-        {/* Bottom Nav */}
-        <BottomNav active="inicio" onNavigate={onNavigate} />
+        {/* Navigation */}
+        <AppNav active="inicio" onNavigate={onNavigate} />
 
         {/* Bottom Safe Area */}
-        <div aria-hidden style={{
-          flexShrink: 0,
-          background: "white",
-          display: "flex",
-          justifyContent: "center",
-          paddingTop: "4px",
-          paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))",
-        }}>
-          <div style={{
-            width: "134px",
-            height: "5px",
-            borderRadius: "99px",
-            background: "#111",
-          }} />
+        <div aria-hidden className="flex-shrink-0 bg-white flex justify-center pt-1" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))" }}>
+          <div className="w-[134px] h-1 rounded-full" style={{ background: "#111" }} />
         </div>
 
         {/* Toast */}
         {toast && (
-          <div style={{
-            position: "fixed",
-            bottom: "80px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: tokens.color.ink,
-            color: "white",
-            padding: `${tokens.spacing["3"]} ${tokens.spacing["5"]}`,
-            borderRadius: "8px",
-            fontSize: "12px",
-            fontWeight: 600,
-            zIndex: 9999,
-          }}>
+          <div
+            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 text-white px-5 py-3 rounded-lg text-xs font-semibold z-[9999]"
+            style={{ background: tokens.color.ink }}
+          >
             {toast}
           </div>
         )}
@@ -622,160 +476,77 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
   // ===== DESKTOP LAYOUT =====
   return (
-    <div style={{
-      minHeight: "100dvh",
-      background: tokens.color.page,
-      padding: tokens.spacing["10"],
-      maxWidth: "1280px",
-      margin: "0 auto",
-    }}>
+    <div className="flex min-h-screen" style={{ background: tokens.color.page }}>
+      {/* Sidebar Navigation */}
+      <AppNav active="inicio" onNavigate={onNavigate} />
+
+      {/* Main Content */}
+      <div className="hidden lg:block lg:w-64 flex-shrink-0" />
+      <main className="flex-1 lg:pt-8 lg:pb-6 lg:px-10 p-10 max-w-5xl">
+
       {/* Greeting */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "32px",
-      }}>
-        <h1 style={{
-          fontFamily: tokens.typography.family.ui,
-          fontSize: "30px",
-          fontWeight: 600,
-          color: tokens.color.muted,
-          margin: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: tokens.spacing["2"],
-        }}>
-          おはよう,
-          <span style={{
-            fontSize: "30px",
-            fontWeight: 700,
-            color: tokens.color.sage,
-          }}>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-semibold flex items-center gap-2 m-0" style={{ color: tokens.color.muted }}>
+          Hi,
+          <span className="font-bold" style={{ color: tokens.color.sage }}>
             {userFirstName}
           </span>
         </h1>
-        <div style={{
-          width: "64px",
-          height: "64px",
-          borderRadius: "50%",
-          background: tokens.color.rose,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: tokens.typography.family.ui,
-          fontSize: "20px",
-          fontWeight: 700,
-          color: "white",
-        }}>
-          {userInitials}
-        </div>
+        <Button variant="outline" size="icon" className="rounded-full">
+          <Settings size={20} />
+        </Button>
       </div>
 
       {/* Streak */}
-      <div style={{
-        fontSize: "13px",
-        color: tokens.color.muted,
-        display: "flex",
-        alignItems: "center",
-        gap: tokens.spacing["2"],
-        marginBottom: "32px",
-      }}>
-        <span style={{ color: "#F5A623", fontSize: "16px" }}>●</span>
-        Viernes · racha de 7 días
+      <div className="flex items-center gap-2 mb-8 text-sm" style={{ color: tokens.color.muted }}>
+        <Flame size={16} style={{ color: tokens.color.orange }} />
+        <span>Racha de 7 días</span>
       </div>
 
-      {/* PARA HOY Banner */}
-      <div style={{
-        background: tokens.color.ink,
-        borderRadius: "24px",
-        padding: tokens.spacing["8"],
-        marginBottom: "32px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}>
-        <div>
-          <p style={{
-            fontFamily: tokens.typography.family.ui,
-            fontSize: "12px",
-            fontWeight: 700,
-            color: tokens.color.sage,
-            margin: `0 0 ${tokens.spacing["3"]} 0`,
-            letterSpacing: "1px",
-          }}>
-            PARA HOY
+      {/* Today Card */}
+      <div className="rounded-2xl p-8 mb-8 text-white" style={{ background: tokens.color.ink }}>
+        <div className="mb-6">
+          <p className="text-xs font-bold" style={{ color: tokens.color.muted }}>
+            Today
           </p>
-          <p style={{
-            fontFamily: tokens.typography.family.ui,
-            fontSize: "48px",
-            fontWeight: 800,
-            color: "white",
-            margin: `0 0 ${tokens.spacing["2"]} 0`,
-            lineHeight: 1,
-          }}>
+          <p className="text-6xl font-bold leading-none mt-2">
             {totalDueCards}
           </p>
-          <p style={{
-            fontFamily: tokens.typography.family.ui,
-            fontSize: "13px",
-            color: "#999",
-            margin: 0,
-          }}>
-            tarjetas listas para repasar
-          </p>
         </div>
-        {firstDueSet && (
-          <button
-            onClick={() => onStudy(firstDueSet)}
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-200"
             style={{
-              background: tokens.color.sage,
-              border: "none",
-              borderRadius: "50px",
-              padding: `${tokens.spacing["3"]} ${tokens.spacing["8"]}`,
-              fontSize: "14px",
-              fontWeight: 700,
-              color: tokens.color.ink,
-              cursor: "pointer",
+              width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
+              background: tokens.color.butter,
             }}
-          >
-            Estudiar →
-          </button>
-        )}
+          />
+        </div>
       </div>
 
       {/* Stats Pills */}
-      <div style={{
-        display: "flex",
-        gap: tokens.spacing["4"],
-        marginBottom: "32px",
-      }}>
+      <div className="flex gap-4 mb-8">
         <StatPill label="Tarjetas" value={totalCards} />
         <StatPill label="Dominadas" value={`${avgMastery}%`} />
         <StatPill label="Para hoy" value={setsWithDue} />
       </div>
 
-      {/* Mis Sets Header */}
+      {/* Sets Header */}
       {localSets.length > 0 && (
-        <h2 style={{
-          fontFamily: tokens.typography.family.ui,
-          fontSize: "20px",
-          fontWeight: 700,
-          color: tokens.color.ink,
-          margin: `0 0 ${tokens.spacing["5"]} 0`,
-        }}>
-          Mis sets
-        </h2>
+        <div className="flex justify-between items-center mb-5">
+          <h2 className="text-xl font-bold m-0" style={{ color: tokens.color.ink }}>
+            Sets
+          </h2>
+          <Button variant="ghost" size="sm" className="text-sm">
+            See all
+          </Button>
+        </div>
       )}
 
       {/* Sets Grid */}
       {localSets.length > 0 ? (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: tokens.spacing["5"],
-          marginBottom: "40px",
-        }}>
+        <div className="grid grid-cols-2 gap-5 mb-10">
           {localSets.map((set, index) => {
             const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
             return (
@@ -797,64 +568,31 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       ) : null}
 
       {/* Descubrir Section */}
-      <h2 style={{
-        fontFamily: tokens.typography.family.ui,
-        fontSize: "20px",
-        fontWeight: 700,
-        color: tokens.color.ink,
-        margin: `0 0 ${tokens.spacing["5"]} 0`,
-      }}>
+      <h2 className="text-xl font-bold mb-5" style={{ color: tokens.color.ink }}>
         Descubrir
       </h2>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: tokens.spacing["5"],
-      }}>
+      <div className="grid grid-cols-3 gap-5">
         {[
-          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagColor: tokens.color.sky_LIGHT, tagTextColor: tokens.color.sky },
-          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
-          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagColor: tokens.color.rose, tagTextColor: "white" },
+          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
+          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
+          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
         ].map((item, i) => (
           <div
             key={i}
-            style={{
-              background: "white",
-              border: `0.5px solid ${tokens.color.border}`,
-              borderRadius: "16px",
-              padding: tokens.spacing["5"],
-              display: "flex",
-              flexDirection: "column",
-              gap: tokens.spacing["3"],
-            }}
+            className="bg-white rounded-2xl p-5 flex flex-col gap-3"
+            style={{ border: `0.5px solid ${tokens.color.border}` }}
           >
-            <p style={{ fontSize: "40px", margin: 0 }}>{item.emoji}</p>
-            <p style={{
-              fontFamily: tokens.typography.family.ui,
-              fontSize: "15px",
-              fontWeight: 700,
-              color: tokens.color.ink,
-              margin: 0,
-            }}>
+            <p className="text-4xl m-0">{item.emoji}</p>
+            <p className="text-base font-bold m-0" style={{ color: tokens.color.ink }}>
               {item.name}
             </p>
-            <p style={{
-              fontFamily: tokens.typography.family.ui,
-              fontSize: "12px",
-              color: tokens.color.muted,
-              margin: 0,
-            }}>
+            <p className="text-xs m-0" style={{ color: tokens.color.muted }}>
               {item.count} tarjetas
             </p>
-            <div style={{
-              background: item.tagColor,
-              color: item.tagTextColor,
-              borderRadius: "8px",
-              padding: `${tokens.spacing["1"]} ${tokens.spacing["3"]}`,
-              fontSize: "11px",
-              fontWeight: 600,
-              width: "fit-content",
-            }}>
+            <div
+              className="rounded-lg px-3 py-1 text-xs font-semibold w-fit"
+              style={{ background: item.tagBg, color: item.tagText }}
+            >
               {item.tag}
             </div>
           </div>
@@ -863,22 +601,14 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* Toast */}
       {toast && (
-        <div style={{
-          position: "fixed",
-          bottom: "40px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: tokens.color.ink,
-          color: "white",
-          padding: `${tokens.spacing["3"]} ${tokens.spacing["6"]}`,
-          borderRadius: "8px",
-          fontSize: "13px",
-          fontWeight: 600,
-          zIndex: 9999,
-        }}>
+        <div
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg text-xs font-semibold z-[9999]"
+          style={{ background: tokens.color.ink }}
+        >
           {toast}
         </div>
       )}
+      </main>
     </div>
   );
 }
@@ -918,123 +648,70 @@ function SetGridCard({
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
+      className="relative bg-white rounded-2xl p-4 cursor-pointer transition-all duration-100 flex flex-col gap-3"
       style={{
-        position: "relative",
         background: isPressed ? "#F0F0F0" : "white",
-        border: `0.5px solid ${tokens.color.border}`,
-        borderRadius: "16px",
-        padding: tokens.spacing["4"],
-        cursor: "pointer",
+        borderColor: tokens.color.border,
         transform: isPressed ? "scale(0.98)" : "scale(1)",
-        transition: "all 100ms ease",
-        display: "flex",
-        flexDirection: "column",
-        gap: tokens.spacing["3"],
+        border: `0.5px solid ${tokens.color.border}`,
       }}
     >
       {/* Due Chip - Absolute positioned top-right */}
-      <div style={{
-        position: "absolute",
-        top: "12px",
-        right: "12px",
-        background: dueCount > 0 ? tokens.color.butter : "#D4EDBA",
-        borderRadius: "8px",
-        padding: `${tokens.spacing["1"]} ${tokens.spacing["2"]}`,
-        fontSize: "10px",
-        fontWeight: 700,
-        color: "#1A1A1A",
-      }}>
+      <Badge
+        className="absolute top-3 right-3 text-[10px] font-bold px-2 py-1"
+        variant={dueCount > 0 ? "default" : "success"}
+      >
         {dueCount > 0 ? `${dueCount} due` : "Al día ✓"}
-      </div>
+      </Badge>
 
       {/* Icon */}
-      <div style={{
-        fontSize: "20px",
-        width: "40px",
-        height: "40px",
-        background: PASTEL_COLORS[index % 5],
-        borderRadius: "10px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}>
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xl"
+        style={{ background: PASTEL_COLORS[index % 5] }}
+      >
         {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
       </div>
 
       {/* Title */}
-      <h3 style={{
-        fontFamily: tokens.typography.family.ui,
-        fontSize: "14px",
-        fontWeight: 700,
-        color: "#1A1A1A",
-        margin: 0,
-      }}>
+      <h3 className="text-sm font-bold m-0" style={{ color: tokens.color.ink }}>
         {set.title}
       </h3>
 
       {/* Card Count */}
-      <p style={{
-        fontFamily: tokens.typography.family.ui,
-        fontSize: "11px",
-        color: tokens.color.muted,
-        margin: 0,
-      }}>
+      <p className="text-xs m-0" style={{ color: tokens.color.muted }}>
         {set.cardCount} tarjetas
       </p>
 
       {/* Progress Bar */}
-      <div style={{
-        height: "4px",
-        background: "#EEEBE6",
-        borderRadius: "2px",
-        overflow: "hidden",
-      }}>
-        <div style={{
-          height: "100%",
-          width: `${progressPercent}%`,
-          background: progressPercent > 50 ? "#A8C87A" : progressPercent > 0 ? "#F5DC7A" : "#EEEBE6",
-          transition: "width 200ms ease",
-        }} />
+      <div className="w-full h-1 rounded-sm overflow-hidden" style={{ background: tokens.color.border }}>
+        <div
+          className="h-full rounded-sm transition-all duration-200"
+          style={{
+            width: `${progressPercent}%`,
+            background:
+              progressPercent > 50
+                ? tokens.color.sage
+                : progressPercent > 0
+                  ? tokens.color.butter
+                  : tokens.color.border,
+          }}
+        />
       </div>
 
       {/* Menu Button - Bottom Right */}
-      <div style={{
-        position: "absolute",
-        bottom: "12px",
-        right: "12px",
-      }}>
+      <div className="absolute bottom-3 right-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               onClick={(e) => e.stopPropagation()}
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
               aria-label={`Opciones para ${set.title}`}
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                border: "none",
-                background: "none",
-                padding: 0,
-              }}
               title="Más opciones"
             >
-              <div style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "8px",
-                background: "#F0F0F0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: tokens.color.muted,
-              }}>
-                <MoreVertical style={{ width: "14px", height: "14px" }} />
-              </div>
-            </button>
+              <MoreVertical size={14} style={{ color: tokens.color.muted }} />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem

@@ -3,8 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
-import { AppSidebar } from "./app-sidebar";
-import { BottomNav } from "@/components/bottom-nav";
+import { AppNav } from "./app-nav";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
@@ -416,8 +415,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         {mainContent}
       </div>
 
-      {/* Bottom navigation */}
-      <BottomNav active="crear" onNavigate={onNavigate} />
+      {/* Navigation */}
+      <AppNav active="crear" onNavigate={onNavigate} />
 
       {/* iOS home indicator */}
       <div aria-hidden style={{
@@ -446,7 +445,11 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       display: "flex",
       flexDirection: "row",
     }}>
-      <AppSidebar activeTab="crear" onNavigate={onNavigate} />
+      {/* Navigation (renders sidebar on desktop, nothing on mobile) */}
+      <AppNav active="crear" onNavigate={onNavigate} />
+
+      {/* Sidebar spacer for desktop layout */}
+      <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
 
       <div style={{
         flex: 1,

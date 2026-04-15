@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { BottomNav } from "@/components/bottom-nav";
+import { AppNav } from "@/components/app-nav";
 import { createClient } from "@/lib/supabase";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
@@ -868,8 +867,8 @@ export default function PerfilPage() {
           </div>
         </div>
 
-        {/* Bottom navigation */}
-        <BottomNav active="perfil" onNavigate={handleNavigate} />
+        {/* Navigation */}
+        <AppNav active="perfil" onNavigate={handleNavigate} />
 
         {/* iOS home indicator */}
         <div aria-hidden style={{
@@ -899,7 +898,11 @@ export default function PerfilPage() {
       display: "flex",
       flexDirection: "row",
     }}>
-      <AppSidebar activeTab="perfil" onNavigate={handleNavigate} />
+      {/* Navigation (renders sidebar on desktop) */}
+      <AppNav active="perfil" onNavigate={handleNavigate} />
+
+      {/* Sidebar spacer for desktop layout */}
+      <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
 
       <div style={{
         flex: 1,

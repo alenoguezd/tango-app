@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { BottomNav } from "@/components/bottom-nav";
+import { AppNav } from "@/components/app-nav";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
 
@@ -358,8 +357,8 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             </div>
           </div>
 
-          {/* ── Bottom navigation ── */}
-          <BottomNav active="progreso" onNavigate={onNavigate} />
+          {/* ── Navigation ── */}
+          <AppNav active="progreso" onNavigate={onNavigate} />
 
           {/* iOS home indicator */}
           <div
@@ -395,7 +394,11 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
             flexDirection: "row",
           }}
         >
-          <AppSidebar activeTab="progreso" onNavigate={onNavigate} />
+          {/* Navigation (renders sidebar on desktop) */}
+          <AppNav active="progreso" onNavigate={onNavigate} />
+
+          {/* Sidebar spacer for desktop layout */}
+          <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
 
           {/* Main content area */}
           <div

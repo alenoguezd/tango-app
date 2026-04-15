@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Flashcard, type VocabCard } from "@/components/flashcard";
 import { SessionComplete } from "@/components/session-complete";
-import { AppSidebar } from "@/components/app-sidebar";
+import { AppNav } from "@/components/app-nav";
 import { createClient } from "@/lib/supabase";
 import {
   type CardProgress,
@@ -537,7 +537,12 @@ export default function EstudiarPage() {
         display: "flex",
         flexDirection: "row",
       }}>
-        <AppSidebar activeTab="inicio" onNavigate={handleNavigate} />
+        {/* Navigation */}
+        <AppNav active="inicio" onNavigate={handleNavigate} />
+
+        {/* Sidebar spacer for desktop layout */}
+        <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
+
         <div style={{
           flex: 1,
           display: "flex",
@@ -581,7 +586,11 @@ export default function EstudiarPage() {
         overflow: "hidden",
       }}
     >
-      <AppSidebar activeTab="inicio" onNavigate={handleNavigate} />
+      {/* Navigation */}
+      <AppNav active="inicio" onNavigate={handleNavigate} />
+
+      {/* Sidebar spacer for desktop layout */}
+      <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
 
       {/* Main content area */}
       <div
