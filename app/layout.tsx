@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
+import { Geist } from "next/font/google";
 import "@/styles/globals.css";
+
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   title: "単語 — Aprende japonés",
@@ -22,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" className={geist.variable}>
       <body>
         {children}
         <Analytics />

@@ -1,0 +1,184 @@
+/**
+ * Design System — CSS Custom Properties
+ * Extracted from design analysis and lib/design-tokens.ts
+ * Single source of truth for all design values
+ */
+
+:root {
+  /* ─────────────────────────────────────────────────────────────
+     COLORS — Core Palette
+     ───────────────────────────────────────────────────────────── */
+
+  /* Backgrounds */
+  --color-bg-page: #f5f4f0;
+  --color-bg-surface: #ffffff;
+  --color-bg-hover: #f8f8f8;
+  --color-bg-subtle: #f5f5f5;
+  --color-bg-desktop-page: #f7f6f3;
+
+  /* Text / Ink */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #8a7f74;
+  --color-text-muted: #8a7f74;
+
+  /* Accent Colors (Primary) */
+  --color-sage: #a8c87a;           /* Primary accent green */
+  --color-butter: #f5dc7a;         /* Yellow/highlight */
+  --color-sky: #b8ceea;            /* Blue accent */
+  --color-rose: #f2b8cd;           /* Pink accent */
+  --color-orange: #f5a623;         /* Streak indicator */
+
+  /* Semantic Status Colors */
+  --color-success-bg: #dcfce7;
+  --color-success-text: #166534;
+  --color-success-soft: #d4edba;   /* "Al día" background */
+  --color-error-bg: #fee2e2;
+  --color-error-text: #991b1b;
+  --color-warning-text: #6b5500;
+
+  /* Light Background Variants (for badges/tags) */
+  --color-bg-sage-soft: #e8f4d8;
+  --color-bg-sky-light: #e8f2f9;
+  --color-bg-rose-soft: #ffe5f0;
+  --color-bg-butter-light: #fff4e0;
+  --color-bg-grey: #e8e8e8;
+
+  /* Pastel Colors (for set card icons) */
+  --color-pastel-pink: #fddde6;
+  --color-pastel-blue: #c8dfff;
+  --color-pastel-green: #c8eaaa;
+  --color-pastel-peach: #fde8c8;
+  --color-pastel-purple: #e8d5f5;
+
+  /* Interactive / Borders */
+  --color-border: #eeebe6;
+  --color-nav-pill: #f0f0f0;
+  --color-progress-track: #e0dcd4;
+  --color-progress-indicator: #111;
+
+  /* ─────────────────────────────────────────────────────────────
+     TYPOGRAPHY — Scale & Metrics
+     ───────────────────────────────────────────────────────────── */
+
+  /* Font Families */
+  --font-ui: var(--font-geist), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-card: Georgia, 'Times New Roman', serif;
+
+  /* Font Sizes */
+  --text-xs: 10px;      /* Meta/labels */
+  --text-sm: 12px;      /* Small text, tab labels */
+  --text-base: 13px;    /* Body text */
+  --text-md: 14px;      /* Default/button text */
+  --text-lg: 16px;      /* Body + card titles */
+  --text-xl: 18px;      /* Section headers */
+  --text-2xl: 22px;     /* Page display */
+  --text-3xl: 28px;     /* Greeting/title */
+  --text-4xl: 36px;     /* Large display */
+  --text-5xl: 56px;     /* Extra large display */
+
+  /* Font Weights */
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights */
+  --line-height-tight: 1;
+  --line-height-normal: 1.2;
+  --line-height-relaxed: 1.5;
+  --line-height-loose: 1.6;
+
+  /* ─────────────────────────────────────────────────────────────
+     SPACING — Scale (4px base unit)
+     ───────────────────────────────────────────────────────────── */
+
+  --spacing-1: 4px;     /* Tight */
+  --spacing-2: 8px;     /* Extra small gaps */
+  --spacing-3: 12px;    /* Small gaps */
+  --spacing-4: 16px;    /* Default padding/margin */
+  --spacing-5: 20px;    /* Medium gaps */
+  --spacing-6: 24px;    /* Large gaps */
+  --spacing-8: 32px;    /* Section spacing */
+  --spacing-10: 40px;   /* Extra large */
+  --spacing-12: 48px;   /* Extra extra large */
+
+  /* ─────────────────────────────────────────────────────────────
+     BORDER RADIUS — Curves
+     ───────────────────────────────────────────────────────────── */
+
+  --radius-xs: 4px;     /* Minimal rounding */
+  --radius-sm: 8px;     /* Buttons, small elements */
+  --radius-md: 10px;    /* Moderate rounding */
+  --radius-lg: 14px;    /* Cards, standard */
+  --radius-full: 50px;  /* Pill/circular buttons */
+
+  /* ─────────────────────────────────────────────────────────────
+     SHADOWS — Depth (none to subtle)
+     ───────────────────────────────────────────────────────────── */
+
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.12);
+
+  /* ─────────────────────────────────────────────────────────────
+     BORDERS — Strokes
+     ───────────────────────────────────────────────────────────── */
+
+  --border-width: 1px;
+  --border-width-2: 2px;
+  --border-width-3: 3px;
+  --border-default: 1px solid var(--color-border);
+
+  /* ─────────────────────────────────────────────────────────────
+     TRANSITIONS — Timing
+     ───────────────────────────────────────────────────────────── */
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ─────────────────────────────────────────────────────────────
+     COMPONENT-SPECIFIC — Semantic combinations
+     ───────────────────────────────────────────────────────────── */
+
+  /* Card styling */
+  --card-bg: var(--color-bg-surface);
+  --card-border: var(--border-default);
+  --card-shadow: var(--shadow-sm);
+  --card-radius: var(--radius-lg);
+  --card-padding: var(--spacing-4);
+
+  /* Button styling */
+  --button-radius: var(--radius-sm);
+  --button-padding-y: 8px;
+  --button-padding-x: 16px;
+
+  /* Badge styling */
+  --badge-radius: var(--radius-xs);
+  --badge-padding-y: 4px;
+  --badge-padding-x: 8px;
+  --badge-font-size: var(--text-xs);
+
+  /* Input/Form styling */
+  --input-border: var(--border-default);
+  --input-radius: var(--radius-md);
+  --input-padding: var(--spacing-3) var(--spacing-4);
+
+  /* Focus/Interactive */
+  --focus-outline: 2px solid var(--color-sage);
+  --focus-outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Dark Mode (if needed in future)
+   ───────────────────────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg-page: #0f0f0f;
+    --color-bg-surface: #1a1a1a;
+    --color-text-primary: #fafaf8;
+    --color-text-secondary: #a0a098;
+  }
+}

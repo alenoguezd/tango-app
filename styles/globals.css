@@ -1,14 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './design-tokens.css';
 
 @custom-variant dark (&:is(.dark *));
 
 /* Design Token System - Single Source of Truth */
 :root {
-  /* Typography */
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-card: Georgia, "Times New Roman", serif;
+  /* Typography - defined in design-tokens.css */
 
   /* UI Typography Scale */
   --text-page-title:    26px;  /* weight 800, tracking -0.025em */
@@ -108,7 +106,7 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
+  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -146,6 +144,94 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Extended Design System Colors (from design-tokens.css) */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-sage: var(--color-sage);
+  --color-butter: var(--color-butter);
+  --color-sky: var(--color-sky);
+  --color-rose: var(--color-rose);
+  --color-orange: var(--color-orange);
+  --color-success-bg: var(--color-success-bg);
+  --color-success-text: var(--color-success-text);
+  --color-success-soft: var(--color-success-soft);
+  --color-error-bg: var(--color-error-bg);
+  --color-error-text: var(--color-error-text);
+  --color-warning-text: var(--color-warning-text);
+  --color-sage-soft: var(--color-bg-sage-soft);
+  --color-sky-light: var(--color-bg-sky-light);
+  --color-rose-soft: var(--color-bg-rose-soft);
+  --color-butter-light: var(--color-bg-butter-light);
+  --color-grey: var(--color-bg-grey);
+  --color-pastel-pink: var(--color-pastel-pink);
+  --color-pastel-blue: var(--color-pastel-blue);
+  --color-pastel-green: var(--color-pastel-green);
+  --color-pastel-peach: var(--color-pastel-peach);
+  --color-pastel-purple: var(--color-pastel-purple);
+  --color-border-default: var(--color-border);
+  --color-nav-pill: var(--color-nav-pill);
+  --color-progress-track: var(--color-progress-track);
+
+  /* Extended Typography Sizes */
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-md: var(--text-md);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-5xl: var(--text-5xl);
+
+  /* Extended Font Weights */
+  --font-weight-regular: var(--font-weight-regular);
+  --font-weight-medium: var(--font-weight-medium);
+  --font-weight-semibold: var(--font-weight-semibold);
+  --font-weight-bold: var(--font-weight-bold);
+
+  /* Extended Line Heights */
+  --line-height-tight: var(--line-height-tight);
+  --line-height-normal: var(--line-height-normal);
+  --line-height-relaxed: var(--line-height-relaxed);
+  --line-height-loose: var(--line-height-loose);
+
+  /* Extended Spacing Scale */
+  --spacing-1: var(--spacing-1);
+  --spacing-2: var(--spacing-2);
+  --spacing-3: var(--spacing-3);
+  --spacing-4: var(--spacing-4);
+  --spacing-5: var(--spacing-5);
+  --spacing-6: var(--spacing-6);
+  --spacing-8: var(--spacing-8);
+  --spacing-10: var(--spacing-10);
+  --spacing-12: var(--spacing-12);
+
+  /* Extended Border Radius */
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  /* Extended Shadows */
+  --shadow-none: var(--shadow-none);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+
+  /* Extended Borders */
+  --border-width: var(--border-width);
+  --border-width-2: var(--border-width-2);
+  --border-width-3: var(--border-width-3);
+  --border-default: var(--border-default);
+
+  /* Extended Transitions */
+  --transition-fast: var(--transition-fast);
+  --transition-normal: var(--transition-normal);
+  --transition-slow: var(--transition-slow);
 }
 
 @layer base {
@@ -160,6 +246,7 @@
     @apply bg-background text-foreground;
     background-color: var(--color-page);
     color: var(--color-ink);
+    font-family: var(--font-ui);
   }
 }
 

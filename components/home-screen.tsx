@@ -14,9 +14,6 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { AppNav } from "@/components/app-nav";
-import { PageTitle } from "@/components/ui/page-title";
-import { StatPill } from "@/components/ui/stat-pill";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +27,7 @@ export interface DeckSet {
   cards: VocabCard[];
   color?: "blue" | "pink";
   favorite?: boolean;
+  is_public?: boolean;
 }
 
 interface HomeScreenProps {
@@ -64,6 +62,35 @@ function useWindowSize() {
   }, []);
 
   return mounted ? windowWidth : 1024;
+}
+
+// ── Helper: Get category tag for a set ────────────────────────────────────────
+function getCategoryTag(setTitle: string): "Básico" | "Viaje" | "Cotidiano" {
+  const lower = setTitle.toLowerCase();
+  if (lower.includes("viaje") || lower.includes("viaja") || lower.includes("viajero")) return "Viaje";
+  if (lower.includes("cotidiano") || lower.includes("diario") || lower.includes("común")) return "Cotidiano";
+  return "Básico";
+}
+
+// ── Helper: Group sets by category ────────────────────────────────────────────
+function groupSetsByCategory(sets: DeckSet[]): Record<string, DeckSet[]> {
+  const groups: Record<string, DeckSet[]> = {};
+
+  sets.forEach((set) => {
+    const category = getCategoryTag(set.title);
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+    groups[category].push(set);
+  });
+
+  // Sort groups by order: Básico, Viaje, Cotidiano
+  const ordered: Record<string, DeckSet[]> = {};
+  if (groups["Básico"]) ordered["Básico"] = groups["Básico"];
+  if (groups["Viaje"]) ordered["Viaje"] = groups["Viaje"];
+  if (groups["Cotidiano"]) ordered["Cotidiano"] = groups["Cotidiano"];
+
+  return ordered;
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────────
@@ -326,7 +353,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   // ===== MOBILE LAYOUT =====
   if (isMobile) {
     return (
-      <div className="h-screen max-w-[390px] mx-auto flex flex-col" style={{ background: tokens.color.page }}>
+      <div className="h-screen max-w-[390px] mx-auto flex flex-col bg-bg-page">
         {/* Top Safe Area */}
         <div aria-hidden className="flex-shrink-0 h-[max(16px,env(safe-area-inset-top,0px))]" />
 
@@ -334,7 +361,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch] pb-[100px]">
           {/* Greeting */}
           <div className="px-4 py-4 flex justify-between items-center">
-            <h1 className="text-xl font-semibold leading-tight" style={{ color: tokens.color.ink }}>
+            <h1 className="text-3xl font-bold leading-tight text-text-primary">
               Hi, {userFirstName}
             </h1>
             <Button
@@ -348,124 +375,140 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
           </div>
 
           {/* Streak */}
-          <div className="px-4 pb-3 flex items-center gap-2 text-sm font-normal leading-normal" style={{ color: tokens.color.muted }}>
-            <Flame size={16} style={{ color: tokens.color.orange }} />
+          <div className="px-4 pb-3 flex items-center gap-2 text-sm font-normal leading-normal text-text-secondary">
+            <Flame size={16} className="text-orange" />
             <span>Racha de 7 días</span>
           </div>
 
-          {/* Today Card */}
-          <div className="mx-4 mb-6 rounded-lg p-5 text-white" style={{ background: tokens.color.ink }}>
+          {/* Today Card (Dark Banner) */}
+          <div className="mx-4 mb-6 rounded-lg p-5 bg-text-primary text-white relative">
             <div className="mb-4">
-              <p className="text-xs font-semibold" style={{ color: tokens.color.muted }}>
+              <p className="text-xs font-bold text-text-secondary">
                 Today
               </p>
-              <p className="text-4xl font-bold leading-none mt-1">
+              <p className="text-2xl font-bold leading-none mt-1">
                 {totalDueCards}
               </p>
             </div>
             {/* Progress Bar */}
-            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+            <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-200"
+                className="h-full rounded-full bg-butter transition-normal"
                 style={{
                   width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
-                  background: tokens.color.butter,
                 }}
               />
             </div>
-          </div>
-
-          {/* Stats Pills */}
-          <div className="flex gap-2 px-4 mb-6 overflow-hidden">
-            <StatPill label="Tarjetas" value={totalCards} />
-            <StatPill label="Dominadas" value={`${avgMastery}%`} />
-            <StatPill label="Para hoy" value={setsWithDue} />
-          </div>
-
-          {/* Sets Header */}
-          {localSets.length > 0 && (
-            <div className="px-4 pb-3 flex justify-between items-center">
-              <h2 className="text-lg font-bold leading-tight" style={{ color: tokens.color.ink, margin: 0 }}>
-                Sets
-              </h2>
-              <Button variant="ghost" size="sm" className="text-xs">
-                See all
+            {/* Estudiar Button */}
+            {firstDueSet && (
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStudy(firstDueSet);
+                }}
+                className="absolute top-3 right-3 bg-butter text-text-primary px-3 py-1 text-xs font-bold hover:opacity-90 rounded-sm"
+              >
+                Estudiar
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Sets Grid */}
-          {localSets.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 px-4 mb-6">
-              {localSets.map((set, index) => {
-                const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
-                return (
-                  <SetGridCard
-                    key={set.id}
-                    set={set}
-                    dueCount={dueCount}
-                    index={index}
-                    onStudy={() => onStudy(set)}
-                    onShare={() => handleShare(set.id)}
-                    onRename={() => handleRenameSet(set.id, set.title)}
-                    onDelete={() => handleDeleteSet(set.id)}
-                    onToggleFavorite={() => handleToggleFavorite(set.id)}
-                    onResetProgress={() => handleResetProgress(set.id)}
-                  />
-                );
-              })}
-            </div>
-          ) : null}
+          {/* Sets Section */}
+          {localSets.length > 0 && (
+            <>
+              <div className="px-4 pb-3">
+                <h2 className="text-lg font-bold leading-tight text-text-primary m-0">
+                  Sets
+                </h2>
+              </div>
+
+              {/* Group sets by category */}
+              {Object.entries(groupSetsByCategory(localSets)).map(([category, sets]) => (
+                <div key={category} className="mb-6">
+                  {/* Category Label */}
+                  <h3 className="px-4 text-sm font-bold text-text-secondary mb-2">
+                    {category}
+                  </h3>
+                  {/* Sets Grid */}
+                  <div className="grid grid-cols-2 gap-2 px-4">
+                    {sets.map((set, index) => {
+                      const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
+                      return (
+                        <SetGridCard
+                          key={set.id}
+                          set={set}
+                          dueCount={dueCount}
+                          index={index}
+                          category={getCategoryTag(set.title)}
+                          onStudy={() => onStudy(set)}
+                          onShare={() => handleShare(set.id)}
+                          onRename={() => handleRenameSet(set.id, set.title)}
+                          onDelete={() => handleDeleteSet(set.id)}
+                          onToggleFavorite={() => handleToggleFavorite(set.id)}
+                          onResetProgress={() => handleResetProgress(set.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           {/* Descubrir Section */}
           <div className="px-4 mb-6">
-            <h2 className="text-base font-bold mb-3" style={{ color: tokens.color.ink }}>
+            <h2 className="text-lg font-bold mb-3 text-text-primary">
               Descubrir
             </h2>
             <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2">
               {[
-                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
-                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
-                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
-                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
+                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", variant: "secondary" as const },
+                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", variant: "destructive" as const },
+                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", variant: "destructive" as const },
+                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", variant: "secondary" as const },
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="min-w-[140px] bg-white border rounded-lg p-3 flex flex-col gap-2"
-                  style={{ borderColor: tokens.color.border }}
+                  className="min-w-[140px] bg-surface border border-border-default rounded-lg p-3 flex flex-col gap-2"
                 >
                   <p className="text-2xl m-0">{item.emoji}</p>
-                  <p className="text-xs font-bold m-0" style={{ color: tokens.color.ink }}>
+                  <p className="text-xs font-bold m-0 text-text-primary">
                     {item.name}
                   </p>
-                  <p className="text-[10px] m-0" style={{ color: tokens.color.muted }}>
+                  <p className="text-xs m-0 text-text-secondary">
                     {item.count} tarjetas
                   </p>
-                  <div
-                    className="rounded-xs px-2 py-1 text-[9px] font-semibold w-fit"
-                    style={{ background: item.tagBg, color: item.tagText }}
-                  >
+                  <Badge className="text-xs w-fit" variant={item.variant}>
                     {item.tag}
-                  </div>
+                  </Badge>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Create Set Button */}
+        <div className="px-4 pb-3">
+          <Button
+            onClick={() => onNavigate("crear")}
+            className="w-full bg-text-primary text-white font-bold py-3 px-4 rounded-sm hover:opacity-90"
+          >
+            Create set
+          </Button>
+        </div>
+
         {/* Navigation */}
         <AppNav active="inicio" onNavigate={onNavigate} />
 
         {/* Bottom Safe Area */}
-        <div aria-hidden className="flex-shrink-0 bg-white flex justify-center pt-1" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))" }}>
-          <div className="w-[134px] h-1 rounded-full" style={{ background: "#111" }} />
+        <div aria-hidden className="flex-shrink-0 bg-surface flex justify-center pt-1" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))" }}>
+          <div className="w-[134px] h-1 rounded-full bg-text-primary" />
         </div>
 
         {/* Toast */}
         {toast && (
           <div
-            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 text-white px-5 py-3 rounded-lg text-xs font-semibold z-[9999]"
-            style={{ background: tokens.color.ink }}
+            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 text-white px-5 py-3 rounded-lg text-xs font-semibold z-[9999] bg-text-primary"
           >
             {toast}
           </div>
@@ -476,7 +519,7 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
   // ===== DESKTOP LAYOUT =====
   return (
-    <div className="flex min-h-screen" style={{ background: tokens.color.page }}>
+    <div className="flex min-h-screen bg-bg-page">
       {/* Sidebar Navigation */}
       <AppNav active="inicio" onNavigate={onNavigate} />
 
@@ -486,9 +529,9 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
 
       {/* Greeting */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-semibold flex items-center gap-2 m-0" style={{ color: tokens.color.muted }}>
+        <h1 className="text-3xl font-bold flex items-center gap-2 m-0 text-text-primary">
           Hi,
-          <span className="font-bold" style={{ color: tokens.color.sage }}>
+          <span className="text-sage">
             {userFirstName}
           </span>
         </h1>
@@ -498,112 +541,126 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
       </div>
 
       {/* Streak */}
-      <div className="flex items-center gap-2 mb-8 text-sm" style={{ color: tokens.color.muted }}>
-        <Flame size={16} style={{ color: tokens.color.orange }} />
+      <div className="flex items-center gap-2 mb-8 text-sm text-text-secondary">
+        <Flame size={16} className="text-orange" />
         <span>Racha de 7 días</span>
       </div>
 
       {/* Today Card */}
-      <div className="rounded-2xl p-8 mb-8 text-white" style={{ background: tokens.color.ink }}>
+      <div className="rounded-lg p-8 mb-8 text-white bg-text-primary relative">
         <div className="mb-6">
-          <p className="text-xs font-bold" style={{ color: tokens.color.muted }}>
+          <p className="text-xs font-bold text-text-secondary">
             Today
           </p>
-          <p className="text-6xl font-bold leading-none mt-2">
+          <p className="text-4xl font-bold leading-none mt-2">
             {totalDueCards}
           </p>
         </div>
         {/* Progress Bar */}
-        <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+        <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
           <div
-            className="h-full rounded-full transition-all duration-200"
+            className="h-full rounded-full bg-butter transition-normal"
             style={{
               width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
-              background: tokens.color.butter,
             }}
           />
         </div>
-      </div>
-
-      {/* Stats Pills */}
-      <div className="flex gap-4 mb-8">
-        <StatPill label="Tarjetas" value={totalCards} />
-        <StatPill label="Dominadas" value={`${avgMastery}%`} />
-        <StatPill label="Para hoy" value={setsWithDue} />
-      </div>
-
-      {/* Sets Header */}
-      {localSets.length > 0 && (
-        <div className="flex justify-between items-center mb-5">
-          <h2 className="text-xl font-bold m-0" style={{ color: tokens.color.ink }}>
-            Sets
-          </h2>
-          <Button variant="ghost" size="sm" className="text-sm">
-            See all
+        {/* Estudiar Button */}
+        {firstDueSet && (
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onStudy(firstDueSet);
+            }}
+            className="absolute top-8 right-8 bg-butter text-text-primary px-4 py-2 text-sm font-bold hover:opacity-90 rounded-sm"
+          >
+            Estudiar
           </Button>
-        </div>
+        )}
+      </div>
+
+      {/* Sets Section */}
+      {localSets.length > 0 && (
+        <>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold m-0 text-text-primary">
+              Sets
+            </h2>
+          </div>
+
+          {/* Group sets by category */}
+          {Object.entries(groupSetsByCategory(localSets)).map(([category, sets]) => (
+            <div key={category} className="mb-8">
+              {/* Category Label */}
+              <h3 className="text-sm font-bold text-text-secondary mb-4">
+                {category}
+              </h3>
+              {/* Sets Grid */}
+              <div className="grid grid-cols-2 gap-6 mb-8">
+                {sets.map((set, index) => {
+                  const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
+                  return (
+                    <SetGridCard
+                      key={set.id}
+                      set={set}
+                      dueCount={dueCount}
+                      index={index}
+                      category={getCategoryTag(set.title)}
+                      onStudy={() => onStudy(set)}
+                      onShare={() => handleShare(set.id)}
+                      onRename={() => handleRenameSet(set.id, set.title)}
+                      onDelete={() => handleDeleteSet(set.id)}
+                      onToggleFavorite={() => handleToggleFavorite(set.id)}
+                      onResetProgress={() => handleResetProgress(set.id)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </>
       )}
 
-      {/* Sets Grid */}
-      {localSets.length > 0 ? (
-        <div className="grid grid-cols-2 gap-5 mb-10">
-          {localSets.map((set, index) => {
-            const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
-            return (
-              <SetGridCard
-                key={set.id}
-                set={set}
-                dueCount={dueCount}
-                index={index}
-                onStudy={() => onStudy(set)}
-                onShare={() => handleShare(set.id)}
-                onRename={() => handleRenameSet(set.id, set.title)}
-                onDelete={() => handleDeleteSet(set.id)}
-                onToggleFavorite={() => handleToggleFavorite(set.id)}
-                onResetProgress={() => handleResetProgress(set.id)}
-              />
-            );
-          })}
-        </div>
-      ) : null}
-
       {/* Descubrir Section */}
-      <h2 className="text-xl font-bold mb-5" style={{ color: tokens.color.ink }}>
+      <h2 className="text-xl font-bold mb-6 text-text-primary">
         Descubrir
       </h2>
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-3 gap-6 mb-8">
         {[
-          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", tagBg: tokens.color.bgSkyLight, tagText: tokens.color.sky },
-          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
-          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", tagBg: tokens.color.rose, tagText: "white" },
+          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", variant: "secondary" as const },
+          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", variant: "destructive" as const },
+          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", variant: "destructive" as const },
         ].map((item, i) => (
           <div
             key={i}
-            className="bg-white rounded-2xl p-5 flex flex-col gap-3"
-            style={{ border: `0.5px solid ${tokens.color.border}` }}
+            className="bg-surface rounded-lg p-5 flex flex-col gap-3 border border-border-default"
           >
             <p className="text-4xl m-0">{item.emoji}</p>
-            <p className="text-base font-bold m-0" style={{ color: tokens.color.ink }}>
+            <p className="text-base font-bold m-0 text-text-primary">
               {item.name}
             </p>
-            <p className="text-xs m-0" style={{ color: tokens.color.muted }}>
+            <p className="text-xs m-0 text-text-secondary">
               {item.count} tarjetas
             </p>
-            <div
-              className="rounded-lg px-3 py-1 text-xs font-semibold w-fit"
-              style={{ background: item.tagBg, color: item.tagText }}
-            >
+            <Badge className="text-xs w-fit" variant={item.variant}>
               {item.tag}
-            </div>
+            </Badge>
           </div>
         ))}
       </div>
 
+      {/* Create Set Button */}
+      <Button
+        onClick={() => onNavigate("crear")}
+        className="w-full bg-text-primary text-white font-bold py-3 px-4 rounded-sm hover:opacity-90"
+      >
+        Create set
+      </Button>
+
       {/* Toast */}
       {toast && (
         <div
-          className="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg text-xs font-semibold z-[9999]"
-          style={{ background: tokens.color.ink }}
+          className="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg text-xs font-semibold z-[9999] bg-text-primary"
         >
           {toast}
         </div>
@@ -619,6 +676,7 @@ function SetGridCard({
   set,
   dueCount,
   index,
+  category,
   onStudy,
   onShare,
   onRename,
@@ -629,6 +687,7 @@ function SetGridCard({
   set: DeckSet;
   dueCount: number;
   index: number;
+  category: "Básico" | "Viaje" | "Cotidiano";
   onStudy: () => void;
   onShare: () => void;
   onRename: () => void;
@@ -638,141 +697,146 @@ function SetGridCard({
 }) {
   const [isPressed, setIsPressed] = useState(false);
 
+  // Determine set type: curated (is_public: true) or user-created (is_public: false)
+  const isCurated = set.is_public === true;
+  const isUserCreated = set.is_public === false;
+
   const progress = (set.progress || []) as CardProgress[];
   const knownCount = Array.isArray(progress) ? progress.filter((c) => c.known === true).length : 0;
   const progressPercent = set.cardCount > 0 ? Math.round((knownCount / set.cardCount) * 100) : 0;
 
   return (
     <div
-      onClick={onStudy}
+      className="relative bg-surface rounded-lg p-4 cursor-pointer transition-normal flex flex-col gap-3 border border-border-default"
+      style={{
+        background: isPressed ? "#f5f5f5" : undefined,
+        transform: isPressed ? "scale(0.98)" : "scale(1)",
+      }}
+      onClick={() => onStudy()}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
-      className="relative bg-white rounded-2xl p-4 cursor-pointer transition-all duration-100 flex flex-col gap-3"
-      style={{
-        background: isPressed ? "#F0F0F0" : "white",
-        borderColor: tokens.color.border,
-        transform: isPressed ? "scale(0.98)" : "scale(1)",
-        border: `0.5px solid ${tokens.color.border}`,
-      }}
     >
-      {/* Due Chip - Absolute positioned top-right */}
-      <Badge
-        className="absolute top-3 right-3 text-[10px] font-bold px-2 py-1"
-        variant={dueCount > 0 ? "default" : "success"}
-      >
-        {dueCount > 0 ? `${dueCount} due` : "Al día ✓"}
-      </Badge>
-
-      {/* Icon */}
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-xl"
-        style={{ background: PASTEL_COLORS[index % 5] }}
-      >
-        {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
+      {/* Header: Icon and Category Badge (Curated only) */}
+      <div className="flex justify-between items-start gap-2">
+        {/* Icon */}
+        <div
+          className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 text-xl"
+          style={{ background: PASTEL_COLORS[index % 5] }}
+        >
+          {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
+        </div>
+        {/* Category Badge - Only for Curated Sets */}
+        {isCurated && (
+          <Badge
+            className="text-xs font-bold px-2 py-1"
+            variant={category === "Viaje" ? "destructive" : category === "Cotidiano" ? "default" : "secondary"}
+          >
+            {category}
+          </Badge>
+        )}
+        {/* Menu Button - Only for User-Created Sets */}
+        {isUserCreated && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 flex-shrink-0"
+                  aria-label={`Opciones para ${set.title}`}
+                  title="Más opciones"
+                >
+                  <MoreVertical size={16} style={{ color: tokens.color.muted }} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRename();
+                }}
+                aria-label="Renombrar este set"
+              >
+                Renombrar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare();
+                }}
+                aria-label="Compartir este set"
+              >
+                Compartir
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                style={{ color: tokens.color.rose }}
+                aria-label="Eliminar este set"
+              >
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-bold m-0" style={{ color: tokens.color.ink }}>
+      <h3 className="text-sm font-bold m-0 text-text-primary">
         {set.title}
       </h3>
 
       {/* Card Count */}
-      <p className="text-xs m-0" style={{ color: tokens.color.muted }}>
+      <p className="text-xs m-0 text-text-secondary">
         {set.cardCount} tarjetas
       </p>
 
       {/* Progress Bar */}
-      <div className="w-full h-1 rounded-sm overflow-hidden" style={{ background: tokens.color.border }}>
+      <div className="w-full h-1 rounded-sm overflow-hidden bg-border-default">
         <div
-          className="h-full rounded-sm transition-all duration-200"
+          className="h-full rounded-sm transition-normal"
           style={{
             width: `${progressPercent}%`,
             background:
               progressPercent > 50
-                ? tokens.color.sage
+                ? "var(--color-sage)"
                 : progressPercent > 0
-                  ? tokens.color.butter
-                  : tokens.color.border,
+                  ? "var(--color-butter)"
+                  : "var(--color-border)",
           }}
         />
       </div>
 
-      {/* Menu Button - Bottom Right */}
-      <div className="absolute bottom-3 right-3">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              onClick={(e) => e.stopPropagation()}
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              aria-label={`Opciones para ${set.title}`}
-              title="Más opciones"
-            >
-              <MoreVertical size={14} style={{ color: tokens.color.muted }} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onStudy();
-              }}
-              aria-label="Estudiar este set"
-            >
-              Estudiar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onRename();
-              }}
-              aria-label="Renombrar este set"
-            >
-              Renombrar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite();
-              }}
-              aria-label={set.favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-            >
-              {set.favorite ? "Quitar de favoritos" : "Favorito"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onShare();
-              }}
-              aria-label="Compartir este set"
-            >
-              Compartir
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onResetProgress();
-              }}
-              aria-label="Reiniciar progreso de este set"
-            >
-              Reiniciar progreso
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              style={{ color: "#E74C3C" }}
-              aria-label="Eliminar este set"
-            >
-              Eliminar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+      {/* Bottom: Action (Estudiar for Curated, Editar for User-Created) */}
+      {isCurated && (
+        <Button
+          onClick={(e) => {
+            e.stopPropagation();
+            onStudy();
+          }}
+          className="w-full bg-text-primary text-white text-xs font-bold py-2 px-2 rounded-sm hover:opacity-90"
+        >
+          Estudiar
+        </Button>
+      )}
+      {isUserCreated && (
+        <div className="pt-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRename();
+            }}
+            className="text-xs font-bold text-sky hover:opacity-75 transition-normal"
+          >
+            Editar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
