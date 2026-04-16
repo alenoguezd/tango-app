@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
+import { type CardProgress, getTodayString } from "@/lib/sm2";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
@@ -44,7 +45,7 @@ interface DeckSet {
   id: string;
   title: string;
   cardCount: number;
-  progress: number;
+  progress: CardProgress[];
   lastStudied: string;
   cards: VocabCard[];
 }
@@ -93,8 +94,20 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
       try {
         const deckSets: DeckSet[] = JSON.parse(savedSets);
         const progressSets = deckSets.map((set, index) => {
-          const known = set.cards.filter((card) => card.known === true).length;
-          const toReview = set.cards.filter((card) => card.known === false).length;
+          let known = 0;
+          let toReview = 0;
+
+          // Calculate progress from SM-2 progress array if available
+          if (Array.isArray(set.progress) && set.progress.length > 0) {
+            const today = getTodayString();
+            known = set.progress.filter((p) => p.repetitions >= 3).length;
+            toReview = set.progress.filter((p) => p.nextReview <= today).length;
+          } else {
+            // Fallback to old format for backwards compatibility
+            known = set.cards.filter((card) => card.known === true).length;
+            toReview = set.cards.filter((card) => card.known === false).length;
+          }
+
           return {
             id: set.id,
             title: set.title,
