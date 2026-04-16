@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HomeScreen } from "@/components/home-screen";
 import { createClient } from "@/lib/supabase";
-import type { DeckSet } from "@/components/home-screen";
+import type { DeckSet, PublicSet } from "@/components/home-screen";
 
 export default function InicioPage() {
   const router = useRouter();
   const supabase = createClient();
   const [sets, setSets] = useState<DeckSet[]>([]);
+  const [publicSets, setPublicSets] = useState<PublicSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -39,8 +40,21 @@ export default function InicioPage() {
       setIsAuthenticated(true);
       localStorage.setItem('current_user_id', user.id);
       loadSets(user.id);
+      loadPublicSets();
     } catch (error) {
       router.push("/");
+    }
+  };
+
+  const loadPublicSets = async () => {
+    const { data, error } = await supabase
+      .from("sets")
+      .select("id, name, cards")
+      .eq("is_public", true)
+      .is("user_id", null);
+
+    if (!error && data) {
+      setPublicSets(data as PublicSet[]);
     }
   };
 
@@ -136,6 +150,7 @@ export default function InicioPage() {
 
   return (
     <HomeScreen
+      publicSets={publicSets}
       sets={sets}
       recent={null}
       onContinue={() => {}}

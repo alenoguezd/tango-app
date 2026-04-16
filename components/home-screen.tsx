@@ -30,7 +30,16 @@ export interface DeckSet {
   is_public?: boolean;
 }
 
+export interface PublicSet {
+  id: string;
+  name: string;
+  cards: Array<Record<string, unknown>>;
+}
+
+type BadgeLabel = "Básico" | "Viaje" | "Cotidiano" | "Esencial";
+
 interface HomeScreenProps {
+  publicSets?: PublicSet[];
   sets?: DeckSet[];
   recent?: DeckSet | null;
   onContinue?: (set: DeckSet) => void;
@@ -48,6 +57,60 @@ const PASTEL_COLORS = [
   tokens.color.pastel.purple,
 ];
 
+// ── Public set metadata: name → display category + badge ─────────────────────
+// The DB doesn't store category/badge_label so we derive them here from set name.
+const SET_META: Record<string, { displayCategory: string; badge: BadgeLabel; emoji: string }> = {
+  "Saludos":                  { displayCategory: "Primer viaje a Japón",  badge: "Básico",    emoji: "👋" },
+  "En el restaurante":        { displayCategory: "Primer viaje a Japón",  badge: "Viaje",     emoji: "🍱" },
+  "Familia":                  { displayCategory: "Conversación básica",   badge: "Básico",    emoji: "👪" },
+  "Clima":                    { displayCategory: "Conversación básica",   badge: "Cotidiano", emoji: "🌤️" },
+  "Números y tiempo":         { displayCategory: "Esencial",              badge: "Esencial",  emoji: "🔢" },
+  "Emergencias y salud":      { displayCategory: "Esencial",              badge: "Esencial",  emoji: "🏥" },
+  "Transporte y direcciones": { displayCategory: "Viaje",                 badge: "Viaje",     emoji: "🚇" },
+  "Hotel y alojamiento":      { displayCategory: "Viaje",                 badge: "Viaje",     emoji: "🏨" },
+  "Ir de compras":            { displayCategory: "Cotidiano",             badge: "Cotidiano", emoji: "🛒" },
+  "Comida y bebida":          { displayCategory: "Cotidiano",             badge: "Cotidiano", emoji: "🍜" },
+};
+
+const CATEGORY_ORDER = [
+  "Primer viaje a Japón",
+  "Conversación básica",
+  "Esencial",
+  "Viaje",
+  "Cotidiano",
+];
+
+function getSetMeta(name: string) {
+  return SET_META[name] ?? { displayCategory: "Otros", badge: "Básico" as BadgeLabel, emoji: "📖" };
+}
+
+function groupPublicSetsByCategory(sets: PublicSet[]): [string, PublicSet[]][] {
+  const map = new Map<string, PublicSet[]>();
+  sets.forEach((s) => {
+    const cat = getSetMeta(s.name).displayCategory;
+    if (!map.has(cat)) map.set(cat, []);
+    map.get(cat)!.push(s);
+  });
+  // Return in canonical order, then any unknown categories
+  const ordered: [string, PublicSet[]][] = [];
+  CATEGORY_ORDER.forEach((cat) => {
+    if (map.has(cat)) ordered.push([cat, map.get(cat)!]);
+  });
+  map.forEach((sets, cat) => {
+    if (!CATEGORY_ORDER.includes(cat)) ordered.push([cat, sets]);
+  });
+  return ordered;
+}
+
+function badgeVariant(label: BadgeLabel): "default" | "secondary" | "destructive" | "warning" | "success" {
+  switch (label) {
+    case "Viaje":     return "destructive";
+    case "Cotidiano": return "default";
+    case "Esencial":  return "warning";
+    default:          return "secondary"; // Básico
+  }
+}
+
 // ── useWindowSize Hook ────────────────────────────────────────────────────────
 function useWindowSize() {
   const [windowWidth, setWindowWidth] = useState<number>(0);
@@ -64,37 +127,8 @@ function useWindowSize() {
   return mounted ? windowWidth : 1024;
 }
 
-// ── Helper: Get category tag for a set ────────────────────────────────────────
-function getCategoryTag(setTitle: string): "Básico" | "Viaje" | "Cotidiano" {
-  const lower = setTitle.toLowerCase();
-  if (lower.includes("viaje") || lower.includes("viaja") || lower.includes("viajero")) return "Viaje";
-  if (lower.includes("cotidiano") || lower.includes("diario") || lower.includes("común")) return "Cotidiano";
-  return "Básico";
-}
-
-// ── Helper: Group sets by category ────────────────────────────────────────────
-function groupSetsByCategory(sets: DeckSet[]): Record<string, DeckSet[]> {
-  const groups: Record<string, DeckSet[]> = {};
-
-  sets.forEach((set) => {
-    const category = getCategoryTag(set.title);
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(set);
-  });
-
-  // Sort groups by order: Básico, Viaje, Cotidiano
-  const ordered: Record<string, DeckSet[]> = {};
-  if (groups["Básico"]) ordered["Básico"] = groups["Básico"];
-  if (groups["Viaje"]) ordered["Viaje"] = groups["Viaje"];
-  if (groups["Cotidiano"]) ordered["Cotidiano"] = groups["Cotidiano"];
-
-  return ordered;
-}
-
 // ── HomeScreen ────────────────────────────────────────────────────────────────────
-export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
+export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
   const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
   const [userName, setUserName] = useState<string>("Usuario");
   const [userInitials, setUserInitials] = useState<string>("U");
@@ -413,78 +447,65 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
             )}
           </div>
 
-          {/* Sets Section */}
-          {localSets.length > 0 && (
-            <>
-              <div className="px-4 pb-3">
-                <h2 className="text-lg font-bold leading-tight text-text-primary m-0">
-                  Sets
-                </h2>
+          {/* Public sets grouped by category */}
+          {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
+            <div key={category} className="mb-6">
+              <h2 className="px-4 text-lg font-bold leading-tight text-text-primary mb-3">
+                {category}
+              </h2>
+              <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2 px-4">
+                {sets.map((set) => {
+                  const meta = getSetMeta(set.name);
+                  return (
+                    <button
+                      key={set.id}
+                      onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
+                      className="min-w-[140px] bg-surface border border-border-default rounded-lg p-3 flex flex-col gap-2 text-left cursor-pointer hover:bg-bg-subtle transition-colors"
+                    >
+                      <p className="text-2xl m-0">{meta.emoji}</p>
+                      <p className="text-xs font-bold m-0 text-text-primary">
+                        {set.name}
+                      </p>
+                      <p className="text-xs m-0 text-text-secondary">
+                        {set.cards.length} tarjetas
+                      </p>
+                      <Badge className="text-xs w-fit" variant={badgeVariant(meta.badge)}>
+                        {meta.badge}
+                      </Badge>
+                    </button>
+                  );
+                })}
               </div>
-
-              {/* Group sets by category */}
-              {Object.entries(groupSetsByCategory(localSets)).map(([category, sets]) => (
-                <div key={category} className="mb-6">
-                  {/* Category Label */}
-                  <h3 className="px-4 text-sm font-bold text-text-secondary mb-2">
-                    {category}
-                  </h3>
-                  {/* Sets Grid */}
-                  <div className="grid grid-cols-2 gap-2 px-4">
-                    {sets.map((set, index) => {
-                      const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
-                      return (
-                        <SetGridCard
-                          key={set.id}
-                          set={set}
-                          dueCount={dueCount}
-                          index={index}
-                          category={getCategoryTag(set.title)}
-                          onStudy={() => onStudy(set)}
-                          onShare={() => handleShare(set.id)}
-                          onRename={() => handleRenameSet(set.id, set.title)}
-                          onDelete={() => handleDeleteSet(set.id)}
-                          onToggleFavorite={() => handleToggleFavorite(set.id)}
-                          onResetProgress={() => handleResetProgress(set.id)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
-
-          {/* Descubrir Section */}
-          <div className="px-4 mb-6">
-            <h2 className="text-lg font-bold mb-3 text-text-primary">
-              Descubrir
-            </h2>
-            <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2">
-              {[
-                { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", variant: "secondary" as const },
-                { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", variant: "destructive" as const },
-                { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", variant: "destructive" as const },
-                { emoji: "🔢", name: "Números y precios", count: 15, tag: "Esencial", variant: "secondary" as const },
-              ].map((item, i) => (
-                <div
-                  key={i}
-                  className="min-w-[140px] bg-surface border border-border-default rounded-lg p-3 flex flex-col gap-2"
-                >
-                  <p className="text-2xl m-0">{item.emoji}</p>
-                  <p className="text-xs font-bold m-0 text-text-primary">
-                    {item.name}
-                  </p>
-                  <p className="text-xs m-0 text-text-secondary">
-                    {item.count} tarjetas
-                  </p>
-                  <Badge className="text-xs w-fit" variant={item.variant}>
-                    {item.tag}
-                  </Badge>
-                </div>
-              ))}
             </div>
-          </div>
+          ))}
+
+          {/* User sets ("Creados por mi") */}
+          {localSets.length > 0 && (
+            <div className="px-4 mb-6">
+              <h2 className="text-lg font-bold leading-tight text-text-primary mb-3">
+                Creados por mi
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                {localSets.map((set, index) => {
+                  const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
+                  return (
+                    <SetGridCard
+                      key={set.id}
+                      set={set}
+                      dueCount={dueCount}
+                      index={index}
+                      onStudy={() => onStudy(set)}
+                      onShare={() => handleShare(set.id)}
+                      onRename={() => handleRenameSet(set.id, set.title)}
+                      onDelete={() => handleDeleteSet(set.id)}
+                      onToggleFavorite={() => handleToggleFavorite(set.id)}
+                      onResetProgress={() => handleResetProgress(set.id)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Create Set Button */}
@@ -579,75 +600,65 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
         )}
       </div>
 
-      {/* Sets Section */}
+      {/* Public sets grouped by category */}
+      {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
+        <div key={category} className="mb-8">
+          <h2 className="text-xl font-bold mb-4 text-text-primary">
+            {category}
+          </h2>
+          <div className="grid grid-cols-3 gap-6">
+            {sets.map((set) => {
+              const meta = getSetMeta(set.name);
+              return (
+                <button
+                  key={set.id}
+                  onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
+                  className="bg-surface rounded-lg p-5 flex flex-col gap-3 border border-border-default text-left cursor-pointer hover:bg-bg-subtle transition-colors"
+                >
+                  <p className="text-4xl m-0">{meta.emoji}</p>
+                  <p className="text-base font-bold m-0 text-text-primary">
+                    {set.name}
+                  </p>
+                  <p className="text-xs m-0 text-text-secondary">
+                    {set.cards.length} tarjetas
+                  </p>
+                  <Badge className="text-xs w-fit" variant={badgeVariant(meta.badge)}>
+                    {meta.badge}
+                  </Badge>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* User sets ("Creados por mi") */}
       {localSets.length > 0 && (
-        <>
-          <div className="mb-6">
-            <h2 className="text-xl font-bold m-0 text-text-primary">
-              Sets
-            </h2>
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-4 text-text-primary">
+            Creados por mi
+          </h2>
+          <div className="grid grid-cols-2 gap-6">
+            {localSets.map((set, index) => {
+              const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
+              return (
+                <SetGridCard
+                  key={set.id}
+                  set={set}
+                  dueCount={dueCount}
+                  index={index}
+                  onStudy={() => onStudy(set)}
+                  onShare={() => handleShare(set.id)}
+                  onRename={() => handleRenameSet(set.id, set.title)}
+                  onDelete={() => handleDeleteSet(set.id)}
+                  onToggleFavorite={() => handleToggleFavorite(set.id)}
+                  onResetProgress={() => handleResetProgress(set.id)}
+                />
+              );
+            })}
           </div>
-
-          {/* Group sets by category */}
-          {Object.entries(groupSetsByCategory(localSets)).map(([category, sets]) => (
-            <div key={category} className="mb-8">
-              {/* Category Label */}
-              <h3 className="text-sm font-bold text-text-secondary mb-4">
-                {category}
-              </h3>
-              {/* Sets Grid */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
-                {sets.map((set, index) => {
-                  const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
-                  return (
-                    <SetGridCard
-                      key={set.id}
-                      set={set}
-                      dueCount={dueCount}
-                      index={index}
-                      category={getCategoryTag(set.title)}
-                      onStudy={() => onStudy(set)}
-                      onShare={() => handleShare(set.id)}
-                      onRename={() => handleRenameSet(set.id, set.title)}
-                      onDelete={() => handleDeleteSet(set.id)}
-                      onToggleFavorite={() => handleToggleFavorite(set.id)}
-                      onResetProgress={() => handleResetProgress(set.id)}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </>
+        </div>
       )}
-
-      {/* Descubrir Section */}
-      <h2 className="text-xl font-bold mb-6 text-text-primary">
-        Descubrir
-      </h2>
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        {[
-          { emoji: "👋", name: "Saludos básicos", count: 20, tag: "Esencial", variant: "secondary" as const },
-          { emoji: "🍱", name: "En el restaurante", count: 28, tag: "Viaje", variant: "destructive" as const },
-          { emoji: "🏨", name: "Hotel y alojamiento", count: 22, tag: "Viaje", variant: "destructive" as const },
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="bg-surface rounded-lg p-5 flex flex-col gap-3 border border-border-default"
-          >
-            <p className="text-4xl m-0">{item.emoji}</p>
-            <p className="text-base font-bold m-0 text-text-primary">
-              {item.name}
-            </p>
-            <p className="text-xs m-0 text-text-secondary">
-              {item.count} tarjetas
-            </p>
-            <Badge className="text-xs w-fit" variant={item.variant}>
-              {item.tag}
-            </Badge>
-          </div>
-        ))}
-      </div>
 
       {/* Create Set Button */}
       <Button
@@ -670,13 +681,11 @@ export function HomeScreen({ sets: propSets, recent, onContinue, onStudy, onNavi
   );
 }
 
-// ── Stat Pill Component ────────────────────────────────────────────────────────
-// ── Set Grid Card Component ────────────────────────────────────────────────────
+// ── Set Grid Card Component (user-created sets only) ─────────────────────────
 function SetGridCard({
   set,
   dueCount,
   index,
-  category,
   onStudy,
   onShare,
   onRename,
@@ -687,7 +696,6 @@ function SetGridCard({
   set: DeckSet;
   dueCount: number;
   index: number;
-  category: "Básico" | "Viaje" | "Cotidiano";
   onStudy: () => void;
   onShare: () => void;
   onRename: () => void;
@@ -695,95 +703,52 @@ function SetGridCard({
   onToggleFavorite: () => void;
   onResetProgress: () => void;
 }) {
-  const [isPressed, setIsPressed] = useState(false);
-
-  // Determine set type: curated (is_public: true) or user-created (is_public: false)
-  const isCurated = set.is_public === true;
-  const isUserCreated = set.is_public === false;
-
   const progress = (set.progress || []) as CardProgress[];
   const knownCount = Array.isArray(progress) ? progress.filter((c) => c.known === true).length : 0;
   const progressPercent = set.cardCount > 0 ? Math.round((knownCount / set.cardCount) * 100) : 0;
 
   return (
     <div
-      className="relative bg-surface rounded-lg p-4 cursor-pointer transition-normal flex flex-col gap-3 border border-border-default"
-      style={{
-        background: isPressed ? "#f5f5f5" : undefined,
-        transform: isPressed ? "scale(0.98)" : "scale(1)",
-      }}
+      className="relative bg-surface rounded-lg p-4 cursor-pointer flex flex-col gap-3 border border-border-default hover:bg-bg-subtle transition-colors"
       onClick={() => onStudy()}
-      onMouseDown={() => setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
-      onMouseLeave={() => setIsPressed(false)}
     >
-      {/* Header: Icon and Category Badge (Curated only) */}
+      {/* Header: Icon + options menu */}
       <div className="flex justify-between items-start gap-2">
-        {/* Icon */}
         <div
           className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 text-xl"
           style={{ background: PASTEL_COLORS[index % 5] }}
         >
-          {["🍜", "🚇", "🏪", "👋"][Math.floor(Math.random() * 4)]}
+          📖
         </div>
-        {/* Category Badge - Only for Curated Sets */}
-        {isCurated && (
-          <Badge
-            className="text-xs font-bold px-2 py-1"
-            variant={category === "Viaje" ? "destructive" : category === "Cotidiano" ? "default" : "secondary"}
-          >
-            {category}
-          </Badge>
-        )}
-        {/* Menu Button - Only for User-Created Sets */}
-        {isUserCreated && (
-          <div onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 flex-shrink-0"
-                  aria-label={`Opciones para ${set.title}`}
-                  title="Más opciones"
-                >
-                  <MoreVertical size={16} style={{ color: tokens.color.muted }} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRename();
-                }}
-                aria-label="Renombrar este set"
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 flex-shrink-0"
+                aria-label={`Opciones para ${set.title}`}
               >
+                <MoreVertical size={16} className="text-text-secondary" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }}>
                 Renombrar
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShare();
-                }}
-                aria-label="Compartir este set"
-              >
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
                 Compartir
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete();
-                }}
-                style={{ color: tokens.color.rose }}
-                aria-label="Eliminar este set"
+                onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                className="text-rose"
               >
                 Eliminar
               </DropdownMenuItem>
             </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Title */}
@@ -799,7 +764,7 @@ function SetGridCard({
       {/* Progress Bar */}
       <div className="w-full h-1 rounded-sm overflow-hidden bg-border-default">
         <div
-          className="h-full rounded-sm transition-normal"
+          className="h-full rounded-sm transition-colors"
           style={{
             width: `${progressPercent}%`,
             background:
@@ -812,31 +777,15 @@ function SetGridCard({
         />
       </div>
 
-      {/* Bottom: Action (Estudiar for Curated, Editar for User-Created) */}
-      {isCurated && (
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            onStudy();
-          }}
-          className="w-full bg-text-primary text-white text-xs font-bold py-2 px-2 rounded-sm hover:opacity-90"
+      {/* Editar link */}
+      <div className="pt-1">
+        <button
+          onClick={(e) => { e.stopPropagation(); onRename(); }}
+          className="text-xs font-bold text-sky hover:opacity-75 transition-colors"
         >
-          Estudiar
-        </Button>
-      )}
-      {isUserCreated && (
-        <div className="pt-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRename();
-            }}
-            className="text-xs font-bold text-sky hover:opacity-75 transition-normal"
-          >
-            Editar
-          </button>
-        </div>
-      )}
+          Editar
+        </button>
+      </div>
     </div>
   );
 }
