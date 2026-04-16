@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreVertical, Settings, Flame } from "lucide-react";
+import { MoreVertical, User, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
-import { tokens } from "@/lib/design-tokens";
 import { getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
 import {
   DropdownMenu,
@@ -47,15 +46,6 @@ interface HomeScreenProps {
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
   onLogout?: () => void;
 }
-
-// ── Pastel colors array (from tokens) ────────────────────────────────────────
-const PASTEL_COLORS = [
-  tokens.color.pastel.pink,
-  tokens.color.pastel.blue,
-  tokens.color.pastel.green,
-  tokens.color.pastel.peach,
-  tokens.color.pastel.purple,
-];
 
 // ── Public set metadata: name → display category + badge ─────────────────────
 // The DB doesn't store category/badge_label so we derive them here from set name.
@@ -387,12 +377,12 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
   // ===== MOBILE LAYOUT =====
   if (isMobile) {
     return (
-      <div className="h-screen max-w-[390px] mx-auto flex flex-col bg-bg-page">
+      <div className="h-dvh max-w-[390px] mx-auto flex flex-col bg-bg-page">
         {/* Top Safe Area */}
         <div aria-hidden className="flex-shrink-0 h-[max(16px,env(safe-area-inset-top,0px))]" />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch] pb-[100px]">
+        <div className="flex-1 overflow-y-auto [-webkit-overflow-scrolling:touch] pb-[100px] bg-bg-page">
           {/* Greeting */}
           <div className="px-4 py-4 flex justify-between items-center">
             <h1 className="text-3xl font-bold leading-tight text-text-primary">
@@ -401,10 +391,10 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full"
-              aria-label="Configuración"
+              className="rounded-full border-border-default"
+              aria-label="Perfil"
             >
-              <Settings size={16} />
+              <User size={16} className="text-text-primary" />
             </Button>
           </div>
 
@@ -450,7 +440,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
           {/* Public sets grouped by category */}
           {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
             <div key={category} className="mb-6">
-              <h2 className="px-4 text-lg font-bold leading-tight text-text-primary mb-3">
+              <h2 className="px-4 text-base font-bold text-text-primary mb-3">
                 {category}
               </h2>
               <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2 px-4">
@@ -460,18 +450,24 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
                     <button
                       key={set.id}
                       onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
-                      className="min-w-[140px] bg-surface border border-border-default rounded-lg p-3 flex flex-col gap-2 text-left cursor-pointer hover:bg-bg-subtle transition-colors"
+                      className="w-[160px] shrink-0 bg-surface border border-border-default rounded-lg p-4 flex flex-col gap-4 text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                     >
-                      <p className="text-2xl m-0">{meta.emoji}</p>
-                      <p className="text-xs font-bold m-0 text-text-primary">
-                        {set.name}
-                      </p>
-                      <p className="text-xs m-0 text-text-secondary">
-                        {set.cards.length} tarjetas
-                      </p>
-                      <Badge className="text-xs w-fit" variant={badgeVariant(meta.badge)}>
-                        {meta.badge}
-                      </Badge>
+                      {/* Icon row: emoji left, badge right */}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-2xl leading-none">{meta.emoji}</span>
+                        <Badge className="text-xs shrink-0" variant={badgeVariant(meta.badge)}>
+                          {meta.badge}
+                        </Badge>
+                      </div>
+                      {/* Title + count */}
+                      <div>
+                        <p className="text-sm font-bold text-text-primary leading-tight">
+                          {set.name}
+                        </p>
+                        <p className="text-xs text-text-secondary mt-1">
+                          {set.cards.length} tarjetas
+                        </p>
+                      </div>
                     </button>
                   );
                 })}
@@ -508,22 +504,12 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
           )}
         </div>
 
-        {/* Create Set Button */}
-        <div className="px-4 pb-3">
-          <Button
-            onClick={() => onNavigate("crear")}
-            className="w-full bg-text-primary text-white font-bold py-3 px-4 rounded-sm hover:opacity-90"
-          >
-            Create set
-          </Button>
-        </div>
-
         {/* Navigation */}
         <AppNav active="inicio" onNavigate={onNavigate} />
 
-        {/* Bottom Safe Area */}
-        <div aria-hidden className="flex-shrink-0 bg-surface flex justify-center pt-1" style={{ paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))" }}>
-          <div className="w-[134px] h-1 rounded-full bg-text-primary" />
+        {/* iOS home indicator */}
+        <div aria-hidden className="flex-shrink-0 bg-surface flex justify-center pt-1 pb-[max(6px,env(safe-area-inset-bottom,6px))]">
+          <div className="w-[134px] h-1 rounded-full bg-border-default" />
         </div>
 
         {/* Toast */}
@@ -556,8 +542,8 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
             {userFirstName}
           </span>
         </h1>
-        <Button variant="outline" size="icon" className="rounded-full">
-          <Settings size={20} />
+        <Button variant="outline" size="icon" className="rounded-full border-border-default" aria-label="Perfil">
+          <User size={20} className="text-text-primary" />
         </Button>
       </div>
 
@@ -603,28 +589,34 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
       {/* Public sets grouped by category */}
       {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
         <div key={category} className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-text-primary">
+          <h2 className="text-base font-bold mb-4 text-text-primary">
             {category}
           </h2>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4">
             {sets.map((set) => {
               const meta = getSetMeta(set.name);
               return (
                 <button
                   key={set.id}
                   onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
-                  className="bg-surface rounded-lg p-5 flex flex-col gap-3 border border-border-default text-left cursor-pointer hover:bg-bg-subtle transition-colors"
+                  className="bg-surface rounded-lg p-4 flex flex-col gap-4 border border-border-default text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                 >
-                  <p className="text-4xl m-0">{meta.emoji}</p>
-                  <p className="text-base font-bold m-0 text-text-primary">
-                    {set.name}
-                  </p>
-                  <p className="text-xs m-0 text-text-secondary">
-                    {set.cards.length} tarjetas
-                  </p>
-                  <Badge className="text-xs w-fit" variant={badgeVariant(meta.badge)}>
-                    {meta.badge}
-                  </Badge>
+                  {/* Icon row: emoji left, badge right */}
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-2xl leading-none">{meta.emoji}</span>
+                    <Badge className="text-xs shrink-0" variant={badgeVariant(meta.badge)}>
+                      {meta.badge}
+                    </Badge>
+                  </div>
+                  {/* Title + count */}
+                  <div>
+                    <p className="text-sm font-bold text-text-primary leading-tight">
+                      {set.name}
+                    </p>
+                    <p className="text-xs text-text-secondary mt-1">
+                      {set.cards.length} tarjetas
+                    </p>
+                  </div>
                 </button>
               );
             })}
@@ -659,14 +651,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
           </div>
         </div>
       )}
-
-      {/* Create Set Button */}
-      <Button
-        onClick={() => onNavigate("crear")}
-        className="w-full bg-text-primary text-white font-bold py-3 px-4 rounded-sm hover:opacity-90"
-      >
-        Create set
-      </Button>
 
       {/* Toast */}
       {toast && (
@@ -703,88 +687,48 @@ function SetGridCard({
   onToggleFavorite: () => void;
   onResetProgress: () => void;
 }) {
-  const progress = (set.progress || []) as CardProgress[];
-  const knownCount = Array.isArray(progress) ? progress.filter((c) => c.known === true).length : 0;
-  const progressPercent = set.cardCount > 0 ? Math.round((knownCount / set.cardCount) * 100) : 0;
-
   return (
     <div
-      className="relative bg-surface rounded-lg p-4 cursor-pointer flex flex-col gap-3 border border-border-default hover:bg-bg-subtle transition-colors"
+      className="bg-surface rounded-lg p-4 cursor-pointer flex flex-col gap-4 border border-border-default hover:bg-bg-subtle transition-colors"
       onClick={() => onStudy()}
     >
-      {/* Header: Icon + options menu */}
-      <div className="flex justify-between items-start gap-2">
-        <div
-          className="w-10 h-10 rounded-sm flex items-center justify-center flex-shrink-0 text-xl"
-          style={{ background: PASTEL_COLORS[index % 5] }}
-        >
-          📖
-        </div>
-        <div onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 flex-shrink-0"
-                aria-label={`Opciones para ${set.title}`}
-              >
-                <MoreVertical size={16} className="text-text-secondary" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }}>
-                Renombrar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
-                Compartir
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                className="text-rose"
-              >
-                Eliminar
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h3 className="text-sm font-bold m-0 text-text-primary">
-        {set.title}
-      </h3>
-
-      {/* Card Count */}
-      <p className="text-xs m-0 text-text-secondary">
-        {set.cardCount} tarjetas
-      </p>
-
-      {/* Progress Bar */}
-      <div className="w-full h-1 rounded-sm overflow-hidden bg-border-default">
-        <div
-          className="h-full rounded-sm transition-colors"
-          style={{
-            width: `${progressPercent}%`,
-            background:
-              progressPercent > 50
-                ? "var(--color-sage)"
-                : progressPercent > 0
-                  ? "var(--color-butter)"
-                  : "var(--color-border)",
-          }}
-        />
-      </div>
-
-      {/* Editar link */}
-      <div className="pt-1">
+      {/* Top row: Editar link (right-aligned) + overflow menu */}
+      <div className="flex justify-between items-start" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={(e) => { e.stopPropagation(); onRename(); }}
           className="text-xs font-bold text-sky hover:opacity-75 transition-colors"
         >
           Editar
         </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1" aria-label={`Opciones para ${set.title}`}>
+              <MoreVertical size={14} className="text-text-secondary" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRename(); }}>
+              Renombrar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
+              Compartir
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-rose">
+              Eliminar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Title + count */}
+      <div>
+        <h3 className="text-sm font-bold text-text-primary leading-tight">
+          {set.title}
+        </h3>
+        <p className="text-xs text-text-secondary mt-1">
+          {set.cardCount} tarjetas
+        </p>
       </div>
     </div>
   );
