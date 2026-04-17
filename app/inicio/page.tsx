@@ -37,6 +37,12 @@ export default function InicioPage() {
         return;
       }
 
+      // First-time users: go through onboarding before home
+      if (!user.user_metadata?.daily_goal) {
+        router.push("/onboarding");
+        return;
+      }
+
       setIsAuthenticated(true);
       localStorage.setItem('current_user_id', user.id);
       loadSets(user.id);
