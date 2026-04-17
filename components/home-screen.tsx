@@ -564,7 +564,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
           <div
             className="h-full rounded-full bg-butter transition-normal"
             style={{
-              width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
+              width: `${Math.min(100, Math.round((totalDueCards / dailyTarget) * 100))}%`,
             }}
           />
         </div>
