@@ -332,7 +332,8 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   // Per-set stats: cap each set's queue at the daily goal
   const setStats = localSets.map((set) => {
     const progress = (set.progress || []) as CardProgress[];
-    const allIds = set.cards.map((c, i) => c.id || i.toString());
+    const cards = set.cards || [];
+    const allIds = cards.map((c, i) => c.id || i.toString());
     const cappedIds = buildDailyQueue(allIds, progress, goal.newPerDay, goal.reviewPerDay);
     return { setId: set.id, dueCount: cappedIds.size };
   });
@@ -342,8 +343,9 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   let totalReviewRaw = 0;
   localSets.forEach((set) => {
     const progress = (set.progress || []) as CardProgress[];
+    const cards = set.cards || [];
     const progressIds = new Set(progress.map((p) => p.cardId));
-    totalNewRaw += set.cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
+    totalNewRaw += cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
     totalReviewRaw += getDueCards(progress).length;
   });
   const totalDueCards = Math.min(totalNewRaw, goal.newPerDay) + Math.min(totalReviewRaw, goal.reviewPerDay);
