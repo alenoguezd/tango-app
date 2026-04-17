@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { MoreVertical, User, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
-import { getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
+import { buildDailyQueue, getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -40,6 +40,7 @@ type BadgeLabel = "Básico" | "Viaje" | "Cotidiano" | "Esencial";
 interface HomeScreenProps {
   publicSets?: PublicSet[];
   sets?: DeckSet[];
+  dailyGoal?: { newPerDay: number; reviewPerDay: number };
   recent?: DeckSet | null;
   onContinue?: (set: DeckSet) => void;
   onStudy: (set: DeckSet) => void;
@@ -118,7 +119,10 @@ function useWindowSize() {
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────────
-export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
+const DAILY_DEFAULT = { newPerDay: 10, reviewPerDay: 40 };
+
+export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
+  const goal = dailyGoal ?? DAILY_DEFAULT;
   const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
   const [userName, setUserName] = useState<string>("Usuario");
   const [userInitials, setUserInitials] = useState<string>("U");
@@ -325,36 +329,26 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
     }
   };
 
-  // Helper function to get due cards for a set
-  const getDueCardsForSet = (progress: CardProgress[] | number | undefined, cardCount: number): CardProgress[] => {
-    if (!Array.isArray(progress)) {
-      return [];
-    }
-    if (progress.length === 0) {
-      return Array.from({ length: cardCount }, (_, i) => ({
-        cardId: i.toString(),
-        known: false,
-        interval: 1,
-        easeFactor: 2.5,
-        nextReview: getTodayString(),
-        repetitions: 0,
-      }));
-    }
-    return getDueCards(progress);
-  };
-
-  // Calculate stats including due cards
+  // Per-set stats: cap each set's queue at the daily goal
   const setStats = localSets.map((set) => {
     const progress = (set.progress || []) as CardProgress[];
-    const dueCards = getDueCardsForSet(progress, set.cardCount);
-    return {
-      setId: set.id,
-      dueCount: dueCards.length,
-    };
+    const allIds = set.cards.map((c, i) => c.id || i.toString());
+    const cappedIds = buildDailyQueue(allIds, progress, goal.newPerDay, goal.reviewPerDay);
+    return { setId: set.id, dueCount: cappedIds.size };
   });
 
-  const totalDueCards = setStats.reduce((sum, stat) => sum + stat.dueCount, 0);
-  const totalCards = localSets.reduce((sum, s) => sum + s.cardCount, 0);
+  // Global Today count: sum raw new + review across all sets, then apply global cap
+  let totalNewRaw = 0;
+  let totalReviewRaw = 0;
+  localSets.forEach((set) => {
+    const progress = (set.progress || []) as CardProgress[];
+    const progressIds = new Set(progress.map((p) => p.cardId));
+    totalNewRaw += set.cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
+    totalReviewRaw += getDueCards(progress).length;
+  });
+  const totalDueCards = Math.min(totalNewRaw, goal.newPerDay) + Math.min(totalReviewRaw, goal.reviewPerDay);
+  const dailyTarget = goal.newPerDay + goal.reviewPerDay;
+
   const setsWithDue = setStats.filter(s => s.dueCount > 0).length;
   const avgMastery = localSets.length > 0
     ? Math.round(localSets.reduce((sum, s) => {
@@ -419,7 +413,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, recent, onContinue
               <div
                 className="h-full rounded-full bg-butter transition-normal"
                 style={{
-                  width: `${totalCards > 0 ? (totalDueCards / totalCards) * 100 : 0}%`,
+                  width: `${Math.min(100, Math.round((totalDueCards / dailyTarget) * 100))}%`,
                 }}
               />
             </div>

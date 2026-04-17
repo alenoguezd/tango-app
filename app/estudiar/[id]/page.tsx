@@ -8,6 +8,7 @@ import { AppNav } from "@/components/app-nav";
 import { createClient } from "@/lib/supabase";
 import {
   type CardProgress,
+  buildDailyQueue,
   calculateSM2,
   getDueCards,
   migrateProgress,
@@ -59,6 +60,10 @@ export default function EstudiarPage() {
   const [set, setSet] = useState<StudySet | null>(null);
   const [dueCardIds, setDueCardIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [dailyGoal, setDailyGoal] = useState<{ newPerDay: number; reviewPerDay: number }>({
+    newPerDay: 10,
+    reviewPerDay: 40,
+  });
   const [loading, setLoading] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [previousMastery, setPreviousMastery] = useState(0);
@@ -79,13 +84,23 @@ export default function EstudiarPage() {
       }
 
       setCurrentUserId(user.id);
-      loadSetData();
+
+      // Read user's daily goal; fall back to defaults if not set
+      const goal = user.user_metadata?.daily_goal as
+        | { newPerDay: number; reviewPerDay: number }
+        | undefined;
+      const resolvedGoal = {
+        newPerDay: goal?.newPerDay ?? 10,
+        reviewPerDay: goal?.reviewPerDay ?? 40,
+      };
+      setDailyGoal(resolvedGoal);
+      loadSetData(resolvedGoal);
     } catch (error) {
       router.push("/");
     }
   };
 
-  const loadSetData = async () => {
+  const loadSetData = async (goal: { newPerDay: number; reviewPerDay: number }) => {
     try {
       // 1. Try loading by set ID (owned sets)
       const { data, error } = await supabase
@@ -97,7 +112,7 @@ export default function EstudiarPage() {
       if (!error && data) {
         const found = processSetData(data);
         setSet(found);
-        calculateAndSetDueCards(found);
+        calculateAndSetDueCards(found, goal);
       } else {
         // 2. Try loading by share_token (shared links)
         const { data: sharedData, error: sharedError } = await supabase
@@ -110,7 +125,7 @@ export default function EstudiarPage() {
         if (!sharedError && sharedData) {
           const found = processSetData(sharedData);
           setSet(found);
-          calculateAndSetDueCards(found);
+          calculateAndSetDueCards(found, goal);
         } else {
           // 3. Fallback to localStorage
           const savedSets = localStorage.getItem("vocab_sets");
@@ -126,7 +141,7 @@ export default function EstudiarPage() {
                 localStorage.setItem("vocab_sets", JSON.stringify(sets));
               }
               setSet(found);
-              calculateAndSetDueCards(found);
+              calculateAndSetDueCards(found, goal);
             }
           }
         }
@@ -180,25 +195,15 @@ export default function EstudiarPage() {
     };
   };
 
-  // Helper: Calculate and set due cards
-  const calculateAndSetDueCards = (studySet: StudySet) => {
-    let due: CardProgress[];
-
-    // If progress is empty (never studied), all cards are due
-    if (!Array.isArray(studySet.progress) || studySet.progress.length === 0) {
-      due = studySet.cards.map((card, index) => ({
-        cardId: card.id || index.toString(),
-        known: false,
-        interval: 1,
-        easeFactor: 2.5,
-        nextReview: getTodayString(),
-        repetitions: 0,
-      }));
-    } else {
-      due = getDueCards(studySet.progress);
-    }
-
-    setDueCardIds(new Set(due.map((c) => c.cardId)));
+  // Helper: Build today's capped queue using the user's daily goal
+  const calculateAndSetDueCards = (
+    studySet: StudySet,
+    goal: { newPerDay: number; reviewPerDay: number } = dailyGoal
+  ) => {
+    const allCardIds = studySet.cards.map((card, index) => card.id || index.toString());
+    const progress = Array.isArray(studySet.progress) ? studySet.progress : [];
+    const cappedIds = buildDailyQueue(allCardIds, progress, goal.newPerDay, goal.reviewPerDay);
+    setDueCardIds(cappedIds);
   };
 
   const handleCardSwiped = async (card: VocabCard, direction: "left" | "right", cardIndex: number) => {

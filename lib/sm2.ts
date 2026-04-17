@@ -160,6 +160,42 @@ export function addDays(dateStr: string, days: number): string {
 }
 
 /**
+ * Build today's capped study queue for a single set.
+ *
+ * Separates cards into two buckets:
+ *   - New: card IDs that have NO progress entry (never studied)
+ *   - Review: cards in progress whose nextReview <= today
+ *
+ * Each bucket is independently capped, then combined.
+ *
+ * @param allCardIds - Every card ID in the set (in order)
+ * @param progress   - Existing SM-2 progress array for the set
+ * @param newPerDay  - Max new cards to introduce today
+ * @param reviewPerDay - Max review cards to serve today
+ * @returns Set of cardIds that make up today's session
+ */
+export function buildDailyQueue(
+  allCardIds: string[],
+  progress: CardProgress[],
+  newPerDay: number,
+  reviewPerDay: number
+): Set<string> {
+  const progressIds = new Set(progress.map((p) => p.cardId));
+
+  // New: cards with no progress entry at all (never studied)
+  const newIds = allCardIds
+    .filter((id) => !progressIds.has(id))
+    .slice(0, newPerDay);
+
+  // Review: cards in progress that are due today
+  const reviewIds = getDueCards(progress)
+    .slice(0, reviewPerDay)
+    .map((p) => p.cardId);
+
+  return new Set([...newIds, ...reviewIds]);
+}
+
+/**
  * Get review statistics for a set of cards
  * Useful for showing stats on home screen
  */

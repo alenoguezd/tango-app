@@ -12,7 +12,10 @@ export default function InicioPage() {
   const [sets, setSets] = useState<DeckSet[]>([]);
   const [publicSets, setPublicSets] = useState<PublicSet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [dailyGoal, setDailyGoal] = useState<{ newPerDay: number; reviewPerDay: number }>({
+    newPerDay: 10,
+    reviewPerDay: 40,
+  });
 
   useEffect(() => {
     checkAuthAndLoadSets();
@@ -43,7 +46,10 @@ export default function InicioPage() {
         return;
       }
 
-      setIsAuthenticated(true);
+      // Store the user's goal so the home screen can cap the queue
+      const goal = user.user_metadata.daily_goal as { newPerDay: number; reviewPerDay: number };
+      setDailyGoal({ newPerDay: goal.newPerDay ?? 10, reviewPerDay: goal.reviewPerDay ?? 40 });
+
       localStorage.setItem('current_user_id', user.id);
       loadSets(user.id);
       loadPublicSets();
@@ -165,6 +171,7 @@ export default function InicioPage() {
     <HomeScreen
       publicSets={publicSets}
       sets={sets}
+      dailyGoal={dailyGoal}
       recent={null}
       onContinue={() => {}}
       onStudy={handleStudy}
