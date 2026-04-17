@@ -47,14 +47,21 @@ export default function InicioPage() {
   };
 
   const loadPublicSets = async () => {
-    const { data, error } = await supabase
-      .from("sets")
-      .select("id, name, cards")
-      .eq("is_public", true)
-      .is("user_id", null);
+    try {
+      const { data, error } = await supabase
+        .from("sets")
+        .select("id, name, cards")
+        .eq("is_public", true)
+        .is("user_id", null);
 
-    if (!error && data) {
-      setPublicSets(data as PublicSet[]);
+      if (!error && data) {
+        // Guard: drop rows whose cards column is null/missing
+        setPublicSets(
+          (data as PublicSet[]).filter((s) => Array.isArray(s.cards))
+        );
+      }
+    } catch {
+      // Non-fatal: public sets are decorative; silently skip on network error
     }
   };
 
