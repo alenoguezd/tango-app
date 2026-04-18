@@ -331,7 +331,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
 
   // Per-set stats: cap each set's queue at the daily goal
   const setStats = localSets.map((set) => {
-    const progress = (set.progress || []) as CardProgress[];
+    const progress = Array.isArray(set.progress) ? set.progress as CardProgress[] : [];
     const cards = set.cards || [];
     const allIds = cards.map((c, i) => c.id || i.toString());
     const cappedIds = buildDailyQueue(allIds, progress, goal.newPerDay, goal.reviewPerDay);
@@ -342,7 +342,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   let totalNewRaw = 0;
   let totalReviewRaw = 0;
   localSets.forEach((set) => {
-    const progress = (set.progress || []) as CardProgress[];
+    const progress = Array.isArray(set.progress) ? set.progress as CardProgress[] : [];
     const cards = set.cards || [];
     const progressIds = new Set(progress.map((p) => p.cardId));
     totalNewRaw += cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
@@ -354,7 +354,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   const setsWithDue = setStats.filter(s => s.dueCount > 0).length;
   const avgMastery = localSets.length > 0
     ? Math.round(localSets.reduce((sum, s) => {
-        const progress = (s.progress || []) as CardProgress[];
+        const progress = Array.isArray(s.progress) ? s.progress as CardProgress[] : [];
         return sum + (progress.length > 0 ? Math.round(
           (progress.filter((c) => c.known === true).length / progress.length) * 100
         ) : 0);
