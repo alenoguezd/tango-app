@@ -109,14 +109,16 @@ export default function InicioPage() {
         if (localSets.length > 0) {
           // Merge: Use localStorage as the source for display (has latest progress)
           // but sync back to Supabase data structure
-          const mergedSets = localSets.map((localSet: any) => {
-            // Find matching Supabase set to get any remote-only fields
-            const remoteSet = supabaseSets.find((s) => s.id === localSet.id);
-            return {
-              ...remoteSet, // Supabase fields as base
-              ...localSet,  // localStorage fields override (has latest progress)
-            };
-          });
+          const mergedSets = localSets
+            .filter((localSet: any) => supabaseSets.some((s) => s.id === localSet.id))
+            .map((localSet: any) => {
+              // Find matching Supabase set to get any remote-only fields
+              const remoteSet = supabaseSets.find((s) => s.id === localSet.id);
+              return {
+                ...remoteSet, // Supabase fields as base
+                ...localSet,  // localStorage fields override (has latest progress)
+              };
+            });
 
           // Also include any sets that were in Supabase but not localStorage
           const supabaseOnlySets = supabaseSets.filter((remoteSet) =>

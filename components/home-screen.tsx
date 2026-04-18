@@ -129,19 +129,13 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   const [userFirstName, setUserFirstName] = useState<string>("Usuario");
   const [toast, setToast] = useState<string | null>(null);
 
-  // Load sets from localStorage on mount
+  // Keep localSets in sync when the page reloads sets (e.g. after returning from study)
   useEffect(() => {
-    const savedSets = localStorage.getItem("vocab_sets");
-    if (savedSets) {
-      try {
-        setLocalSets(JSON.parse(savedSets));
-      } catch (error) {
-        console.error("Error loading sets from localStorage:", error);
-        setLocalSets([]);
-      }
-    }
+    setLocalSets(propSets || []);
+  }, [propSets]);
 
-    // Fetch user name
+  // Fetch user name on mount
+  useEffect(() => {
     const fetchUserName = async () => {
       try {
         const supabase = createClient();
