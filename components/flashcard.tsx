@@ -776,7 +776,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
             )}
 
             {/* Card content */}
-            <div style={{ position: "relative", zIndex: 1, width: "100%" }}>
+            <div style={{ position: "relative", zIndex: 1, width: "100%" }} className="flex flex-col justify-center flex-1">
               {!flipped ? (
                 <>
                   {/* Front: Japanese */}
