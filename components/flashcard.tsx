@@ -661,24 +661,10 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   alignItems: "center",
                 }}
               >
-                <p style={{
-                  fontSize: "clamp(36px, 10vw, 56px)",
-                  fontWeight: 800,
-                  color: TEXT_PRI,
-                  margin: "0 0 12px 0",
-                  textAlign: "center",
-                  lineHeight: 1,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                }}>
+                <p className="text-2xl font-extrabold text-text-primary text-center leading-none mb-3 font-serif">
                   {card?.kanji}
                 </p>
-                <p style={{
-                  fontSize: "24px",
-                  color: tokens.color.textBlue,
-                  margin: 0,
-                  textAlign: "center",
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                }}>
+                <p className="text-5xl font-bold text-sky text-center font-serif">
                   {card?.kana}
                 </p>
               </div>
@@ -794,38 +780,17 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               {!flipped ? (
                 <>
                   {/* Front: Japanese */}
-                  <p style={{
-                    fontSize: "clamp(36px, 10vw, 56px)",
-                    fontWeight: 800,
-                    color: TEXT_PRI,
-                    margin: "0 0 12px 0",
-                    textAlign: "center",
-                    lineHeight: 1,
-                    fontFamily: "'Georgia', 'Times New Roman', serif",
-                  }}>
+                  <p className="text-2xl font-extrabold text-text-primary text-center leading-none mb-3 font-serif">
                     {displayCard?.kanji}
                   </p>
-                  <p style={{
-                    fontSize: "24px",
-                    color: tokens.color.textBlue,
-                    margin: 0,
-                    textAlign: "center",
-                    fontFamily: "'Georgia', 'Times New Roman', serif",
-                  }}>
+                  <p className="text-5xl font-bold text-sky text-center font-serif">
                     {displayCard?.kana}
                   </p>
                 </>
               ) : (
                 <>
-                  {/* Back: English and details */}
-                  <p style={{
-                    fontSize: "clamp(26px, 7vw, 38px)",
-                    fontWeight: 800,
-                    color: TEXT_PRI,
-                    margin: "0 0 16px 0",
-                    textAlign: "center",
-                    lineHeight: 1.2,
-                  }}>
+                  {/* Back: Spanish translation */}
+                  <p className="text-xl font-extrabold text-text-primary text-center leading-snug mb-4">
                     {displayCard?.spanish}
                   </p>
 
