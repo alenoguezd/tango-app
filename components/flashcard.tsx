@@ -661,7 +661,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   alignItems: "center",
                 }}
               >
-                <p className="text-sm font-normal text-text-secondary text-center mb-1">
+                <p className="text-base font-medium text-text-secondary text-center mb-2">
                   {card?.kanji}
                 </p>
                 <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
@@ -780,7 +780,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               {!flipped ? (
                 <>
                   {/* Front: Japanese */}
-                  <p className="text-sm font-normal text-text-secondary text-center mb-1">
+                  <p className="text-base font-medium text-text-secondary text-center mb-2">
                     {displayCard?.kanji}
                   </p>
                   <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
@@ -798,12 +798,12 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
 
                   {/* Kanji label + kana */}
                   {displayCard?.kanji && (
-                    <p className="text-sm text-text-secondary text-center mb-1">
+                    <p className="text-base font-medium text-text-secondary text-center mb-2">
                       {displayCard.kanji}
                     </p>
                   )}
                   {displayCard?.kana && (
-                    <p className="text-lg font-medium text-text-primary text-center mb-3 break-all">
+                    <p className="text-lg font-medium text-text-primary text-center mb-5 break-all">
                       {displayCard.kana}
                     </p>
                   )}
@@ -811,14 +811,14 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   {/* Example sentence */}
                   {displayCard?.example_usage && (
                     <>
-                      <p className="text-xs font-semibold text-text-secondary text-center mb-1">
+                      <p className="text-sm font-semibold text-text-secondary text-center mb-2">
                         Ejemplo
                       </p>
-                      <p className="text-sm text-text-secondary text-center">
+                      <p className="text-sm text-text-primary text-center leading-relaxed">
                         {displayCard.example_usage.split("\n")[0]}
                       </p>
                       {displayCard.example_usage.split("\n")[1] && (
-                        <p className="text-sm text-text-secondary text-center">
+                        <p className="text-sm text-text-secondary text-center leading-relaxed mt-1">
                           {displayCard.example_usage.split("\n")[1]}
                         </p>
                       )}
