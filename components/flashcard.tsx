@@ -661,10 +661,10 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   alignItems: "center",
                 }}
               >
-                <p className="text-2xl font-extrabold text-text-primary text-center leading-none mb-3 font-serif">
+                <p className="text-sm font-normal text-text-secondary text-center mb-1">
                   {card?.kanji}
                 </p>
-                <p className="text-5xl font-bold text-sky text-center font-serif">
+                <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
                   {card?.kana}
                 </p>
               </div>
@@ -780,67 +780,49 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               {!flipped ? (
                 <>
                   {/* Front: Japanese */}
-                  <p className="text-2xl font-extrabold text-text-primary text-center leading-none mb-3 font-serif">
+                  <p className="text-sm font-normal text-text-secondary text-center mb-1">
                     {displayCard?.kanji}
                   </p>
-                  <p className="text-5xl font-bold text-sky text-center font-serif">
+                  <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
                     {displayCard?.kana}
                   </p>
                 </>
               ) : (
                 <>
                   {/* Back: Spanish translation */}
-                  <p className="text-xl font-extrabold text-text-primary text-center leading-snug mb-4">
+                  <p className="text-2xl font-semibold text-text-primary text-center leading-snug mb-3">
                     {displayCard?.spanish}
                   </p>
 
-                  <div style={{
-                    width: "40px",
-                    height: "2px",
-                    background: BORDER,
-                    marginBottom: "16px",
-                    margin: "0 auto 16px",
-                  }} />
+                  <div className="w-10 h-px bg-border-default mx-auto my-3" />
 
-                  <p style={{
-                    fontSize: "12px",
-                    color: TEXT_SEC,
-                    margin: "0 0 8px 0",
-                    textAlign: "center",
-                  }}>
-                    {displayCard?.kanji && `${displayCard.kanji} · `}
-                    <span style={{ fontStyle: "italic" }}>v. transitivo</span>
-                  </p>
-
-                  <p style={{
-                    fontSize: "13px",
-                    color: TEXT_SEC,
-                    margin: "0 0 8px 0",
-                    textAlign: "center",
-                    fontWeight: 600,
-                  }}>
-                    Ejemplo
-                  </p>
-
-                  <p style={{
-                    fontSize: "12px",
-                    color: TEXT_PRI,
-                    margin: "0 0 4px 0",
-                    textAlign: "center",
-                    fontFamily: "'Georgia', 'Times New Roman', serif",
-                  }}>
-                    {displayCard?.example_usage?.split("\n")[0]}
-                  </p>
-
-                  {displayCard?.example_usage?.split("\n")[1] && (
-                    <p style={{
-                      fontSize: "12px",
-                      color: TEXT_SEC,
-                      margin: "0",
-                      textAlign: "center",
-                    }}>
-                      {displayCard.example_usage.split("\n")[1]}
+                  {/* Kanji label + kana */}
+                  {displayCard?.kanji && (
+                    <p className="text-sm text-text-secondary text-center mb-1">
+                      {displayCard.kanji}
                     </p>
+                  )}
+                  {displayCard?.kana && (
+                    <p className="text-lg font-medium text-text-primary text-center mb-3 break-all">
+                      {displayCard.kana}
+                    </p>
+                  )}
+
+                  {/* Example sentence */}
+                  {displayCard?.example_usage && (
+                    <>
+                      <p className="text-xs font-semibold text-text-secondary text-center mb-1">
+                        Ejemplo
+                      </p>
+                      <p className="text-sm text-text-secondary text-center">
+                        {displayCard.example_usage.split("\n")[0]}
+                      </p>
+                      {displayCard.example_usage.split("\n")[1] && (
+                        <p className="text-sm text-text-secondary text-center">
+                          {displayCard.example_usage.split("\n")[1]}
+                        </p>
+                      )}
+                    </>
                   )}
                 </>
               )}
