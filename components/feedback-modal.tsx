@@ -63,12 +63,12 @@ export function FeedbackModal({ isOpen, onClose, cardId, setId, userId }: Feedba
   return (
     /* Backdrop */
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
       onClick={handleClose}
     >
       {/* Panel */}
       <div
-        className="bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl p-6 pb-[max(24px,env(safe-area-inset-bottom,24px))]"
+        className="bg-white w-full max-w-sm rounded-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {submitted ? (
