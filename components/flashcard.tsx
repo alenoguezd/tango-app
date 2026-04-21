@@ -661,7 +661,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
                   alignItems: "center",
                 }}
               >
-                <p className="text-2xl font-medium text-text-secondary text-center mb-2">
+                <p className="text-3xl font-medium text-text-secondary text-center mb-2">
                   {card?.kanji}
                 </p>
                 <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
@@ -780,7 +780,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               {!flipped ? (
                 <>
                   {/* Front: Japanese */}
-                  <p className="text-2xl font-medium text-text-secondary text-center mb-2">
+                  <p className="text-3xl font-medium text-text-secondary text-center mb-2">
                     {displayCard?.kanji}
                   </p>
                   <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
@@ -798,7 +798,7 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
 
                   {/* Kanji label + kana */}
                   {displayCard?.kanji && (
-                    <p className="text-2xl font-medium text-text-secondary text-center mb-2">
+                    <p className="text-3xl font-medium text-text-secondary text-center mb-2">
                       {displayCard.kanji}
                     </p>
                   )}
