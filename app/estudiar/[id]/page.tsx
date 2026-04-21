@@ -520,6 +520,8 @@ export default function EstudiarPage() {
           <Flashcard
             cards={dueCards}
             title={set.title}
+            setId={set.id}
+            userId={currentUserId ?? ""}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
             onSessionComplete={() => setSessionComplete(true)}
@@ -647,6 +649,8 @@ export default function EstudiarPage() {
           <Flashcard
             cards={dueCards}
             title={set.title}
+            setId={set.id}
+            userId={currentUserId ?? ""}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
             onSessionComplete={() => setSessionComplete(true)}

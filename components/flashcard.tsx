@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Flag } from "lucide-react";
 import { tokens } from "@/lib/design-tokens";
+import { FeedbackModal } from "@/components/feedback-modal";
 
 export interface VocabCard {
   id?: string;
@@ -17,6 +18,8 @@ export interface VocabCard {
 interface FlashcardProps {
   cards: VocabCard[];
   title?: string;
+  setId?: string;
+  userId?: string;
   onBack?: () => void;
   onCardSwiped?: (card: VocabCard, direction: "left" | "right", cardIndex: number) => void;
   onSessionComplete?: () => void;
@@ -70,10 +73,11 @@ function playWrong() {
   }
 }
 
-export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
+export function Flashcard({ cards, title = "Lección", setId = "", userId = "", onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   // Drag state
   const [dragX, setDragX] = useState(0);
@@ -775,6 +779,18 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
               </div>
             )}
 
+            {/* Flag / report button */}
+            {!isDragging && (
+              <button
+                className="absolute bottom-3 right-3 z-10 p-2 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-bg-subtle"
+                aria-label="Reportar problema"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); setFeedbackOpen(true); }}
+              >
+                <Flag size={14} strokeWidth={1.5} />
+              </button>
+            )}
+
             {/* Card content */}
             <div style={{ position: "relative", zIndex: 1, width: "100%" }} className="flex flex-col justify-center flex-1">
               {!flipped ? (
@@ -996,6 +1012,15 @@ export function Flashcard({ cards, title = "Lección", onBack, onCardSwiped, onS
         </div>
         );
       })()}
+
+      {/* Feedback modal — rendered outside the card stack so overflow:hidden doesn't clip it */}
+      <FeedbackModal
+        isOpen={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        cardId={displayCard?.id ?? ""}
+        setId={setId}
+        userId={userId}
+      />
     </div>
   );
 }
