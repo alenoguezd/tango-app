@@ -94,8 +94,10 @@ export default function InicioPage() {
         id: set.id,
         title: set.name,
         cardCount: (set.cards || []).length,
-        progress: set.progress || 0,
-        lastStudied: set.last_studied || set.created_at || new Date().toISOString(),
+        // Never default progress to a number — keeps Array.isArray checks reliable
+        progress: Array.isArray(set.progress) ? set.progress : [],
+        // updated_at is the column written on every study swipe; last_studied doesn't exist
+        lastStudied: set.updated_at || set.created_at || new Date().toISOString(),
         cards: set.cards || [],
         favorite: set.is_favorite || false,
       }));
@@ -107,22 +109,31 @@ export default function InicioPage() {
         const localSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
 
         if (localSets.length > 0) {
-          // Merge: Use localStorage as the source for display (has latest progress)
-          // but sync back to Supabase data structure
+          // Merge: pick the more recently studied progress source for each set
           const mergedSets = localSets
             .filter((localSet: any) => supabaseSets.some((s) => s.id === localSet.id))
             .map((localSet: any) => {
-              // Find matching Supabase set to get any remote-only fields
-              const remoteSet = supabaseSets.find((s) => s.id === localSet.id);
+              const remoteSet = supabaseSets.find((s) => s.id === localSet.id)!;
+
+              // Compare timestamps to decide which progress array wins.
+              // Both Supabase (updated_at) and localStorage (lastStudied) store ISO strings.
+              const remoteTs = remoteSet.lastStudied || "";
+              const localTs  = localSet.lastStudied  || "";
+              const useRemoteProgress = remoteTs > localTs;
+
               return {
-                ...remoteSet, // Supabase fields as base
-                ...localSet,  // localStorage fields override (has latest progress)
+                ...remoteSet,                                          // Supabase fields as base
+                ...localSet,                                           // localStorage meta overrides
+                progress: useRemoteProgress
+                  ? (Array.isArray(remoteSet.progress) ? remoteSet.progress : [])
+                  : (Array.isArray(localSet.progress)  ? localSet.progress  : []),
+                lastStudied: remoteTs > localTs ? remoteTs : localTs, // keep the most recent
               };
             });
 
           // Also include any sets that were in Supabase but not localStorage
           const supabaseOnlySets = supabaseSets.filter((remoteSet) =>
-            !mergedSets.some((s) => s.id === remoteSet.id)
+            !mergedSets.some((s: any) => s.id === remoteSet.id)
           );
 
           displaySets = [...mergedSets, ...supabaseOnlySets];
