@@ -279,7 +279,19 @@ export default function EstudiarPage() {
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (user) {
-          await supabase
+          const sampleProgress = updatedProgress.slice(0, 2).map(p => ({
+            cardId: p.cardId,
+            nextReview: p.nextReview,
+            repetitions: p.repetitions,
+            interval: p.interval,
+          }));
+          console.log("[DEBUG estudiar] Saving progress to Supabase:", {
+            setId: set.id,
+            progressCount: updatedProgress.length,
+            sampleProgress,
+          });
+
+          const { error: updateError } = await supabase
             .from("sets")
             .update({
               cards: updatedCards,
@@ -288,6 +300,12 @@ export default function EstudiarPage() {
             })
             .eq("id", set.id)
             .eq("user_id", user.id);
+
+          if (updateError) {
+            console.error("[DEBUG estudiar] Supabase save FAILED:", updateError);
+          } else {
+            console.log("[DEBUG estudiar] Supabase save OK");
+          }
         }
       } catch (err) {
         console.error("Failed to save to Supabase:", err);

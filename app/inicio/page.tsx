@@ -90,17 +90,28 @@ export default function InicioPage() {
       }
 
 
-      const supabaseSets = (data || []).map((set: any) => ({
-        id: set.id,
-        title: set.name,
-        cardCount: (set.cards || []).length,
-        // Never default progress to a number — keeps Array.isArray checks reliable
-        progress: Array.isArray(set.progress) ? set.progress : [],
-        // updated_at is the column written on every study swipe; last_studied doesn't exist
-        lastStudied: set.updated_at || set.created_at || new Date().toISOString(),
-        cards: set.cards || [],
-        favorite: set.is_favorite || false,
-      }));
+      const supabaseSets = (data || []).map((set: any) => {
+        const rawProgress = set.progress;
+        const isArray = Array.isArray(rawProgress);
+        console.log(`[DEBUG inicio] Set "${set.name}" from Supabase:`, {
+          progressType: typeof rawProgress,
+          isArray,
+          progressLength: isArray ? rawProgress.length : rawProgress,
+          sampleNextReview: isArray && rawProgress.length > 0 ? rawProgress[0]?.nextReview : "N/A",
+          updated_at: set.updated_at,
+        });
+        return {
+          id: set.id,
+          title: set.name,
+          cardCount: (set.cards || []).length,
+          // Never default progress to a number — keeps Array.isArray checks reliable
+          progress: isArray ? rawProgress : [],
+          // updated_at is the column written on every study swipe; last_studied doesn't exist
+          lastStudied: set.updated_at || set.created_at || new Date().toISOString(),
+          cards: set.cards || [],
+          favorite: set.is_favorite || false,
+        };
+      });
 
 
       // Load from localStorage first (it has the latest progress from studying)
@@ -137,6 +148,13 @@ export default function InicioPage() {
           );
 
           displaySets = [...mergedSets, ...supabaseOnlySets];
+          displaySets.forEach((s: any) => {
+            console.log(`[DEBUG inicio] Merged set "${s.title}":`, {
+              progressLength: Array.isArray(s.progress) ? s.progress.length : s.progress,
+              lastStudied: s.lastStudied,
+              sampleNextReview: Array.isArray(s.progress) && s.progress.length > 0 ? s.progress[0]?.nextReview : "N/A",
+            });
+          });
           localStorage.setItem("vocab_sets", JSON.stringify(displaySets));
         }
       } catch (err) {
