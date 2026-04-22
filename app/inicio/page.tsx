@@ -146,7 +146,17 @@ export default function InicioPage() {
             !mergedSets.some((s: any) => s.id === remoteSet.id)
           );
 
-          displaySets = [...mergedSets, ...supabaseOnlySets];
+          // Include public/pre-built sets the user has studied (localStorage only,
+          // not owned by the user so they never appear in supabaseSets).
+          // Identified by: present in localStorage, absent from Supabase, has progress entries.
+          const studiedPublicSets = localSets
+            .filter((ls: any) =>
+              !supabaseSets.some((s) => s.id === ls.id) &&
+              Array.isArray(ls.progress) && ls.progress.length > 0
+            )
+            .map((ls: any) => ({ ...ls, is_public: true }));
+
+          displaySets = [...mergedSets, ...supabaseOnlySets, ...studiedPublicSets];
           displaySets.forEach((s: any) => {
             console.log(`[DEBUG inicio] Merged set "${s.title}":`, {
               progressLength: Array.isArray(s.progress) ? s.progress.length : s.progress,

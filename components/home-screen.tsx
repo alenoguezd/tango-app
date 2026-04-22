@@ -477,14 +477,14 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
             </div>
           ))}
 
-          {/* User sets ("Creados por mi") */}
-          {localSets.length > 0 && (
+          {/* User sets ("Creados por mi") — excludes public sets the user has only studied */}
+          {localSets.some(s => !s.is_public) && (
             <div className="px-4 mb-6">
               <h2 className="text-lg font-bold leading-tight text-text-primary mb-3">
                 Creados por mi
               </h2>
               <div className="grid grid-cols-2 gap-2">
-                {localSets.map((set, index) => {
+                {localSets.filter(s => !s.is_public).map((set, index) => {
                   const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
                   return (
                     <SetGridCard
@@ -626,14 +626,14 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
         </div>
       ))}
 
-      {/* User sets ("Creados por mi") */}
-      {localSets.length > 0 && (
+      {/* User sets ("Creados por mi") — excludes public sets the user has only studied */}
+      {localSets.some(s => !s.is_public) && (
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-4 text-text-primary">
             Creados por mi
           </h2>
           <div className="grid grid-cols-2 gap-6">
-            {localSets.map((set, index) => {
+            {localSets.filter(s => !s.is_public).map((set, index) => {
               const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
               return (
                 <SetGridCard
