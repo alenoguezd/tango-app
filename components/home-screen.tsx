@@ -439,7 +439,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
                   return (
                     <button
                       key={set.id}
-                      onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
+                      onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as unknown as VocabCard[] })}
                       className="w-[160px] shrink-0 bg-surface border border-border-default rounded-lg p-4 flex flex-col gap-4 text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                     >
                       {/* Icon row: emoji left, badge right */}
@@ -588,7 +588,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
               return (
                 <button
                   key={set.id}
-                  onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as VocabCard[] })}
+                  onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as unknown as VocabCard[] })}
                   className="bg-surface rounded-lg p-4 flex flex-col gap-4 border border-border-default text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                 >
                   {/* Icon row: emoji left, badge right */}

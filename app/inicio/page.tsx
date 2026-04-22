@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import { HomeScreen } from "@/components/home-screen";
 import { createClient } from "@/lib/supabase";
 import { rowToCardProgress } from "@/lib/sm2";
+import type { Database } from "@/lib/database.types";
 import type { DeckSet, PublicSet } from "@/components/home-screen";
+
+type ProgressRow = Database["public"]["Tables"]["user_progress"]["Row"];
 
 export default function InicioPage() {
   const router = useRouter();
@@ -70,11 +73,11 @@ export default function InicioPage() {
       // Parallel fetch: user-owned sets + all their SM-2 progress rows
       const [setsResult, progressResult] = await Promise.all([
         supabase.from("sets").select("*").eq("user_id", userId),
-        (supabase as any).from("user_progress").select("*").eq("user_id", userId),
+        supabase.from("user_progress").select("*").eq("user_id", userId),
       ]);
 
       const setsData = setsResult.data || [];
-      const progressRows = progressResult.data || [];
+      const progressRows: ProgressRow[] = (progressResult.data as ProgressRow[] | null) || [];
 
       // Build a map: set_id → CardProgress[]
       const progressBySet = new Map<string, ReturnType<typeof rowToCardProgress>[]>();

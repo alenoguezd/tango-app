@@ -6,6 +6,7 @@ import { Flashcard, type VocabCard } from "@/components/flashcard";
 import { SessionComplete } from "@/components/session-complete";
 import { AppNav } from "@/components/app-nav";
 import { createClient } from "@/lib/supabase";
+import type { Json } from "@/lib/database.types";
 import {
   type CardProgress,
   buildDailyQueue,
@@ -130,7 +131,7 @@ export default function EstudiarPage() {
 
       // 3. Load user's SM-2 progress for this set from user_progress table
       const resolvedSetId = setData.id as string;
-      const { data: progressRows } = await (supabase as any)
+      const { data: progressRows } = await supabase
         .from("user_progress")
         .select("*")
         .eq("user_id", userId)
@@ -226,12 +227,12 @@ export default function EstudiarPage() {
     calculateAndSetDueCards(updatedSet);
 
     // Upsert one row to user_progress (fire-and-forget)
-    ;(supabase as any)
+    supabase
       .from("user_progress")
       .upsert(cardProgressToRow(newCardProgress, currentUserId, set.id), {
         onConflict: "user_id,card_id",
       })
-      .then(({ error }: { error: any }) => {
+      .then(({ error }) => {
         if (error) console.error("user_progress upsert failed:", error.message);
       });
   };
@@ -252,7 +253,7 @@ export default function EstudiarPage() {
         id: newSetId,
         user_id: currentUserId,
         name: set.title,
-        cards: set.cards,
+        cards: set.cards as unknown as Json,
         is_favorite: false,
         is_public: false,
         progress: 0,

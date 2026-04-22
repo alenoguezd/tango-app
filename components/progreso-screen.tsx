@@ -86,7 +86,7 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
       // Parallel fetch: sets owned by user + all their progress rows
       const [setsResult, progressResult] = await Promise.all([
         supabase.from("sets").select("id, name, cards").eq("user_id", user.id),
-        (supabase as any)
+        supabase
           .from("user_progress")
           .select("set_id, repetitions, next_review")
           .eq("user_id", user.id),
