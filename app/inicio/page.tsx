@@ -98,7 +98,7 @@ export default function InicioPage() {
           isArray,
           progressLength: isArray ? rawProgress.length : rawProgress,
           sampleNextReview: isArray && rawProgress.length > 0 ? rawProgress[0]?.nextReview : "N/A",
-          updated_at: set.updated_at,
+          last_studied: set.last_studied,
         });
         return {
           id: set.id,
@@ -106,8 +106,7 @@ export default function InicioPage() {
           cardCount: (set.cards || []).length,
           // Never default progress to a number — keeps Array.isArray checks reliable
           progress: isArray ? rawProgress : [],
-          // updated_at is the column written on every study swipe; last_studied doesn't exist
-          lastStudied: set.updated_at || set.created_at || new Date().toISOString(),
+          lastStudied: set.last_studied || set.created_at || new Date().toISOString(),
           cards: set.cards || [],
           favorite: set.is_favorite || false,
         };

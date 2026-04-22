@@ -189,7 +189,7 @@ export default function EstudiarPage() {
       title: data.name as string,
       cardCount: cards.length,
       progress,
-      lastStudied: (data.updated_at || data.created_at || new Date().toISOString()) as string,
+      lastStudied: (data.last_studied || data.created_at || new Date().toISOString()) as string,
       cards,
       userId: data.user_id as string | undefined,
     };
@@ -296,13 +296,18 @@ export default function EstudiarPage() {
             .update({
               cards: updatedCards,
               progress: updatedProgress,
-              updated_at: new Date().toISOString(),
+              last_studied: new Date().toISOString(),
             })
             .eq("id", set.id)
             .eq("user_id", user.id);
 
           if (updateError) {
-            console.error("[DEBUG estudiar] Supabase save FAILED:", updateError);
+            console.error("[DEBUG estudiar] Supabase save FAILED:", {
+              message: updateError.message,
+              code: updateError.code,
+              details: updateError.details,
+              hint: updateError.hint,
+            });
           } else {
             console.log("[DEBUG estudiar] Supabase save OK");
           }
