@@ -16,6 +16,52 @@ export interface CardProgress {
 }
 
 /**
+ * Row shape for the user_progress Supabase table.
+ * snake_case to match PostgREST column names.
+ */
+export interface DbProgressRow {
+  id?: string;
+  user_id: string;
+  card_id: string;
+  set_id: string;
+  interval: number;
+  repetitions: number;
+  ease_factor: number;
+  next_review: string; // YYYY-MM-DD (Postgres `date` column)
+  last_studied: string; // ISO timestamp
+}
+
+/** Convert a DB row to the CardProgress shape used by SM-2 functions */
+export function rowToCardProgress(row: DbProgressRow): CardProgress {
+  return {
+    cardId: row.card_id,
+    known: row.repetitions > 0,
+    interval: row.interval,
+    easeFactor: row.ease_factor,
+    nextReview: row.next_review,
+    repetitions: row.repetitions,
+  };
+}
+
+/** Convert CardProgress to a DB row ready for upsert */
+export function cardProgressToRow(
+  progress: CardProgress,
+  userId: string,
+  setId: string,
+): Omit<DbProgressRow, "id"> {
+  return {
+    user_id: userId,
+    card_id: progress.cardId,
+    set_id: setId,
+    interval: progress.interval,
+    repetitions: progress.repetitions,
+    ease_factor: progress.easeFactor,
+    next_review: progress.nextReview,
+    last_studied: new Date().toISOString(),
+  };
+}
+
+/**
  * Legacy progress format (pre-SM-2)
  */
 export interface LegacyCardProgress {

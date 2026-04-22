@@ -5,7 +5,8 @@ import { ChevronRight } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
-import { type CardProgress, getTodayString } from "@/lib/sm2";
+import { createClient } from "@/lib/supabase";
+import { getTodayString } from "@/lib/sm2";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
@@ -32,23 +33,6 @@ const H_PAD       = tokens.spacing["4"];     // 16px
 const SECTION_GAP = tokens.spacing["6"];     // 24px
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface VocabCard {
-  id?: string;
-  kana: string;
-  kanji: string;
-  spanish: string;
-  example_usage: string;
-  known?: boolean;
-}
-
-interface DeckSet {
-  id: string;
-  title: string;
-  cardCount: number;
-  progress: CardProgress[];
-  lastStudied: string;
-  cards: VocabCard[];
-}
 
 export interface SetProgress {
   id: string;
@@ -88,83 +72,67 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const isMobile = windowWidth < 1024;
 
   useEffect(() => {
-    // Load sets from localStorage and calculate progress
-    const savedSets = localStorage.getItem("vocab_sets");
-    if (savedSets) {
-      try {
-        const deckSets: DeckSet[] = JSON.parse(savedSets);
-        const progressSets = deckSets.map((set, index) => {
-          let known = 0;
-          let toReview = 0;
+    loadProgress();
+  }, []);
 
-          // Calculate progress from SM-2 progress array if available
-          if (Array.isArray(set.progress) && set.progress.length > 0) {
-            const today = getTodayString();
-            known = set.progress.filter((p) => p.repetitions >= 3).length;
-            toReview = set.progress.filter((p) => p.nextReview <= today).length;
-          } else {
-            // Fallback to old format for backwards compatibility
-            known = set.cards.filter((card) => card.known === true).length;
-            toReview = set.cards.filter((card) => card.known === false).length;
-          }
+  const loadProgress = async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
 
+      const today = getTodayString();
+
+      // Parallel fetch: sets owned by user + all their progress rows
+      const [setsResult, progressResult] = await Promise.all([
+        supabase.from("sets").select("id, name, cards").eq("user_id", user.id),
+        (supabase as any)
+          .from("user_progress")
+          .select("set_id, repetitions, next_review")
+          .eq("user_id", user.id),
+      ]);
+
+      const setsData = setsResult.data || [];
+      const progressRows = progressResult.data || [];
+
+      // Aggregate per-set stats from user_progress rows
+      const statsBySet = new Map<string, { known: number; toReview: number }>();
+      for (const row of progressRows) {
+        if (!statsBySet.has(row.set_id)) statsBySet.set(row.set_id, { known: 0, toReview: 0 });
+        const s = statsBySet.get(row.set_id)!;
+        if (row.repetitions >= 3) s.known++;
+        if (row.next_review <= today) s.toReview++;
+      }
+
+      // Only show sets the user has actually studied (has at least one progress row)
+      const progressSets: SetProgress[] = setsData
+        .filter((set: any) => statsBySet.has(set.id))
+        .map((set: any, index: number) => {
+          const stats = statsBySet.get(set.id)!;
           return {
             id: set.id,
-            title: set.title,
-            cardCount: set.cardCount,
-            known,
-            toReview,
+            title: set.name,
+            cardCount: (set.cards || []).length,
+            known: stats.known,
+            toReview: stats.toReview,
             color: (index % 2 === 0 ? "blue" : "pink") as "blue" | "pink",
           };
         });
-        setSets(progressSets);
-      } catch (error) {
-        console.error("Error loading sets from localStorage:", error);
-        setSets([]);
-      }
+
+      setSets(progressSets);
+    } catch {
+      setSets([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  };
 
   const totalCards = sets.reduce((s, x) => s + x.cardCount, 0);
   const totalKnown = sets.reduce((s, x) => s + x.known, 0);
   const totalReview = sets.reduce((s, x) => s + x.toReview, 0);
   const overallPct = totalCards > 0 ? Math.round((totalKnown / totalCards) * 100) : 0;
 
-  // Calculate streak - simple check: if user has studied sets
-  const getStreak = () => {
-    const studyLog = localStorage.getItem("study_log");
-    if (!studyLog) return 0;
-    try {
-      const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
-      if (log.length === 0) return 0;
-
-      // Sort by date descending
-      log.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      let streak = 0;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      for (let i = 0; i < log.length; i++) {
-        const logDate = new Date(log[i].date);
-        logDate.setHours(0, 0, 0, 0);
-        const expectedDate = new Date(today);
-        expectedDate.setDate(expectedDate.getDate() - i);
-
-        if (logDate.getTime() === expectedDate.getTime()) {
-          streak++;
-        } else {
-          break;
-        }
-      }
-      return streak;
-    } catch {
-      return 0;
-    }
-  };
-
-  const currentStreak = getStreak();
+  const currentStreak = 0; // TODO: compute from user_progress.last_studied once streak tracking is added
 
   // Shared content component
   const ContentArea = () => {

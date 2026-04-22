@@ -10,9 +10,9 @@ import {
   type CardProgress,
   buildDailyQueue,
   calculateSM2,
-  getDueCards,
-  migrateProgress,
   getTodayString,
+  rowToCardProgress,
+  cardProgressToRow,
 } from "@/lib/sm2";
 
 interface StudySet {
@@ -94,15 +94,16 @@ export default function EstudiarPage() {
         reviewPerDay: goal?.reviewPerDay ?? 40,
       };
       setDailyGoal(resolvedGoal);
-      loadSetData(resolvedGoal);
+      loadSetData(user.id, resolvedGoal);
     } catch (error) {
       router.push("/");
     }
   };
 
-  const loadSetData = async (goal: { newPerDay: number; reviewPerDay: number }) => {
+  const loadSetData = async (userId: string, goal: { newPerDay: number; reviewPerDay: number }) => {
     try {
-      // 1. Try loading by set ID (owned sets)
+      // 1. Try loading by set ID
+      let setData: Record<string, unknown> | null = null;
       const { data, error } = await supabase
         .from("sets")
         .select("*")
@@ -110,77 +111,55 @@ export default function EstudiarPage() {
         .single();
 
       if (!error && data) {
-        const found = processSetData(data);
-        setSet(found);
-        calculateAndSetDueCards(found, goal);
+        setData = data;
       } else {
-        // 2. Try loading by share_token (shared links)
+        // 2. Try loading by share_token (shared/public links)
         const { data: sharedData, error: sharedError } = await supabase
           .from("sets")
           .select("*")
           .eq("share_token", setId)
           .eq("is_public", true)
           .single();
-
-        if (!sharedError && sharedData) {
-          const found = processSetData(sharedData);
-          setSet(found);
-          calculateAndSetDueCards(found, goal);
-        } else {
-          // 3. Fallback to localStorage
-          const savedSets = localStorage.getItem("vocab_sets");
-          if (savedSets) {
-            let sets: StudySet[] = JSON.parse(savedSets);
-            let found = sets.find((s) => s.id === setId);
-
-            if (found) {
-              // Migrate cards if they don't have IDs
-              if (found.cards && !found.cards[0]?.id) {
-                found.cards = migrateCards(found.cards);
-                sets = sets.map((s) => s.id === setId ? found : s);
-                localStorage.setItem("vocab_sets", JSON.stringify(sets));
-              }
-              setSet(found);
-              calculateAndSetDueCards(found, goal);
-            }
-          }
-        }
+        if (!sharedError && sharedData) setData = sharedData;
       }
-    } catch (error) {
+
+      if (!setData) {
+        setLoading(false);
+        return;
+      }
+
+      // 3. Load user's SM-2 progress for this set from user_progress table
+      const resolvedSetId = setData.id as string;
+      const { data: progressRows } = await (supabase as any)
+        .from("user_progress")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("set_id", resolvedSetId);
+
+      const progress: CardProgress[] = (progressRows || []).map(rowToCardProgress);
+      const found = processSetData(setData, progress);
+      setSet(found);
+      calculateAndSetDueCards(found, goal);
+    } catch {
+      // ignore — set will stay null and show not-found state
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper: Process set data from Supabase and run SM-2 migration
-  const processSetData = (data: Record<string, unknown>): StudySet => {
-    // Migrate cards if needed
+  // Build a StudySet from raw Supabase row + already-loaded progress
+  const processSetData = (
+    data: Record<string, unknown>,
+    progress: CardProgress[],
+  ): StudySet => {
     let cards = (data.cards || []) as VocabCard[];
-    if (cards && !cards[0]?.id) {
+    if (cards.length > 0 && !cards[0]?.id) {
       cards = migrateCards(cards);
     }
 
-    // Ensure progress is an array of CardProgress
-    let progress = (data.progress || []) as CardProgress[];
-    if (!Array.isArray(progress)) {
-      // Old format: progress was a number, reconstruct from card.known
-      progress = cards.map((card) => ({
-        cardId: card.id || "",
-        known: card.known || false,
-        interval: 1,
-        easeFactor: 2.5,
-        nextReview: getTodayString(),
-        repetitions: 0,
-      }));
-    } else {
-      // Run migration to ensure all cards have SM-2 fields
-      progress = migrateProgress(progress as (CardProgress | Record<string, unknown>)[]);
-    }
-
-    // Calculate previous mastery
-    const prev = cards ? Math.round(
-      (cards.filter((c) => c.known === true).length / cards.length) * 100
-    ) : 0;
+    const prev = cards.length > 0
+      ? Math.round((cards.filter((c) => c.known === true).length / cards.length) * 100)
+      : 0;
     setPreviousMastery(prev);
     setOriginalSetName(data.name as string || "");
 
@@ -207,117 +186,54 @@ export default function EstudiarPage() {
   };
 
   const handleCardSwiped = async (card: VocabCard, direction: "left" | "right", cardIndex: number) => {
-    if (!set) return;
+    if (!set || !currentUserId) return;
 
-    try {
-      // Determine quality: right (swipe) = known (1), left = repasar (0)
-      const quality = direction === "right" ? 1 : 0;
+    const quality = direction === "right" ? 1 : 0;
+    const cardId = card.id || cardIndex.toString();
 
-      // Ensure progress is an array (defensive guard for old format)
-      let progressArray = Array.isArray(set.progress) ? set.progress : [];
+    // Find existing progress entry, or create a fresh one for a new card
+    const progressArray = Array.isArray(set.progress) ? set.progress : [];
+    const existing = progressArray.find((p) => p.cardId === cardId) ?? {
+      cardId,
+      known: false,
+      interval: 1,
+      easeFactor: 2.5,
+      nextReview: getTodayString(),
+      repetitions: 0,
+    };
 
-      // If progress is empty, initialize it with all cards
-      if (progressArray.length === 0 && set.cards.length > 0) {
-        progressArray = set.cards.map((c, idx) => ({
-          cardId: c.id || idx.toString(),
-          known: false,
-          interval: 1,
-          easeFactor: 2.5,
-          nextReview: getTodayString(),
-          repetitions: 0,
-        }));
-      }
+    // Calculate new SM-2 metrics for this single card
+    const newCardProgress = calculateSM2(existing, quality);
 
-      // Find the card in progress array
-      const cardId = card.id || cardIndex.toString();
-      const progressIndex = progressArray.findIndex((p) => p.cardId === cardId);
+    // Update in-memory progress array (replaces or appends)
+    const updatedProgress = progressArray.some((p) => p.cardId === cardId)
+      ? progressArray.map((p) => p.cardId === cardId ? newCardProgress : p)
+      : [...progressArray, newCardProgress];
 
-      if (progressIndex === -1) {
-        console.warn(`Card ${cardId} not found in progress array`);
-        return;
-      }
+    // Update card.known in local cards array for session-complete mastery calc
+    const updatedCards = set.cards.map((c, i) =>
+      i === cardIndex ? { ...c, known: quality === 1 } : c
+    );
 
-      // Calculate new SM-2 metrics
-      const newCardProgress = calculateSM2(progressArray[progressIndex], quality);
+    // Update React state immediately for smooth UX
+    const updatedSet: StudySet = {
+      ...set,
+      progress: updatedProgress,
+      cards: updatedCards,
+      lastStudied: new Date().toISOString(),
+    };
+    setSet(updatedSet);
+    calculateAndSetDueCards(updatedSet);
 
-      // Update progress array
-      const updatedProgress = [...progressArray];
-      updatedProgress[progressIndex] = newCardProgress;
-
-      // Also update card.known for consistency
-      const updatedCards = [...set.cards];
-      updatedCards[cardIndex].known = quality === 1;
-
-      // Update local state
-      const updatedSet: StudySet = {
-        ...set,
-        progress: updatedProgress,
-        cards: updatedCards,
-        lastStudied: new Date().toISOString(),
-      };
-
-      setSet(updatedSet);
-      calculateAndSetDueCards(updatedSet);
-
-      // Save to localStorage
-      const savedSets = localStorage.getItem("vocab_sets");
-      if (savedSets) {
-        try {
-          const sets: StudySet[] = JSON.parse(savedSets);
-          const setIndex = sets.findIndex((s) => s.id === set.id);
-          if (setIndex !== -1) {
-            sets[setIndex] = updatedSet;
-            localStorage.setItem("vocab_sets", JSON.stringify(sets));
-          }
-        } catch (err) {
-          console.error("Failed to save to localStorage:", err);
-        }
-      }
-
-      // Save to Supabase in background
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-
-        if (user) {
-          const sampleProgress = updatedProgress.slice(0, 2).map(p => ({
-            cardId: p.cardId,
-            nextReview: p.nextReview,
-            repetitions: p.repetitions,
-            interval: p.interval,
-          }));
-          console.log("[DEBUG estudiar] Saving progress to Supabase:", {
-            setId: set.id,
-            progressCount: updatedProgress.length,
-            sampleProgress,
-          });
-
-          const { error: updateError } = await supabase
-            .from("sets")
-            .update({
-              cards: updatedCards,
-              progress: updatedProgress,
-              last_studied: new Date().toISOString(),
-            })
-            .eq("id", set.id)
-            .eq("user_id", user.id);
-
-          if (updateError) {
-            console.error("[DEBUG estudiar] Supabase save FAILED:", {
-              message: updateError.message,
-              code: updateError.code,
-              details: updateError.details,
-              hint: updateError.hint,
-            });
-          } else {
-            console.log("[DEBUG estudiar] Supabase save OK");
-          }
-        }
-      } catch (err) {
-        console.error("Failed to save to Supabase:", err);
-      }
-    } catch (error) {
-      console.error("Error in handleCardSwiped:", error);
-    }
+    // Upsert one row to user_progress (fire-and-forget)
+    ;(supabase as any)
+      .from("user_progress")
+      .upsert(cardProgressToRow(newCardProgress, currentUserId, set.id), {
+        onConflict: "user_id,card_id",
+      })
+      .then(({ error }: { error: any }) => {
+        if (error) console.error("user_progress upsert failed:", error.message);
+      });
   };
 
   const handleBack = () => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { MoreVertical, User, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
-import { buildDailyQueue, getDueCards, getTodayString, type CardProgress } from "@/lib/sm2";
+import { buildDailyQueue, getDueCards, type CardProgress } from "@/lib/sm2";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -335,26 +335,14 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   // Global Today count: sum raw new + review across all sets, then apply global cap
   let totalNewRaw = 0;
   let totalReviewRaw = 0;
-  const today = getTodayString();
   localSets.forEach((set) => {
     const progress = Array.isArray(set.progress) ? set.progress as CardProgress[] : [];
     const cards = set.cards || [];
     const progressIds = new Set(progress.map((p) => p.cardId));
-    const newCount = cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
-    const dueCards = getDueCards(progress);
-    totalNewRaw += newCount;
-    totalReviewRaw += dueCards.length;
-    console.log(`[DEBUG home] Set "${set.title}":`, {
-      today,
-      totalCards: cards.length,
-      progressEntries: progress.length,
-      newCount,
-      dueReviewCount: dueCards.length,
-      sampleNextReview: progress.length > 0 ? progress[0]?.nextReview : "N/A",
-    });
+    totalNewRaw += cards.filter((c, i) => !progressIds.has(c.id || i.toString())).length;
+    totalReviewRaw += getDueCards(progress).length;
   });
   const totalDueCards = Math.min(totalNewRaw, goal.newPerDay) + Math.min(totalReviewRaw, goal.reviewPerDay);
-  console.log("[DEBUG home] Today total:", { totalNewRaw, totalReviewRaw, totalDueCards, goal });
   const dailyTarget = goal.newPerDay + goal.reviewPerDay;
 
   const setsWithDue = setStats.filter(s => s.dueCount > 0).length;
