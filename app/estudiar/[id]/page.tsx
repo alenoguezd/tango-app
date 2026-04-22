@@ -70,10 +70,11 @@ export default function EstudiarPage() {
   const [previousMastery, setPreviousMastery] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [originalSetName, setOriginalSetName] = useState<string>("");
-  const [showRomaji, setShowRomaji] = useState(false);
+  const [showRomaji] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem("romaji_enabled") === "true"
+  );
 
   useEffect(() => {
-    setShowRomaji(localStorage.getItem("romaji_enabled") === "true");
     checkAuthAndLoadSet();
   }, [setId]);
 
