@@ -70,8 +70,10 @@ export default function EstudiarPage() {
   const [previousMastery, setPreviousMastery] = useState(0);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [originalSetName, setOriginalSetName] = useState<string>("");
+  const [showRomaji, setShowRomaji] = useState(false);
 
   useEffect(() => {
+    setShowRomaji(localStorage.getItem("romaji_enabled") === "true");
     checkAuthAndLoadSet();
   }, [setId]);
 
@@ -462,6 +464,7 @@ export default function EstudiarPage() {
             title={set.title}
             setId={set.id}
             userId={currentUserId ?? ""}
+            showRomaji={showRomaji}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
             onSessionComplete={() => setSessionComplete(true)}
@@ -591,6 +594,7 @@ export default function EstudiarPage() {
             title={set.title}
             setId={set.id}
             userId={currentUserId ?? ""}
+            showRomaji={showRomaji}
             onBack={handleBack}
             onCardSwiped={handleCardSwiped}
             onSessionComplete={() => setSessionComplete(true)}

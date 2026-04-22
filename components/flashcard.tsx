@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { ArrowLeft, Flag } from "lucide-react";
+import { toRomaji } from "wanakana";
 import { tokens } from "@/lib/design-tokens";
 import { FeedbackModal } from "@/components/feedback-modal";
 
@@ -20,6 +21,7 @@ interface FlashcardProps {
   title?: string;
   setId?: string;
   userId?: string;
+  showRomaji?: boolean;
   onBack?: () => void;
   onCardSwiped?: (card: VocabCard, direction: "left" | "right", cardIndex: number) => void;
   onSessionComplete?: () => void;
@@ -73,7 +75,7 @@ function playWrong() {
   }
 }
 
-export function Flashcard({ cards, title = "Lección", setId = "", userId = "", onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
+export function Flashcard({ cards, title = "Lección", setId = "", userId = "", showRomaji = false, onBack, onCardSwiped, onSessionComplete }: FlashcardProps) {
   const [deck, setDeck] = useState<VocabCard[]>(cards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -801,6 +803,11 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                   <p className="text-4xl font-medium text-text-primary text-center leading-snug break-all">
                     {displayCard?.kana}
                   </p>
+                  {showRomaji && displayCard?.kana && (
+                    <p className="text-base font-medium text-text-secondary text-center mt-3">
+                      {toRomaji(displayCard.kana)}
+                    </p>
+                  )}
                 </>
               ) : (
                 <>

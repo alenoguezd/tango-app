@@ -58,6 +58,7 @@ export default function PerfilPage() {
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [romajiEnabled, setRomajiEnabled] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -68,6 +69,7 @@ export default function PerfilPage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
+    setRomajiEnabled(localStorage.getItem("romaji_enabled") === "true");
     loadUserData();
   }, []);
 
@@ -549,6 +551,84 @@ export default function PerfilPage() {
         }}>
           Mejorar plan →
         </button>
+      </div>
+
+      {/* Preferences section */}
+      <div style={{ marginBottom: "24px" }}>
+        <h3 style={{
+          fontFamily: FONT,
+          fontSize: "11px",
+          fontWeight: 700,
+          letterSpacing: "0.07em",
+          color: TEXT_SEC,
+          margin: `0 0 ${tokens.spacing["3"]}`,
+          textTransform: "uppercase",
+        }}>
+          Preferencias
+        </h3>
+
+        <div style={{
+          background: W,
+          border: `1px solid ${BORDER}`,
+          borderRadius: "14px",
+          padding: tokens.spacing["4"],
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "16px",
+        }}>
+          <div>
+            <p style={{
+              fontFamily: FONT,
+              fontSize: "14px",
+              fontWeight: 700,
+              color: TEXT_PRI,
+              margin: 0,
+            }}>
+              Mostrar rōmaji
+            </p>
+            <p style={{
+              fontFamily: FONT,
+              fontSize: "12px",
+              color: TEXT_SEC,
+              margin: "2px 0 0",
+            }}>
+              Pronunciación en letras latinas bajo el kana
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={romajiEnabled}
+            onClick={() => {
+              const next = !romajiEnabled;
+              setRomajiEnabled(next);
+              localStorage.setItem("romaji_enabled", String(next));
+            }}
+            style={{
+              width: "44px",
+              height: "26px",
+              borderRadius: "13px",
+              background: romajiEnabled ? SAGE : BORDER,
+              border: "none",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background 200ms ease",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{
+              width: "20px",
+              height: "20px",
+              borderRadius: "50%",
+              background: "white",
+              position: "absolute",
+              top: "3px",
+              left: romajiEnabled ? "21px" : "3px",
+              transition: "left 200ms ease",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+            }} />
+          </button>
+        </div>
       </div>
 
       {/* Account section */}
