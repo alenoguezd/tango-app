@@ -244,6 +244,44 @@ export function buildDailyQueue(
 }
 
 /**
+ * Compute study streak from an array of ISO timestamps (user_progress.last_studied).
+ * Converts to local dates to stay consistent with getTodayString().
+ * Accepts a streak that ended yesterday so it doesn't reset at midnight.
+ */
+export function computeStreak(timestamps: string[]): number {
+  const days = new Set(
+    timestamps.map((ts) => {
+      const d = new Date(ts);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    })
+  );
+
+  const today = getTodayString();
+
+  // Walk back from today
+  let streak = 0;
+  let check = today;
+  while (days.has(check)) {
+    streak++;
+    check = addDays(check, -1);
+  }
+
+  // If today not yet studied, try walking back from yesterday
+  if (streak === 0) {
+    check = addDays(today, -1);
+    while (days.has(check)) {
+      streak++;
+      check = addDays(check, -1);
+    }
+  }
+
+  return streak;
+}
+
+/**
  * Get review statistics for a set of cards
  * Useful for showing stats on home screen
  */

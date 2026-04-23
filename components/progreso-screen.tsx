@@ -6,7 +6,7 @@ import { AppNav } from "@/components/app-nav";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
 import { createClient } from "@/lib/supabase";
-import { getTodayString } from "@/lib/sm2";
+import { getTodayString, computeStreak } from "@/lib/sm2";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
@@ -67,6 +67,7 @@ function useWindowSize() {
 // ── ProgresoScreen ─────────────────────────────────────────────────────────────
 export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const [sets, setSets] = useState<SetProgress[]>([]);
+  const [currentStreak, setCurrentStreak] = useState(0);
   const [loading, setLoading] = useState(true);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -83,17 +84,27 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
 
       const today = getTodayString();
 
-      // Parallel fetch: sets owned by user + all their progress rows
-      const [setsResult, progressResult] = await Promise.all([
+      // Parallel fetch: sets owned by user + all their progress rows + streak timestamps
+      const [setsResult, progressResult, streakResult] = await Promise.all([
         supabase.from("sets").select("id, name, cards").eq("user_id", user.id),
         supabase
           .from("user_progress")
           .select("set_id, repetitions, next_review")
           .eq("user_id", user.id),
+        supabase
+          .from("user_progress")
+          .select("last_studied")
+          .eq("user_id", user.id)
+          .order("last_studied", { ascending: false })
+          .limit(500),
       ]);
 
       const setsData = setsResult.data || [];
       const progressRows = progressResult.data || [];
+
+      setCurrentStreak(
+        computeStreak((streakResult.data || []).map((r: any) => r.last_studied).filter(Boolean))
+      );
 
       // Aggregate per-set stats from user_progress rows
       const statsBySet = new Map<string, { known: number; toReview: number }>();
@@ -131,8 +142,6 @@ export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const totalKnown = sets.reduce((s, x) => s + x.known, 0);
   const totalReview = sets.reduce((s, x) => s + x.toReview, 0);
   const overallPct = totalCards > 0 ? Math.round((totalKnown / totalCards) * 100) : 0;
-
-  const currentStreak = 0; // TODO: compute from user_progress.last_studied once streak tracking is added
 
   // Shared content component
   const ContentArea = () => {

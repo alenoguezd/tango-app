@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
 import { createClient } from "@/lib/supabase";
+import { computeStreak } from "@/lib/sm2";
 import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
 
@@ -124,36 +125,17 @@ export default function PerfilPage() {
       const pct = totalCards > 0 ? Math.round((knownCards / totalCards) * 100) : 0;
       setMasteryPercent(pct);
 
-      // Calculate streak
-      const studyLog = localStorage.getItem("study_log");
-      if (studyLog) {
-        try {
-          const log: { date: string; cardsStudied: number }[] = JSON.parse(studyLog);
-          if (log.length > 0) {
-            log.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      // Calculate streak from user_progress.last_studied
+      const { data: streakRows } = await supabase
+        .from("user_progress")
+        .select("last_studied")
+        .eq("user_id", user.id)
+        .order("last_studied", { ascending: false })
+        .limit(500);
 
-            let streakCount = 0;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            for (let i = 0; i < log.length; i++) {
-              const logDate = new Date(log[i].date);
-              logDate.setHours(0, 0, 0, 0);
-              const expectedDate = new Date(today);
-              expectedDate.setDate(expectedDate.getDate() - i);
-
-              if (logDate.getTime() === expectedDate.getTime()) {
-                streakCount++;
-              } else {
-                break;
-              }
-            }
-            setStreak(streakCount);
-          }
-        } catch {
-          setStreak(0);
-        }
-      }
+      setStreak(
+        computeStreak((streakRows || []).map((r: any) => r.last_studied).filter(Boolean))
+      );
     } catch (err) {
       setError("Error al cargar datos del perfil");
     } finally {
