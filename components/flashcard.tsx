@@ -95,6 +95,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
   const didDrag = useRef(false);
+  const pointerWasDrag = useRef(false); // captured before didDrag resets; guards mouse onClick
 
   const total = deck.length;
   const current = deck[index];
@@ -239,9 +240,13 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     }
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
+    // Suppress browser synthetic click for touch — tap is handled in onPointerUp instead
+    if (e.pointerType !== "mouse") e.preventDefault();
+
     pointerStartX.current = e.clientX;
     pointerStartY.current = e.clientY;
     didDrag.current = false;
+    pointerWasDrag.current = false;
     setIsDragging(true);
 
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
@@ -275,31 +280,31 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     const thresholdY = dims.height * SWIPE_THRESHOLD;
 
     if (didDrag.current) {
-      // PART 2 FIX: Use dominant direction detection instead of strict AND conditions
-      // This allows diagonal swipes where one direction clearly dominates
       const isHorizontalDominant = Math.abs(dx) > Math.abs(dy);
       const isVerticalDominant = Math.abs(dy) > Math.abs(dx);
 
       if (isVerticalDominant && Math.abs(dy) > thresholdY) {
-        // Vertical swipe dominates and exceeds threshold → DOWN swipe
-        if (cardRef.current) {
-          cardRef.current.classList.add("exiting-down");
-        }
+        if (cardRef.current) cardRef.current.classList.add("exiting-down");
         advanceCard("down");
       } else if (isHorizontalDominant && Math.abs(dx) >= thresholdX) {
-        // Horizontal swipe dominates and exceeds threshold → LEFT/RIGHT swipe
         const dir = dx > 0 ? "right" : "left";
-        if (cardRef.current) {
-          cardRef.current.classList.add(dir === "right" ? "exiting-right" : "exiting-left");
-        }
+        if (cardRef.current) cardRef.current.classList.add(dir === "right" ? "exiting-right" : "exiting-left");
         advanceCard(dir);
       } else {
-        // Snap back: movement is ambiguous (equal components) or both under threshold
+        // Sub-threshold: snap back
         setDragX(0);
         setDragY(0);
       }
+    } else {
+      // Pure tap (no movement): flip the card. Handles touch taps reliably since
+      // onPointerDown suppresses the synthetic click for touch.
+      const isExiting = cardRef.current?.classList.contains("exiting-right") ||
+                        cardRef.current?.classList.contains("exiting-left") ||
+                        cardRef.current?.classList.contains("exiting-down");
+      if (!isExiting) setFlipped(f => !f);
     }
 
+    pointerWasDrag.current = didDrag.current;
     pointerStartX.current = null;
     pointerStartY.current = null;
     didDrag.current = false;
@@ -686,11 +691,12 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
             onPointerCancel={onPointerCancel}
             onClick={() => {
               // CONTENT FLIP FIX: Don't allow flip while card is exiting animation
+              // Mouse-only path: touch taps are handled in onPointerUp
               const isExiting = cardRef.current?.classList.contains("exiting-right") ||
                                 cardRef.current?.classList.contains("exiting-left") ||
                                 cardRef.current?.classList.contains("exiting-down");
-              if (!isDragging && !isExiting) {
-                setFlipped(!flipped);
+              if (!pointerWasDrag.current && !isExiting) {
+                setFlipped(f => !f);
               }
             }}
             style={{
