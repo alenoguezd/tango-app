@@ -781,11 +781,12 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
               </div>
             )}
 
-            {/* Flag / report button — 44×44 touch target, no onPointerDown interception */}
+            {/* Flag / report button — 44×44 touch target, isolated from card pointer handlers */}
             {!isDragging && (
               <button
                 className="absolute bottom-1 right-1 z-10 w-11 h-11 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-bg-subtle"
                 aria-label="Reportar problema"
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); setFeedbackOpen(true); }}
               >
                 <Flag size={14} strokeWidth={1.5} />
