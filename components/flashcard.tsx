@@ -37,8 +37,9 @@ const BORDER = tokens.color.border;
 const PAGE_BG = tokens.color.page;
 
 const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
-const EXIT_ANIMATION_MS = 460;
+const EXIT_ANIMATION_MS = 280;
 const FLIP_TRANSITION = "transform 550ms cubic-bezier(0.22, 1, 0.36, 1)";
+type SwipeDirection = "left" | "right" | "down";
 
 // Audio functions for swipe feedback
 function playCorrect() {
@@ -87,9 +88,8 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   const [dragX, setDragX] = useState(0);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-
-  // Snapshot the card at the moment swipe is triggered to freeze content during exit animation
-  const exitingCardRef = useRef<VocabCard | null>(null);
+  const [exitDirection, setExitDirection] = useState<SwipeDirection | null>(null);
+  const [exitingCard, setExitingCard] = useState<VocabCard | null>(null);
 
   const cardRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -98,11 +98,13 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   const pointerStartY = useRef<number | null>(null);
   const didDrag = useRef(false);
   const pointerWasDrag = useRef(false); // captured before didDrag resets; guards mouse onClick
+  const isExitingRef = useRef(false);
 
   const total = deck.length;
   const current = deck[index];
   // Use exiting card snapshot during animation, otherwise use current
-  const displayCard = exitingCardRef.current || current;
+  const displayCard = exitingCard || current;
+  const isExiting = exitDirection !== null;
   const exampleLines = typeof displayCard?.example_usage === "string"
     ? displayCard.example_usage.split("\n")
     : [];
@@ -137,9 +139,6 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     };
   }, []);
 
-  // CLEANUP EFFECT REMOVED: Classes now removed manually in advanceCard setTimeout
-  // This prevents race condition where cleanup effect would interfere with state updates
-
   // Handle card swipe
   // Log study activity for streak tracking
   const logStudyActivity = useCallback(() => {
@@ -173,12 +172,16 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     }
   }, []);
 
-  const advanceCard = useCallback((direction: "left" | "right" | "down") => {
+  const advanceCard = useCallback((direction: SwipeDirection) => {
+    if (isExitingRef.current) return;
+
     const cardToUpdate = deck[index];
     if (!cardToUpdate) return;
 
-    // BUG 1 FIX: Snapshot the current card to freeze its content during exit animation
-    exitingCardRef.current = cardToUpdate;
+    isExitingRef.current = true;
+    setExitingCard(cardToUpdate);
+    setExitDirection(direction);
+    setIsDragging(false);
 
     const newCard = { ...cardToUpdate };
 
@@ -207,25 +210,15 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     newDeck[index] = newCard;
     setDeck(newDeck);
 
-    // Advance to next card
     if (index < total - 1) {
-      // BUG 2 FIX: Delay index update until exit animation completes
-      // CSS class keeps animation playing while index updates safely
-      // PART 1 FIX: Also reset dragX/dragY here to prevent snap-back flicker
-      // GLITCH FIX: Remove CSS classes BEFORE state changes to prevent class/inline style collision
-      // CONTENT FLIP FIX: Reset flipped state with index to prevent brief Spanish display
       setTimeout(() => {
-        // Step 1: Remove exit animation classes FIRST (before any state changes)
-        if (cardRef.current) {
-          cardRef.current.classList.remove("exiting-right", "exiting-left", "exiting-down");
-        }
-
-        // Step 2: Now update all state together (single batch, no cleanup effect interference)
         setIndex(index + 1);
         setDragX(0);
         setDragY(0);
-        setFlipped(false); // Reset flip state with index change to prevent brief old state flicker
-        exitingCardRef.current = null; // Clear snapshot after advancing
+        setFlipped(false);
+        setExitingCard(null);
+        setExitDirection(null);
+        isExitingRef.current = false;
       }, EXIT_ANIMATION_MS);
     } else {
       // Last card was swiped - session complete
@@ -237,11 +230,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
   // Pointer handlers
   const onPointerDown = useCallback((e: React.PointerEvent) => {
-    if (cardRef.current?.classList.contains("exiting-right") ||
-        cardRef.current?.classList.contains("exiting-left") ||
-        cardRef.current?.classList.contains("exiting-down")) {
-      return;
-    }
+    if (isExiting) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
 
     // Suppress browser synthetic click for touch — tap is handled in onPointerUp instead
@@ -261,7 +250,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
         // Some browsers can reject capture for interrupted or synthetic pointers.
       }
     }
-  }, []);
+  }, [isExiting]);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!isDragging || pointerStartX.current === null || pointerStartY.current === null) return;
@@ -295,11 +284,9 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
       const isVerticalDominant = Math.abs(dy) > Math.abs(dx);
 
       if (isVerticalDominant && Math.abs(dy) > thresholdY) {
-        if (cardRef.current) cardRef.current.classList.add("exiting-down");
         advanceCard("down");
       } else if (isHorizontalDominant && Math.abs(dx) >= thresholdX) {
         const dir = dx > 0 ? "right" : "left";
-        if (cardRef.current) cardRef.current.classList.add(dir === "right" ? "exiting-right" : "exiting-left");
         advanceCard(dir);
       } else {
         // Sub-threshold: snap back
@@ -309,9 +296,6 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     } else if (e.pointerType !== "mouse") {
       // Touch taps are handled here because onPointerDown suppresses the
       // synthetic click. Mouse clicks are handled by onClick to avoid double flips.
-      const isExiting = cardRef.current?.classList.contains("exiting-right") ||
-                        cardRef.current?.classList.contains("exiting-left") ||
-                        cardRef.current?.classList.contains("exiting-down");
       if (!isExiting) setFlipped(f => !f);
     }
 
@@ -319,7 +303,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     pointerStartX.current = null;
     pointerStartY.current = null;
     didDrag.current = false;
-  }, [isDragging, advanceCard]);
+  }, [isDragging, isExiting, advanceCard]);
 
   const onPointerCancel = useCallback(() => {
     setIsDragging(false);
@@ -335,35 +319,15 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     if (!isDesktop) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (cardRef.current?.classList.contains("exiting-right") ||
-          cardRef.current?.classList.contains("exiting-left") ||
-          cardRef.current?.classList.contains("exiting-down")) {
-        return;
-      }
+      if (isExiting) return;
       if (e.key === "ArrowRight") {
-        if (cardRef.current) {
-          cardRef.current.classList.add("exiting-right");
-        }
-        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("right");
       } else if (e.key === "ArrowLeft") {
-        if (cardRef.current) {
-          cardRef.current.classList.add("exiting-left");
-        }
-        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("left");
       } else if (e.key === "ArrowDown") {
-        if (cardRef.current) {
-          cardRef.current.classList.add("exiting-down");
-        }
-        // PART 1 FIX: Don't reset dragX/dragY - let advanceCard handle timing
         advanceCard("down");
       } else if (e.key === " ") {
         e.preventDefault();
-        // CONTENT FLIP FIX: Don't allow flip while card is exiting animation
-        const isExiting = cardRef.current?.classList.contains("exiting-right") ||
-                          cardRef.current?.classList.contains("exiting-left") ||
-                          cardRef.current?.classList.contains("exiting-down");
         if (!isExiting) {
           setFlipped(!flipped);
         }
@@ -372,22 +336,24 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [flipped, isDesktop, advanceCard]);
+  }, [flipped, isDesktop, isExiting, advanceCard]);
 
   // Calculate drag derived values using cached dimensions
-  const dims = cardDimsRef.current;
-  const thresholdX = dims.width * SWIPE_THRESHOLD;
-  const thresholdY = dims.height * SWIPE_THRESHOLD;
+  const thresholdX = 560 * SWIPE_THRESHOLD;
+  const thresholdY = 400 * SWIPE_THRESHOLD;
 
   const dragRatioX = dragX / thresholdX;
   const dragRatioY = dragY / thresholdY;
   const clampedRatioX = Math.max(-1, Math.min(1, dragRatioX));
   const clampedRatioY = Math.max(0, Math.min(1, dragRatioY));
 
-  const rotation = clampedRatioX * 12; // Max 12deg rotation
+  const rotation = clampedRatioX * 8; // Keep the swipe motion restrained.
   const showGreen = clampedRatioX > 0.15;
   const showRed = clampedRatioX < -0.15;
   const showYellow = clampedRatioY > 0.15;
+  const greenLabelOpacity = exitDirection === "right" ? 0.7 : Math.max(0, Math.abs(clampedRatioX) - 0.1);
+  const redLabelOpacity = exitDirection === "left" ? 0.7 : Math.max(0, Math.abs(clampedRatioX) - 0.1);
+  const yellowLabelOpacity = exitDirection === "down" ? 0.7 : Math.max(0, clampedRatioY - 0.1);
 
   const getTintColor = () => {
     // BUG 3 FIX: Card background must stay white at all times
@@ -396,6 +362,15 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   };
 
   const getCardTransform = () => {
+    if (exitDirection === "right") {
+      return "translateX(46%) translateY(2px) rotate(4deg) scale(0.985)";
+    }
+    if (exitDirection === "left") {
+      return "translateX(-46%) translateY(2px) rotate(-4deg) scale(0.985)";
+    }
+    if (exitDirection === "down") {
+      return "translateY(38%) scale(0.985)";
+    }
     if (isDragging || dragX !== 0 || dragY !== 0) {
       return `translateX(${dragX}px) translateY(${dragY}px) rotate(${rotation}deg)`;
     }
@@ -404,20 +379,17 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
   const getCardTransition = () => {
     if (isDragging) return "none";
-
-    // PART 1 FIX: Check if exit animation is running via CSS class
-    // If so, disable inline transition to let CSS class animation take over exclusively
-    const isExiting = cardRef.current?.classList.contains("exiting-right") ||
-                      cardRef.current?.classList.contains("exiting-left") ||
-                      cardRef.current?.classList.contains("exiting-down");
-
-    if (isExiting) return "none"; // CSS class handles transition with !important
+    if (isExiting) return `transform ${EXIT_ANIMATION_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${EXIT_ANIMATION_MS}ms ease-out`;
 
     // GLITCH FIX: No transition when drag is reset (dragX=0, dragY=0)
     // This prevents snap-back animation and rotation artifacts after swipe completes
     if (dragX === 0 && dragY === 0) return "none";
 
     return "transform 300ms ease-out";
+  };
+
+  const getCardOpacity = () => {
+    return isExiting ? 0.08 : 1;
   };
 
   // Stack cards
@@ -635,10 +607,12 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
         justifyContent: "center",
         paddingLeft: "16px",
         paddingRight: "16px",
+        paddingTop: "16px",
         paddingBottom: "24px",
         minHeight: 0,
-        overflow: "hidden",
+        overflow: "visible",
         position: "relative",
+        boxSizing: "border-box",
       }}>
         <div style={{ width: "100%", maxWidth: "560px", position: "relative", height: "100%" }}>
           {/* Stack cards in background - physical deck look */}
@@ -703,11 +677,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
             onClick={() => {
-              // CONTENT FLIP FIX: Don't allow flip while card is exiting animation
               // Mouse-only path: touch taps are handled in onPointerUp
-              const isExiting = cardRef.current?.classList.contains("exiting-right") ||
-                                cardRef.current?.classList.contains("exiting-left") ||
-                                cardRef.current?.classList.contains("exiting-down");
               if (!pointerWasDrag.current && !isExiting) {
                 setFlipped(f => !f);
               }
@@ -717,6 +687,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
               inset: 0,
               cursor: isDragging ? "grabbing" : "grab",
               transform: getCardTransform(),
+              opacity: getCardOpacity(),
               transition: getCardTransition(),
               willChange: "transform",
               touchAction: "none",
@@ -846,7 +817,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
               />
 
               {/* Labels */}
-              {(showGreen || cardRef.current?.classList.contains("exiting-right")) && (
+              {(showGreen || exitDirection === "right") && (
                 <div
                   style={{
                     position: "absolute",
@@ -859,7 +830,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                     borderRadius: "6px",
                     padding: "4px 10px",
                     transform: "rotate(-10deg)",
-                    opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
+                    opacity: greenLabelOpacity,
                     letterSpacing: "0.5px",
                     textTransform: "uppercase",
                     background: "rgba(255, 255, 255, 0.9)",
@@ -869,7 +840,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                 </div>
               )}
 
-              {(showRed || cardRef.current?.classList.contains("exiting-left")) && (
+              {(showRed || exitDirection === "left") && (
                 <div
                   style={{
                     position: "absolute",
@@ -882,7 +853,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                     borderRadius: "6px",
                     padding: "4px 10px",
                     transform: "rotate(10deg)",
-                    opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
+                    opacity: redLabelOpacity,
                     letterSpacing: "0.5px",
                     textTransform: "uppercase",
                     background: "rgba(255, 255, 255, 0.9)",
@@ -892,7 +863,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                 </div>
               )}
 
-              {(showYellow || cardRef.current?.classList.contains("exiting-down")) && (
+              {(showYellow || exitDirection === "down") && (
                 <div
                   style={{
                     position: "absolute",
@@ -905,7 +876,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                     border: `2px solid ${tokens.color.textWarning}`,
                     borderRadius: "6px",
                     padding: "4px 10px",
-                    opacity: Math.max(0, clampedRatioY - 0.1),
+                    opacity: yellowLabelOpacity,
                     letterSpacing: "0.5px",
                     textTransform: "uppercase",
                     background: "rgba(255, 255, 255, 0.9)",
@@ -916,7 +887,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
               )}
 
               {/* Flag / report button */}
-              {!isDragging && (
+              {!isDragging && !isExiting && (
                 <button
                   className="absolute bottom-4 right-4 w-11 h-11 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-bg-subtle"
                   aria-label="Reportar problema"
@@ -956,9 +927,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
       {/* Desktop fallback buttons (hidden on mobile) */}
       {isDesktop && (() => {
-        const isAnimating = cardRef.current?.classList.contains("exiting-right") ||
-                            cardRef.current?.classList.contains("exiting-left") ||
-                            cardRef.current?.classList.contains("exiting-down");
+        const isAnimating = isExiting;
         return (
         <div style={{
           paddingLeft: "16px",
@@ -974,14 +943,9 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
         }}>
           <button
             onClick={() => {
-              if (cardRef.current) {
-                cardRef.current.classList.add("exiting-left");
-              }
               advanceCard("left");
             }}
-            disabled={cardRef.current?.classList.contains("exiting-right") ||
-                      cardRef.current?.classList.contains("exiting-left") ||
-                      cardRef.current?.classList.contains("exiting-down")}
+            disabled={isAnimating}
             aria-label="Marcar como no sé"
             style={{
               flex: 1,
@@ -1015,14 +979,9 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
           <button
             onClick={() => {
-              if (cardRef.current) {
-                cardRef.current.classList.add("exiting-down");
-              }
               advanceCard("down");
             }}
-            disabled={cardRef.current?.classList.contains("exiting-right") ||
-                      cardRef.current?.classList.contains("exiting-left") ||
-                      cardRef.current?.classList.contains("exiting-down")}
+            disabled={isAnimating}
             aria-label="Marcar como difícil"
             style={{
               flex: 1,
@@ -1056,14 +1015,9 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
           <button
             onClick={() => {
-              if (cardRef.current) {
-                cardRef.current.classList.add("exiting-right");
-              }
               advanceCard("right");
             }}
-            disabled={cardRef.current?.classList.contains("exiting-right") ||
-                      cardRef.current?.classList.contains("exiting-left") ||
-                      cardRef.current?.classList.contains("exiting-down")}
+            disabled={isAnimating}
             aria-label="Marcar como conocida"
             style={{
               flex: 1,
