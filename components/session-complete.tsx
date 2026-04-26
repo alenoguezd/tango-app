@@ -39,6 +39,8 @@ export function SessionComplete({
   const isPerfect = noSe === 0 && dificil === 0;
   const currentMastery = Math.round((conocidas / total) * 100);
   const masteryGain = currentMastery - previousMastery;
+  const masteryGainText =
+    masteryGain > 0 ? `+${masteryGain} pts de dominio` : "Dominio sin cambios";
 
   return (
     <div
@@ -108,6 +110,7 @@ export function SessionComplete({
         >
           {setName} · {total} tarjetas
           {isPerfect && " · todas conocidas"}
+          {` · ${streakDays} días de racha`}
         </p>
 
         {/* Stats Grid */}
@@ -295,7 +298,7 @@ export function SessionComplete({
               margin: 0,
             }}
           >
-            {conocidas}/{total} tarjetas dominadas
+            {conocidas}/{total} tarjetas dominadas · {masteryGainText}
           </p>
         </div>
 

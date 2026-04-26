@@ -1,6 +1,18 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 
+type SharedCard = {
+  spanish?: string;
+  kana?: string;
+  kanji?: string;
+  example_usage?: string;
+};
+
+type SharedSet = {
+  name: string;
+  cards: SharedCard[] | null;
+};
+
 export default async function SharePage({ params }: { params: { id: string } }) {
   const supabase = createClient();
 
@@ -16,6 +28,9 @@ export default async function SharePage({ params }: { params: { id: string } }) 
       notFound();
     }
 
+    const sharedSet = data as unknown as SharedSet;
+    const cards = Array.isArray(sharedSet.cards) ? sharedSet.cards : [];
+
     return (
       <div style={{
         maxWidth: "600px",
@@ -24,19 +39,19 @@ export default async function SharePage({ params }: { params: { id: string } }) 
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       }}>
         <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>
-          {data.name}
+          {sharedSet.name}
         </h1>
         <p style={{ fontSize: "13px", color: "#8A7F74", marginBottom: "24px" }}>
           Este set ha sido compartido contigo
         </p>
 
-        {data.cards && data.cards.length > 0 ? (
+        {cards.length > 0 ? (
           <div>
             <h2 style={{ fontSize: "17px", fontWeight: 700, marginBottom: "16px" }}>
-              Tarjetas ({data.cards.length})
+              Tarjetas ({cards.length})
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {data.cards.map((card: any, idx: number) => (
+              {cards.map((card, idx) => (
                 <div
                   key={idx}
                   style={{
