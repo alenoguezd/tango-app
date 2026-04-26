@@ -21,14 +21,15 @@ const CARD_RADIUS = tokens.radius.card;  // 14px
 
 type CrearState = "idle" | "loading" | "success";
 
-export interface DeckSet {
-  id: string;
-  title: string;
-  cardCount: number;
-  progress: number;
-  lastStudied: string;
-  cards: Array<{ id?: string; kana: string; kanji: string; spanish: string; example_usage: string }>;
-}
+type GeneratedCard = {
+  id?: string;
+  kana: string;
+  kanji?: string;
+  spanish: string;
+  example_usage?: string;
+  difficulty?: number | null;
+  known?: boolean;
+};
 
 interface CrearScreenProps {
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
@@ -56,8 +57,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const [imageName, setImageName] = useState<string | null>(null);
   const [setName, setSetName] = useState("");
   const [state, setState] = useState<CrearState>("idle");
-  const [createdCards, setCreatedCards] = useState<any[]>([]);
-  const [limitError, setLimitError] = useState(false);
+  const [createError, setCreateError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
@@ -78,16 +78,8 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   async function handleGenerate() {
     if (!imageUrl || state !== "idle" || !setName.trim()) return;
 
-    // Check set limit before proceeding
-    const MAX_SETS = 3;
-    const existingSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
-    if (existingSets.length >= MAX_SETS) {
-      setLimitError(true);
-      return;
-    }
-    setLimitError(false);
-
     const finalName = setName.trim();
+    setCreateError("");
     setState("loading");
 
     try {
@@ -114,56 +106,33 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           if (!response.ok) throw new Error("API error");
 
           const data = await response.json();
-          const cards = data.cards || [];
+          const cards: GeneratedCard[] = data.cards || [];
           const id = crypto.randomUUID();
 
-          const cardsWithIds = cards.map((card, index) => ({
+          const cardsWithIds: GeneratedCard[] = cards.map((card, index) => ({
             id: index.toString(),
             ...card,
           }));
 
-          const newSet: DeckSet = {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) {
+            throw new Error("Debes iniciar sesión para crear un set.");
+          }
+
+          const { error: insertError } = await supabase.from("sets").insert({
             id,
-            title: finalName,
-            cardCount: cards.length,
-            progress: 0,
-            lastStudied: new Date().toISOString(),
+            user_id: user.id,
+            name: finalName,
             cards: cardsWithIds,
-            favorite: false,
-          };
+            is_favorite: false,
+            is_public: false,
+          });
 
-          try {
-            const existingSets = JSON.parse(localStorage.getItem("vocab_sets") || "[]");
-            const updatedSets = [...existingSets, newSet];
-            localStorage.setItem("vocab_sets", JSON.stringify(updatedSets));
-          } catch (err) {
-            console.error("[Crear] localStorage error:", err);
+          if (insertError) {
+            throw new Error(insertError.message || "No se pudo guardar el set.");
           }
 
-          try {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-              try {
-                await supabase.from("sets").insert({
-                  id: id,
-                  user_id: user.id,
-                  name: finalName,
-                  cards: cardsWithIds,
-                  is_favorite: false,
-                  is_public: false,
-                  progress: 0,
-                });
-              } catch (insertErr) {
-                console.error("[Crear] Supabase insert error:", insertErr);
-              }
-            }
-          } catch (err) {
-            console.error("[Crear] Supabase error:", err);
-          }
-
-          setCreatedCards(cardsWithIds);
           setState("success");
 
           // Redirect to study
@@ -171,17 +140,18 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
             if (id) router.push(`/estudiar/${id}`);
           }, 800);
         } catch (err) {
+          setCreateError(err instanceof Error ? err.message : "No se pudieron generar las tarjetas.");
           setState("idle");
         }
       };
       img.src = imageUrl;
     } catch (err) {
+      setCreateError("No se pudo leer la imagen.");
       setState("idle");
     }
   }
 
-  const existingSetsCount = JSON.parse(localStorage.getItem("vocab_sets") || "[]").length;
-  const canGenerate = !!imageUrl && !!setName.trim() && state === "idle" && existingSetsCount < 3;
+  const canGenerate = !!imageUrl && !!setName.trim() && state === "idle";
 
   // ===== Main Content =====
   const mainContent = (
@@ -366,7 +336,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         {state === "loading" ? "Procesando..." : "Generar tarjetas →"}
       </button>
 
-      {limitError && (
+      {createError && (
         <p style={{
           fontSize: "13px",
           fontWeight: 600,
@@ -374,7 +344,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
           textAlign: "center",
           marginTop: "12px",
         }}>
-          Has alcanzado el límite de 3 sets. Mejora tu plan para crear más.
+          {createError}
         </p>
       )}
 

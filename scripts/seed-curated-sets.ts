@@ -5,7 +5,6 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
-import { SYSTEM_CURATOR_ID } from "../lib/constants";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -403,7 +402,7 @@ async function seedCuratedSets() {
 
     console.log("\n✅ Seed completed successfully!");
     console.log(
-      `Total sets to seed: ${CURATED_SETS.length}\nSystem curator ID: ${SYSTEM_CURATOR_ID}`
+      `Total sets to seed: ${CURATED_SETS.length}\nCurated sets are public and use user_id = null`
     );
   } catch (error) {
     console.error("❌ Unexpected error during seed:", error);
