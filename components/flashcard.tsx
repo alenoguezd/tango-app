@@ -36,10 +36,35 @@ const BUTTER = tokens.color.butter;
 const BORDER = tokens.color.border;
 const PAGE_BG = tokens.color.page;
 
-const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
+const SWIPE_THRESHOLD_RATIO = 0.18;
+const SWIPE_THRESHOLD_MIN = 72;
+const SWIPE_THRESHOLD_MAX = 112;
+const VERTICAL_SWIPE_THRESHOLD_MIN = 84;
+const VERTICAL_SWIPE_THRESHOLD_MAX = 132;
+const DRAG_START_PX = 8;
+const AXIS_LOCK_RATIO = 1.18;
+const FLICK_VELOCITY = 0.55; // px/ms
+const DRAG_RESISTANCE_AFTER = 128;
+const DRAG_RESISTANCE = 0.32;
 const EXIT_ANIMATION_MS = 280;
 const FLIP_TRANSITION = "transform 550ms cubic-bezier(0.22, 1, 0.36, 1)";
 type SwipeDirection = "left" | "right" | "down";
+type DragIntent = "horizontal" | "vertical" | null;
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+const getSwipeThreshold = (size: number, min: number, max: number) =>
+  clamp(size * SWIPE_THRESHOLD_RATIO, min, max);
+
+const applyDragResistance = (distance: number) => {
+  const absDistance = Math.abs(distance);
+  if (absDistance <= DRAG_RESISTANCE_AFTER) return distance;
+
+  const resistedDistance =
+    DRAG_RESISTANCE_AFTER + (absDistance - DRAG_RESISTANCE_AFTER) * DRAG_RESISTANCE;
+
+  return Math.sign(distance) * resistedDistance;
+};
 
 // Audio functions for swipe feedback
 function playCorrect() {
@@ -96,6 +121,8 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   const cardDimsRef = useRef({ width: 560, height: 400 });
   const pointerStartX = useRef<number | null>(null);
   const pointerStartY = useRef<number | null>(null);
+  const pointerStartTime = useRef(0);
+  const dragIntent = useRef<DragIntent>(null);
   const didDrag = useRef(false);
   const pointerWasDrag = useRef(false); // captured before didDrag resets; guards mouse onClick
   const isExitingRef = useRef(false);
@@ -238,6 +265,8 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
     pointerStartX.current = e.clientX;
     pointerStartY.current = e.clientY;
+    pointerStartTime.current = performance.now();
+    dragIntent.current = null;
     didDrag.current = false;
     pointerWasDrag.current = false;
     setIsDragging(true);
@@ -257,14 +286,27 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
     const dx = e.clientX - pointerStartX.current;
     const dy = e.clientY - pointerStartY.current;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
 
-    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+    if (absX > DRAG_START_PX || absY > DRAG_START_PX) {
       didDrag.current = true;
       e.preventDefault();
     }
 
-    setDragX(dx);
-    setDragY(dy);
+    if (didDrag.current && dragIntent.current === null) {
+      if (absX > absY * AXIS_LOCK_RATIO) {
+        dragIntent.current = "horizontal";
+      } else if (dy > 0 && absY > absX * AXIS_LOCK_RATIO) {
+        dragIntent.current = "vertical";
+      }
+    }
+
+    const visualDragX = dragIntent.current === "vertical" ? dx * 0.18 : applyDragResistance(dx);
+    const visualDragY = dragIntent.current === "horizontal" ? dy * 0.18 : applyDragResistance(Math.max(0, dy));
+
+    setDragX(visualDragX);
+    setDragY(visualDragY);
   }, [isDragging]);
 
   const onPointerUp = useCallback((e: React.PointerEvent) => {
@@ -273,19 +315,32 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
     const dx = e.clientX - (pointerStartX.current ?? e.clientX);
     const dy = e.clientY - (pointerStartY.current ?? e.clientY);
+    const elapsed = Math.max(1, performance.now() - pointerStartTime.current);
+    const velocityX = dx / elapsed;
+    const velocityY = dy / elapsed;
 
     // Phase 3: Use cached dimensions instead of recalculating
     const dims = cardDimsRef.current;
-    const thresholdX = dims.width * SWIPE_THRESHOLD;
-    const thresholdY = dims.height * SWIPE_THRESHOLD;
+    const thresholdX = getSwipeThreshold(dims.width, SWIPE_THRESHOLD_MIN, SWIPE_THRESHOLD_MAX);
+    const thresholdY = getSwipeThreshold(dims.height, VERTICAL_SWIPE_THRESHOLD_MIN, VERTICAL_SWIPE_THRESHOLD_MAX);
 
     if (didDrag.current) {
-      const isHorizontalDominant = Math.abs(dx) > Math.abs(dy);
-      const isVerticalDominant = Math.abs(dy) > Math.abs(dx);
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+      const isHorizontalIntent =
+        dragIntent.current === "horizontal" || absX > absY * AXIS_LOCK_RATIO;
+      const isVerticalIntent =
+        dragIntent.current === "vertical" || (dy > 0 && absY > absX * AXIS_LOCK_RATIO);
+      const hasHorizontalDistance = absX >= thresholdX;
+      const hasVerticalDistance = dy >= thresholdY;
+      const hasHorizontalFlick =
+        isHorizontalIntent && absX >= DRAG_START_PX * 2 && Math.abs(velocityX) >= FLICK_VELOCITY;
+      const hasDownwardFlick =
+        isVerticalIntent && dy >= DRAG_START_PX * 2 && velocityY >= FLICK_VELOCITY;
 
-      if (isVerticalDominant && Math.abs(dy) > thresholdY) {
+      if (isVerticalIntent && (hasVerticalDistance || hasDownwardFlick)) {
         advanceCard("down");
-      } else if (isHorizontalDominant && Math.abs(dx) >= thresholdX) {
+      } else if (isHorizontalIntent && (hasHorizontalDistance || hasHorizontalFlick)) {
         const dir = dx > 0 ? "right" : "left";
         advanceCard(dir);
       } else {
@@ -302,6 +357,8 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     pointerWasDrag.current = didDrag.current;
     pointerStartX.current = null;
     pointerStartY.current = null;
+    pointerStartTime.current = 0;
+    dragIntent.current = null;
     didDrag.current = false;
   }, [isDragging, isExiting, advanceCard]);
 
@@ -311,6 +368,8 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     setDragY(0);
     pointerStartX.current = null;
     pointerStartY.current = null;
+    pointerStartTime.current = 0;
+    dragIntent.current = null;
     didDrag.current = false;
   }, []);
 
@@ -338,22 +397,22 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [flipped, isDesktop, isExiting, advanceCard]);
 
-  // Calculate drag derived values using cached dimensions
-  const thresholdX = 560 * SWIPE_THRESHOLD;
-  const thresholdY = 400 * SWIPE_THRESHOLD;
+  // Use stable render-time thresholds for feedback; release checks use measured card dimensions.
+  const thresholdX = getSwipeThreshold(560, SWIPE_THRESHOLD_MIN, SWIPE_THRESHOLD_MAX);
+  const thresholdY = getSwipeThreshold(400, VERTICAL_SWIPE_THRESHOLD_MIN, VERTICAL_SWIPE_THRESHOLD_MAX);
 
   const dragRatioX = dragX / thresholdX;
   const dragRatioY = dragY / thresholdY;
   const clampedRatioX = Math.max(-1, Math.min(1, dragRatioX));
   const clampedRatioY = Math.max(0, Math.min(1, dragRatioY));
 
-  const rotation = clampedRatioX * 8; // Keep the swipe motion restrained.
-  const showGreen = clampedRatioX > 0.15;
-  const showRed = clampedRatioX < -0.15;
-  const showYellow = clampedRatioY > 0.15;
-  const greenLabelOpacity = exitDirection === "right" ? 0.7 : Math.max(0, Math.abs(clampedRatioX) - 0.1);
-  const redLabelOpacity = exitDirection === "left" ? 0.7 : Math.max(0, Math.abs(clampedRatioX) - 0.1);
-  const yellowLabelOpacity = exitDirection === "down" ? 0.7 : Math.max(0, clampedRatioY - 0.1);
+  const rotation = clampedRatioX * 5; // Keep the swipe motion calm and intentional.
+  const showGreen = clampedRatioX > 0.22;
+  const showRed = clampedRatioX < -0.22;
+  const showYellow = clampedRatioY > 0.22;
+  const greenLabelOpacity = exitDirection === "right" ? 0.8 : clamp((clampedRatioX - 0.18) / 0.82, 0, 1);
+  const redLabelOpacity = exitDirection === "left" ? 0.8 : clamp((Math.abs(clampedRatioX) - 0.18) / 0.82, 0, 1);
+  const yellowLabelOpacity = exitDirection === "down" ? 0.8 : clamp((clampedRatioY - 0.18) / 0.82, 0, 1);
 
   const getTintColor = () => {
     // BUG 3 FIX: Card background must stay white at all times
@@ -363,13 +422,13 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
   const getCardTransform = () => {
     if (exitDirection === "right") {
-      return "translateX(46%) translateY(2px) rotate(4deg) scale(0.985)";
+      return "translateX(34%) translateY(2px) rotate(4deg) scale(0.99)";
     }
     if (exitDirection === "left") {
-      return "translateX(-46%) translateY(2px) rotate(-4deg) scale(0.985)";
+      return "translateX(-34%) translateY(2px) rotate(-4deg) scale(0.99)";
     }
     if (exitDirection === "down") {
-      return "translateY(38%) scale(0.985)";
+      return "translateY(30%) scale(0.99)";
     }
     if (isDragging || dragX !== 0 || dragY !== 0) {
       return `translateX(${dragX}px) translateY(${dragY}px) rotate(${rotation}deg)`;
@@ -385,7 +444,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     // This prevents snap-back animation and rotation artifacts after swipe completes
     if (dragX === 0 && dragY === 0) return "none";
 
-    return "transform 300ms ease-out";
+    return "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)";
   };
 
   const getCardOpacity = () => {
