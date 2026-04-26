@@ -24,7 +24,6 @@ const BORDER = tokens.color.border;
 const SAGE_LIGHT = "#E0F2E0";
 const BLUE_LIGHT = "#E0EDF8";
 const BUTTER_LIGHT = "#FFF9E0";
-const NAV_PILL = "#F0F0F0";
 
 function useWindowSize() {
   const [windowWidth, setWindowWidth] = useState<number>(0);
@@ -407,10 +406,20 @@ export default function PerfilPage() {
           fontFamily: FONT,
           fontSize: "13px",
           color: TEXT_SEC,
-          margin: `0 0 ${tokens.spacing["3"]}`,
+          margin: `0 0 ${createdAt ? tokens.spacing["1"] : tokens.spacing["3"]}`,
         }}>
           {email}
         </p>
+        {createdAt && (
+          <p style={{
+            fontFamily: FONT,
+            fontSize: "12px",
+            color: TEXT_SEC,
+            margin: `0 0 ${tokens.spacing["3"]}`,
+          }}>
+            Miembro desde {createdAt}
+          </p>
+        )}
 
         {/* Streak badge */}
         {streak > 0 && (

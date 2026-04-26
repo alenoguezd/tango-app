@@ -21,14 +21,12 @@ const TEXT_RED    = tokens.color.rose;
 const CARD_BORDER = tokens.color.border;
 const PROG_FG     = tokens.color.sage;
 const PROG_TRACK  = tokens.color.bgGrey;
-const NAV_PILL    = tokens.color.navPill;
 const BUTTER      = tokens.color.butter;
 const SAGE        = tokens.color.sage;
 const ROSE        = tokens.color.rose;
 
 // Spacing tokens (from tokens.spacing scale)
 const ROW_GAP     = tokens.spacing["4"];     // 16px
-const COL_GAP     = tokens.spacing["3"];     // 12px
 const H_PAD       = tokens.spacing["4"];     // 16px
 const SECTION_GAP = tokens.spacing["6"];     // 24px
 

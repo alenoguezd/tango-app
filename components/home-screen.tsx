@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MoreVertical, User, Flame } from "lucide-react";
+import { MoreVertical, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { buildDailyQueue, getDueCards, type CardProgress } from "@/lib/sm2";
@@ -121,7 +121,7 @@ function useWindowSize() {
 // ── HomeScreen ────────────────────────────────────────────────────────────────────
 const DAILY_DEFAULT = { newPerDay: 10, reviewPerDay: 40 };
 
-export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent, onContinue, onStudy, onNavigate, onLogout }: HomeScreenProps) {
+export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy, onNavigate }: HomeScreenProps) {
   const goal = dailyGoal ?? DAILY_DEFAULT;
   const [localSets, setLocalSets] = useState<DeckSet[]>(propSets || []);
   const [userName, setUserName] = useState<string>("Usuario");
@@ -341,16 +341,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
   const totalDueCards = Math.min(totalNewRaw, goal.newPerDay) + Math.min(totalReviewRaw, goal.reviewPerDay);
   const dailyTarget = goal.newPerDay + goal.reviewPerDay;
 
-  const setsWithDue = setStats.filter(s => s.dueCount > 0).length;
-  const avgMastery = localSets.length > 0
-    ? Math.round(localSets.reduce((sum, s) => {
-        const progress = Array.isArray(s.progress) ? s.progress as CardProgress[] : [];
-        return sum + (progress.length > 0 ? Math.round(
-          (progress.filter((c) => c.known === true).length / progress.length) * 100
-        ) : 0);
-      }, 0) / localSets.length)
-    : 0;
-
   const windowWidth = useWindowSize();
   const isMobile = windowWidth < 1024;
 
@@ -378,9 +368,11 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
               variant="outline"
               size="icon"
               className="rounded-full border-border-default"
-              aria-label="Perfil"
+              aria-label={`Perfil de ${userName}`}
             >
-              <User size={16} className="text-text-primary" />
+              <span className="text-xs font-bold text-text-primary">
+                {userInitials}
+              </span>
             </Button>
           </div>
 
@@ -468,14 +460,13 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
                 Creados por mi
               </h2>
               <div className="grid grid-cols-2 gap-2">
-                {localSets.filter(s => !s.is_public).map((set, index) => {
+                {localSets.filter(s => !s.is_public).map((set) => {
                   const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
                   return (
                     <SetGridCard
                       key={set.id}
                       set={set}
                       dueCount={dueCount}
-                      index={index}
                       onStudy={() => onStudy(set)}
                       onShare={() => handleShare(set.id)}
                       onRename={() => handleRenameSet(set.id, set.title)}
@@ -528,8 +519,10 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
             {userFirstName}
           </span>
         </h1>
-        <Button variant="outline" size="icon" className="rounded-full border-border-default" aria-label="Perfil">
-          <User size={20} className="text-text-primary" />
+        <Button variant="outline" size="icon" className="rounded-full border-border-default" aria-label={`Perfil de ${userName}`}>
+          <span className="text-xs font-bold text-text-primary">
+            {userInitials}
+          </span>
         </Button>
       </div>
 
@@ -617,14 +610,13 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
             Creados por mi
           </h2>
           <div className="grid grid-cols-2 gap-6">
-            {localSets.filter(s => !s.is_public).map((set, index) => {
+            {localSets.filter(s => !s.is_public).map((set) => {
               const dueCount = setStats.find((stat) => stat.setId === set.id)?.dueCount ?? 0;
               return (
                 <SetGridCard
                   key={set.id}
                   set={set}
                   dueCount={dueCount}
-                  index={index}
                   onStudy={() => onStudy(set)}
                   onShare={() => handleShare(set.id)}
                   onRename={() => handleRenameSet(set.id, set.title)}
@@ -655,7 +647,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
 function SetGridCard({
   set,
   dueCount,
-  index,
   onStudy,
   onShare,
   onRename,
@@ -665,7 +656,6 @@ function SetGridCard({
 }: {
   set: DeckSet;
   dueCount: number;
-  index: number;
   onStudy: () => void;
   onShare: () => void;
   onRename: () => void;
@@ -699,6 +689,12 @@ function SetGridCard({
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onShare(); }}>
               Compartir
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+              {set.favorite ? "Quitar favorito" : "Marcar favorito"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onResetProgress(); }}>
+              Reiniciar progreso
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(); }} className="text-rose">
               Eliminar
@@ -713,7 +709,7 @@ function SetGridCard({
           {set.title}
         </h3>
         <p className="text-xs text-text-secondary mt-1">
-          {set.cardCount} tarjetas
+          {set.cardCount} tarjetas · {dueCount} hoy
         </p>
       </div>
     </div>

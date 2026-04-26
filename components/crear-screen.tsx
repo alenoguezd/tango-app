@@ -17,7 +17,6 @@ const SKY = tokens.color.sky;
 const SKY_LIGHT = tokens.color.bgSkyLight;
 const BORDER = tokens.color.border;
 const H_PAD = tokens.spacing["4"];     // 16px
-const CARD_RADIUS = tokens.radius.card;  // 14px
 
 type CrearState = "idle" | "loading" | "success";
 
