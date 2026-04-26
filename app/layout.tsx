@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { Geist } from "next/font/google";
+import { PwaUpdateManager } from "@/components/pwa-update-manager";
 import "@/styles/globals.css";
 
 const geist = Geist({
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="es" className={geist.variable}>
       <body>
         {children}
+        <PwaUpdateManager />
         <Analytics />
       </body>
     </html>
