@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
-import { createClient } from "@/lib/supabase";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
 import { tokens, semanticColors } from "@/lib/design-tokens";
 
 const FONT = "var(--font-sans)";
@@ -21,7 +21,7 @@ type EntryScreen = "splash" | "login" | "signup" | "verification";
 
 export default function Home() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = hasSupabaseConfig() ? createClient() : null;
 
   const [screen, setScreen] = useState<EntryScreen>("splash");
   const [email, setEmail] = useState("");
@@ -40,6 +40,11 @@ export default function Home() {
   }, []);
 
   const checkAuthAndMount = async () => {
+    if (!supabase) {
+      setMounted(true);
+      return;
+    }
+
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error) {
@@ -63,6 +68,12 @@ export default function Home() {
     setLoading(true);
 
     try {
+      if (!supabase) {
+        setError("Supabase no está configurado en este entorno local.");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -98,6 +109,12 @@ export default function Home() {
     setLoading(true);
 
     try {
+      if (!supabase) {
+        setError("Supabase no está configurado en este entorno local.");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,

@@ -37,6 +37,8 @@ const BORDER = tokens.color.border;
 const PAGE_BG = tokens.color.page;
 
 const SWIPE_THRESHOLD = 0.3; // 30% of card width/height
+const EXIT_ANIMATION_MS = 460;
+const FLIP_TRANSITION = "transform 550ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 // Audio functions for swipe feedback
 function playCorrect() {
@@ -101,12 +103,14 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
   const current = deck[index];
   // Use exiting card snapshot during animation, otherwise use current
   const displayCard = exitingCardRef.current || current;
+  const exampleLines = typeof displayCard?.example_usage === "string"
+    ? displayCard.example_usage.split("\n")
+    : [];
 
   // Phase 1: Fix stat calculation - separate all 4 states explicitly
   const conocidas = deck.filter(c => c.known === true).length;
   const noSé = deck.filter(c => c.known === false && c.difficulty === null).length;
   const difícil = deck.filter(c => c.difficulty === "difícil").length;
-  const restantes = total - conocidas - noSé - difícil;
 
   const progress = total > 0 ? (index + 1) : 1;
   const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
@@ -205,11 +209,11 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
 
     // Advance to next card
     if (index < total - 1) {
-      // BUG 2 FIX: Delay index update until exit animation completes (250ms)
+      // BUG 2 FIX: Delay index update until exit animation completes
       // CSS class keeps animation playing while index updates safely
       // PART 1 FIX: Also reset dragX/dragY here to prevent snap-back flicker
       // GLITCH FIX: Remove CSS classes BEFORE state changes to prevent class/inline style collision
-      // CONTENT FLIP FIX: Reset flipped state at 250ms (same time as index) to prevent brief Spanish display
+      // CONTENT FLIP FIX: Reset flipped state with index to prevent brief Spanish display
       setTimeout(() => {
         // Step 1: Remove exit animation classes FIRST (before any state changes)
         if (cardRef.current) {
@@ -222,7 +226,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
         setDragY(0);
         setFlipped(false); // Reset flip state with index change to prevent brief old state flicker
         exitingCardRef.current = null; // Clear snapshot after advancing
-      }, 250);
+      }, EXIT_ANIMATION_MS);
     } else {
       // Last card was swiped - session complete
       if (onSessionComplete) {
@@ -249,7 +253,14 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     pointerWasDrag.current = false;
     setIsDragging(true);
 
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const target = e.currentTarget as HTMLElement;
+    if (typeof target.setPointerCapture === "function") {
+      try {
+        target.setPointerCapture(e.pointerId);
+      } catch {
+        // Some browsers can reject capture for interrupted or synthetic pointers.
+      }
+    }
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
@@ -295,9 +306,9 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
         setDragX(0);
         setDragY(0);
       }
-    } else {
-      // Pure tap (no movement): flip the card. Handles touch taps reliably since
-      // onPointerDown suppresses the synthetic click for touch.
+    } else if (e.pointerType !== "mouse") {
+      // Touch taps are handled here because onPointerDown suppresses the
+      // synthetic click. Mouse clicks are handled by onClick to avoid double flips.
       const isExiting = cardRef.current?.classList.contains("exiting-right") ||
                         cardRef.current?.classList.contains("exiting-left") ||
                         cardRef.current?.classList.contains("exiting-down");
@@ -315,6 +326,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
     setDragX(0);
     setDragY(0);
     pointerStartX.current = null;
+    pointerStartY.current = null;
     didDrag.current = false;
   }, []);
 
@@ -670,6 +682,7 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                   flexDirection: "column",
                   justifyContent: "center",
                   alignItems: "center",
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
                 }}
               >
                 <p className="text-3xl font-medium text-text-secondary text-center mb-2">
@@ -702,108 +715,52 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
             style={{
               position: "absolute",
               inset: 0,
-              background: tokens.color.surface,
-              border: `1px solid ${BORDER}`,
-              borderRadius: "24px",
-              padding: "40px 24px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              alignItems: "center",
               cursor: isDragging ? "grabbing" : "grab",
               transform: getCardTransform(),
               transition: getCardTransition(),
               willChange: "transform",
               touchAction: "none",
               zIndex: 3,
-              overflow: "hidden",
+              perspective: "1200px",
+              perspectiveOrigin: "50% 50%",
             }}
             role="button"
             tabIndex={0}
             aria-label={`Tarjeta ${index + 1} de ${total}. ${flipped ? "Mostrar pregunta" : "Mostrar respuesta"}`}
           >
-            {/* Tint overlay */}
+            {/* 3D Flipping Container */}
             <div
               style={{
-                position: "absolute",
-                inset: 0,
-                background: getTintColor(),
-                transition: "background 80ms linear",
-                zIndex: 2,
-                pointerEvents: "none",
+                width: "100%",
+                height: "100%",
+                position: "relative",
+                transition: FLIP_TRANSITION,
+                transformStyle: "preserve-3d",
+                transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                willChange: "transform",
               }}
-            />
-
-            {/* Phase 4: Improved label visibility with better opacity calculation */}
-            {(showGreen || cardRef.current?.classList.contains("exiting-right")) && (
+            >
+              {/* Front Face */}
               <div
                 style={{
                   position: "absolute",
-                  top: "20px",
-                  right: "20px",
-                  zIndex: 3,
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: SAGE,
-                  opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
+                  inset: 0,
+                  backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
+                  transform: "rotateY(0deg)",
+                  background: tokens.color.surface,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "24px",
+                  padding: "40px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  overflow: "hidden",
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
                 }}
               >
-                Conocida ✓
-              </div>
-            )}
-
-            {(showRed || cardRef.current?.classList.contains("exiting-left")) && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  left: "20px",
-                  zIndex: 3,
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: ROSE,
-                  opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
-                }}
-              >
-                No sé
-              </div>
-            )}
-
-            {(showYellow || cardRef.current?.classList.contains("exiting-down")) && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 3,
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: tokens.color.textWarning,
-                  opacity: Math.max(0, clampedRatioY - 0.1),
-                }}
-              >
-                Difícil
-              </div>
-            )}
-
-            {/* Flag / report button — 44×44 touch target, isolated from card pointer handlers */}
-            {!isDragging && (
-              <button
-                className="absolute bottom-1 right-1 z-10 w-11 h-11 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-bg-subtle"
-                aria-label="Reportar problema"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); setFeedbackOpen(true); }}
-              >
-                <Flag size={14} strokeWidth={1.5} />
-              </button>
-            )}
-
-            {/* Card content */}
-            <div style={{ position: "relative", zIndex: 1, width: "100%" }} className="flex flex-col justify-center flex-1">
-              {!flipped ? (
-                <>
-                  {/* Front: Japanese */}
+                <div style={{ position: "relative", zIndex: 1, width: "100%" }} className="flex flex-col justify-center flex-1">
                   <p className="text-3xl font-medium text-text-secondary text-center mb-2">
                     {displayCard?.kanji}
                   </p>
@@ -815,17 +772,36 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                       {toRomaji(displayCard.kana)}
                     </p>
                   )}
-                </>
-              ) : (
-                <>
-                  {/* Back: Spanish translation */}
+                </div>
+              </div>
+
+              {/* Back Face */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  backfaceVisibility: "hidden",
+                  WebkitBackfaceVisibility: "hidden",
+                  background: tokens.color.surface,
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "24px",
+                  padding: "40px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  overflow: "hidden",
+                  transform: "rotateY(180deg)",
+                  boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
+                }}
+              >
+                <div style={{ position: "relative", zIndex: 1, width: "100%" }} className="flex flex-col justify-center flex-1">
                   <p className="text-2xl font-semibold text-text-primary text-center leading-snug mb-3">
                     {displayCard?.spanish}
                   </p>
 
                   <div className="w-10 h-px bg-border-default mx-auto my-3" />
 
-                  {/* Kanji label + kana */}
                   {displayCard?.kanji && (
                     <p className="text-3xl font-medium text-text-secondary text-center mb-2">
                       {displayCard.kanji}
@@ -837,23 +813,119 @@ export function Flashcard({ cards, title = "Lección", setId = "", userId = "", 
                     </p>
                   )}
 
-                  {/* Example sentence */}
-                  {displayCard?.example_usage && (
+                  {exampleLines.length > 0 && (
                     <>
                       <p className="text-sm font-semibold text-text-secondary text-center mb-2">
                         Ejemplo
                       </p>
                       <p className="text-sm text-text-primary text-center leading-relaxed">
-                        {displayCard.example_usage.split("\n")[0]}
+                        {exampleLines[0]}
                       </p>
-                      {displayCard.example_usage.split("\n")[1] && (
+                      {exampleLines[1] && (
                         <p className="text-sm text-text-secondary text-center leading-relaxed mt-1">
-                          {displayCard.example_usage.split("\n")[1]}
+                          {exampleLines[1]}
                         </p>
                       )}
                     </>
                   )}
-                </>
+                </div>
+              </div>
+            </div>
+
+            {/* Overlays (Labels, Flag) - Outside 3D container so they don't flip */}
+            <div style={{ position: "absolute", inset: 0, zIndex: 4, pointerEvents: "none" }}>
+              {/* Tint overlay */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: getTintColor(),
+                  transition: "background 80ms linear",
+                  borderRadius: "24px",
+                }}
+              />
+
+              {/* Labels */}
+              {(showGreen || cardRef.current?.classList.contains("exiting-right")) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "24px",
+                    left: "24px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: SAGE,
+                    border: `2px solid ${SAGE}`,
+                    borderRadius: "6px",
+                    padding: "4px 10px",
+                    transform: "rotate(-10deg)",
+                    opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    background: "rgba(255, 255, 255, 0.9)",
+                  }}
+                >
+                  Conocida
+                </div>
+              )}
+
+              {(showRed || cardRef.current?.classList.contains("exiting-left")) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "24px",
+                    right: "24px",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: ROSE,
+                    border: `2px solid ${ROSE}`,
+                    borderRadius: "6px",
+                    padding: "4px 10px",
+                    transform: "rotate(10deg)",
+                    opacity: Math.max(0, Math.abs(clampedRatioX) - 0.1),
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    background: "rgba(255, 255, 255, 0.9)",
+                  }}
+                >
+                  No sé
+                </div>
+              )}
+
+              {(showYellow || cardRef.current?.classList.contains("exiting-down")) && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "24px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    color: tokens.color.textWarning,
+                    border: `2px solid ${tokens.color.textWarning}`,
+                    borderRadius: "6px",
+                    padding: "4px 10px",
+                    opacity: Math.max(0, clampedRatioY - 0.1),
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase",
+                    background: "rgba(255, 255, 255, 0.9)",
+                  }}
+                >
+                  Difícil
+                </div>
+              )}
+
+              {/* Flag / report button */}
+              {!isDragging && (
+                <button
+                  className="absolute bottom-4 right-4 w-11 h-11 flex items-center justify-center text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-bg-subtle"
+                  aria-label="Reportar problema"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); setFeedbackOpen(true); }}
+                  style={{ pointerEvents: "auto" }}
+                >
+                  <Flag size={16} strokeWidth={1.5} />
+                </button>
               )}
             </div>
           </div>
