@@ -257,21 +257,3 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Card exit animations */
-.exiting-right {
-  transition: transform 250ms ease-out, opacity 200ms ease-out !important;
-  transform: translateX(110%) rotate(8deg) !important;
-  opacity: 0 !important;
-}
-
-.exiting-left {
-  transition: transform 250ms ease-out, opacity 200ms ease-out !important;
-  transform: translateX(-110%) rotate(-8deg) !important;
-  opacity: 0 !important;
-}
-
-.exiting-down {
-  transition: transform 250ms ease-out, opacity 200ms ease-out !important;
-  transform: translateY(120vh) rotate(0deg) !important;
-  opacity: 0 !important;
-}

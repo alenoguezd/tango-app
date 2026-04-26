@@ -218,7 +218,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
       const updated = prev.map((set) =>
         set.id === setId ? { ...set, favorite: !set.favorite } : set
       );
-      localStorage.setItem("vocab_sets", JSON.stringify(updated));
       return updated;
     });
 
@@ -248,7 +247,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
       const updated = prev.map((set) =>
         set.id === setId ? { ...set, title: newName } : set
       );
-      localStorage.setItem("vocab_sets", JSON.stringify(updated));
       return updated;
     });
 
@@ -273,7 +271,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
     if (confirm("¿Eliminar este set? Esta acción no se puede deshacer")) {
       setLocalSets((prev) => {
         const updated = prev.filter((set) => set.id !== setId);
-        localStorage.setItem("vocab_sets", JSON.stringify(updated));
         return updated;
       });
 
@@ -301,7 +298,6 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
         const updated = prev.map((set) =>
           set.id === setId ? { ...set, progress: [] } : set
         );
-        localStorage.setItem("vocab_sets", JSON.stringify(updated));
         return updated;
       });
 
@@ -310,9 +306,9 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, recent,
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           await supabase
-            .from("sets")
-            .update({ progress: [] })
-            .eq("id", setId)
+            .from("user_progress")
+            .delete()
+            .eq("set_id", setId)
             .eq("user_id", user.id);
           showToast("Progreso reiniciado");
         }

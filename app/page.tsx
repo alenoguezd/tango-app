@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
 import { createClient, hasSupabaseConfig } from "@/lib/supabase";
-import { tokens, semanticColors } from "@/lib/design-tokens";
+import { tokens } from "@/lib/design-tokens";
 
 const FONT = "var(--font-sans)";
 const FONT_JP = "var(--font-japanese), var(--font-sans)";
