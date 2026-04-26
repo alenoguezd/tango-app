@@ -5,6 +5,8 @@
  */
 
 :root {
+  color-scheme: light;
+
   /* ─────────────────────────────────────────────────────────────
      COLORS — Core Palette
      ───────────────────────────────────────────────────────────── */
@@ -171,14 +173,3 @@
   --focus-outline-offset: 2px;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Dark Mode (if needed in future)
-   ───────────────────────────────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg-page: #0f0f0f;
-    --color-bg-surface: #1a1a1a;
-    --color-text-primary: #fafaf8;
-    --color-text-secondary: #a0a098;
-  }
-}
