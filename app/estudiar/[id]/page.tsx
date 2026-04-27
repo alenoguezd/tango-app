@@ -60,147 +60,161 @@ export default function EstudiarPage() {
   );
 
   useEffect(() => {
-    checkAuthAndLoadSet();
-  }, [setId]);
+    const initialGoal = { newPerDay: 10, reviewPerDay: 40 };
 
-  const checkAuthAndLoadSet = async () => {
-    try {
-      if (!hasSupabaseConfig()) {
-        setCurrentUserId("local");
-        loadFallbackSet(dailyGoal);
-        return;
-      }
-
-      const supabase = createClient();
-      const { data: { user }, error } = await supabase.auth.getUser();
-
-      if (error || !user) {
-        router.push("/");
-        return;
-      }
-
-      setCurrentUserId(user.id);
-
-      // Read user's daily goal; fall back to defaults if not set
-      const goal = user.user_metadata?.daily_goal as
-        | { newPerDay: number; reviewPerDay: number }
-        | undefined;
-      const resolvedGoal = {
-        newPerDay: goal?.newPerDay ?? 10,
-        reviewPerDay: goal?.reviewPerDay ?? 40,
-      };
-      setDailyGoal(resolvedGoal);
-      loadSetData(user.id, resolvedGoal);
-    } catch (error) {
-      if (!loadFallbackSet(dailyGoal)) router.push("/");
-    }
-  };
-
-  const loadFallbackSet = (goal: { newPerDay: number; reviewPerDay: number }) => {
-    const fallbackSet = getCuratedPublicSet(setId);
-    if (!fallbackSet) {
-      setLoading(false);
-      return false;
-    }
-
-    const cards = migrateCards(fallbackSet.cards);
-    const found: StudySet = {
-      id: fallbackSet.id,
-      title: fallbackSet.name,
-      cardCount: cards.length,
-      progress: [],
-      lastStudied: new Date().toISOString(),
-      cards,
+    const setDueCardsForGoal = (
+      studySet: StudySet,
+      goal: { newPerDay: number; reviewPerDay: number }
+    ) => {
+      const allCardIds = studySet.cards.map((card, index) => card.id || index.toString());
+      const progress = Array.isArray(studySet.progress) ? studySet.progress : [];
+      const cappedIds = buildDailyQueue(allCardIds, progress, goal.newPerDay, goal.reviewPerDay);
+      setDueCardIds(cappedIds);
     };
 
-    setPreviousMastery(0);
-    setOriginalSetName(fallbackSet.name);
-    setSet(found);
-    calculateAndSetDueCards(found, goal);
-    setLoading(false);
-    return true;
-  };
-
-  const loadSetData = async (userId: string, goal: { newPerDay: number; reviewPerDay: number }) => {
-    try {
-      if (!hasSupabaseConfig()) {
-        loadFallbackSet(goal);
-        return;
+    const loadFallbackSet = (goal: { newPerDay: number; reviewPerDay: number }) => {
+      const fallbackSet = getCuratedPublicSet(setId);
+      if (!fallbackSet) {
+        setLoading(false);
+        return false;
       }
 
-      const supabase = createClient();
-      // 1. Try loading by set ID
-      let setData: Record<string, unknown> | null = null;
-      const { data, error } = await supabase
-        .from("sets")
-        .select("*")
-        .eq("id", setId)
-        .single();
+      const cards = migrateCards(fallbackSet.cards);
+      const found: StudySet = {
+        id: fallbackSet.id,
+        title: fallbackSet.name,
+        cardCount: cards.length,
+        progress: [],
+        lastStudied: new Date().toISOString(),
+        cards,
+      };
 
-      if (!error && data) {
-        setData = data;
-      } else {
-        // 2. Try loading by share_token (shared/public links)
-        const { data: sharedData, error: sharedError } = await supabase
+      setPreviousMastery(0);
+      setOriginalSetName(fallbackSet.name);
+      setSet(found);
+      setDueCardsForGoal(found, goal);
+      setLoading(false);
+      return true;
+    };
+
+    const processSetData = (
+      data: Record<string, unknown>,
+      progress: CardProgress[],
+    ): StudySet => {
+      let cards = (data.cards || []) as VocabCard[];
+      if (cards.length > 0 && !cards[0]?.id) {
+        cards = migrateCards(cards);
+      }
+
+      const prev = cards.length > 0
+        ? Math.round((cards.filter((c) => c.known === true).length / cards.length) * 100)
+        : 0;
+      setPreviousMastery(prev);
+      setOriginalSetName(data.name as string || "");
+
+      return {
+        id: data.id as string,
+        title: data.name as string,
+        cardCount: cards.length,
+        progress,
+        lastStudied: (data.last_studied || data.created_at || new Date().toISOString()) as string,
+        cards,
+        userId: data.user_id as string | undefined,
+      };
+    };
+
+    const loadSetData = async (
+      userId: string,
+      goal: { newPerDay: number; reviewPerDay: number }
+    ) => {
+      try {
+        if (!hasSupabaseConfig()) {
+          loadFallbackSet(goal);
+          return;
+        }
+
+        const supabase = createClient();
+        // 1. Try loading by set ID
+        let setData: Record<string, unknown> | null = null;
+        const { data, error } = await supabase
           .from("sets")
           .select("*")
-          .eq("share_token", setId)
-          .eq("is_public", true)
+          .eq("id", setId)
           .single();
-        if (!sharedError && sharedData) setData = sharedData;
-      }
 
-      if (!setData) {
-        if (loadFallbackSet(goal)) return;
+        if (!error && data) {
+          setData = data;
+        } else {
+          // 2. Try loading by share_token (shared/public links)
+          const { data: sharedData, error: sharedError } = await supabase
+            .from("sets")
+            .select("*")
+            .eq("share_token", setId)
+            .eq("is_public", true)
+            .single();
+          if (!sharedError && sharedData) setData = sharedData;
+        }
+
+        if (!setData) {
+          if (loadFallbackSet(goal)) return;
+          setLoading(false);
+          return;
+        }
+
+        // 3. Load user's SM-2 progress for this set from user_progress table
+        const resolvedSetId = setData.id as string;
+        const { data: progressRows } = await supabase
+          .from("user_progress")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("set_id", resolvedSetId);
+
+        const progress: CardProgress[] = (progressRows || []).map(rowToCardProgress);
+        const found = processSetData(setData, progress);
+        setSet(found);
+        setDueCardsForGoal(found, goal);
+      } catch {
+        loadFallbackSet(goal);
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // 3. Load user's SM-2 progress for this set from user_progress table
-      const resolvedSetId = setData.id as string;
-      const { data: progressRows } = await supabase
-        .from("user_progress")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("set_id", resolvedSetId);
-
-      const progress: CardProgress[] = (progressRows || []).map(rowToCardProgress);
-      const found = processSetData(setData, progress);
-      setSet(found);
-      calculateAndSetDueCards(found, goal);
-    } catch {
-      loadFallbackSet(goal);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Build a StudySet from raw Supabase row + already-loaded progress
-  const processSetData = (
-    data: Record<string, unknown>,
-    progress: CardProgress[],
-  ): StudySet => {
-    let cards = (data.cards || []) as VocabCard[];
-    if (cards.length > 0 && !cards[0]?.id) {
-      cards = migrateCards(cards);
-    }
-
-    const prev = cards.length > 0
-      ? Math.round((cards.filter((c) => c.known === true).length / cards.length) * 100)
-      : 0;
-    setPreviousMastery(prev);
-    setOriginalSetName(data.name as string || "");
-
-    return {
-      id: data.id as string,
-      title: data.name as string,
-      cardCount: cards.length,
-      progress,
-      lastStudied: (data.last_studied || data.created_at || new Date().toISOString()) as string,
-      cards,
-      userId: data.user_id as string | undefined,
     };
-  };
+
+    const checkAuthAndLoadSet = async () => {
+      try {
+        if (!hasSupabaseConfig()) {
+          setCurrentUserId("local");
+          loadFallbackSet(initialGoal);
+          return;
+        }
+
+        const supabase = createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          router.push("/");
+          return;
+        }
+
+        setCurrentUserId(user.id);
+
+        // Read user's daily goal; fall back to defaults if not set
+        const goal = user.user_metadata?.daily_goal as
+          | { newPerDay: number; reviewPerDay: number }
+          | undefined;
+        const resolvedGoal = {
+          newPerDay: goal?.newPerDay ?? initialGoal.newPerDay,
+          reviewPerDay: goal?.reviewPerDay ?? initialGoal.reviewPerDay,
+        };
+        setDailyGoal(resolvedGoal);
+        loadSetData(user.id, resolvedGoal);
+      } catch {
+        if (!loadFallbackSet(initialGoal)) router.push("/");
+      }
+    };
+
+    checkAuthAndLoadSet();
+  }, [router, setId]);
 
   // Helper: Build today's capped queue using the user's daily goal
   const calculateAndSetDueCards = (
