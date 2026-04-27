@@ -1,21 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase";
+import { useCallback, useEffect, useState } from "react";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
 import { OnboardingScreen, type DailyGoal } from "@/components/onboarding-screen";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
+      if (!hasSupabaseConfig()) {
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
@@ -33,9 +34,18 @@ export default function OnboardingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const handleSave = async (goal: DailyGoal) => {
+    if (!hasSupabaseConfig()) {
+      return;
+    }
+
+    const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
       data: { daily_goal: goal },
     });

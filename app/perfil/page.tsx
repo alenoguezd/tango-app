@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Eye, EyeOff, ChevronRight } from "lucide-react";
 import { AppNav } from "@/components/app-nav";
-import { createClient } from "@/lib/supabase";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
 import { computeStreak } from "@/lib/sm2";
 import { tokens } from "@/lib/design-tokens";
+import { useWindowWidth } from "@/lib/use-window-width";
 import { PageTitle } from "@/components/ui/page-title";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
@@ -25,25 +26,9 @@ const SAGE_LIGHT = "#E0F2E0";
 const BLUE_LIGHT = "#E0EDF8";
 const BUTTER_LIGHT = "#FFF9E0";
 
-function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return mounted ? windowWidth : 1024;
-}
-
 export default function PerfilPage() {
   const router = useRouter();
-  const supabase = createClient();
-  const windowWidth = useWindowSize();
+  const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 1024;
 
   const [email, setEmail] = useState("");
@@ -68,13 +53,14 @@ export default function PerfilPage() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  useEffect(() => {
-    setRomajiEnabled(localStorage.getItem("romaji_enabled") === "true");
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
+      if (!hasSupabaseConfig()) {
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
@@ -140,10 +126,18 @@ export default function PerfilPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    setRomajiEnabled(localStorage.getItem("romaji_enabled") === "true");
+    loadUserData();
+  }, [loadUserData]);
 
   const handleSaveName = async () => {
     try {
+      if (!hasSupabaseConfig()) return;
+
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -184,6 +178,12 @@ export default function PerfilPage() {
     setPasswordLoading(true);
 
     try {
+      if (!hasSupabaseConfig()) {
+        setPasswordError("Supabase no está configurado en este entorno local.");
+        return;
+      }
+
+      const supabase = createClient();
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -206,6 +206,12 @@ export default function PerfilPage() {
 
   const handleLogout = async () => {
     try {
+      if (!hasSupabaseConfig()) {
+        router.push("/");
+        return;
+      }
+
+      const supabase = createClient();
       await supabase.auth.signOut();
       router.push("/");
     } catch (err) {

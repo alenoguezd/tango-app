@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, Mail, ArrowLeft } from "lucide-react";
@@ -35,11 +35,9 @@ export default function Home() {
   const [verificationEmail, setVerificationEmail] = useState("");
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    checkAuthAndMount();
-  }, []);
+  const checkAuthAndMount = useCallback(async () => {
+    await Promise.resolve();
 
-  const checkAuthAndMount = async () => {
     if (!supabase) {
       setMounted(true);
       return;
@@ -60,7 +58,15 @@ export default function Home() {
     } catch (error) {
     }
     setMounted(true);
-  };
+  }, [router, supabase]);
+
+  useEffect(() => {
+    const authCheck = window.setTimeout(() => {
+      void checkAuthAndMount();
+    }, 0);
+
+    return () => window.clearTimeout(authCheck);
+  }, [checkAuthAndMount]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +150,11 @@ export default function Home() {
   const handleResendVerification = async () => {
     try {
       setError("");
+      if (!supabase) {
+        setError("Supabase no está configurado en este entorno local.");
+        return;
+      }
+
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: verificationEmail,
@@ -186,6 +197,12 @@ export default function Home() {
 
     setLoading(true);
     try {
+      if (!supabase) {
+        setError("Supabase no está configurado en este entorno local.");
+        setLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email);
 
       if (error) {

@@ -1,22 +1,23 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CrearScreen } from "@/components/crear-screen";
-import { createClient } from "@/lib/supabase";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
 
 export default function CrearPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
+      if (!hasSupabaseConfig()) {
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
@@ -30,7 +31,11 @@ export default function CrearPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const handleNavigate = (tab: "inicio" | "crear" | "progreso" | "perfil") => {
     if (tab === "progreso") {
