@@ -7,6 +7,7 @@ import { tokens } from "@/lib/design-tokens";
 import { PageTitle } from "@/components/ui/page-title";
 import { createClient } from "@/lib/supabase";
 import { getTodayString, computeStreak } from "@/lib/sm2";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const W           = tokens.color.surface;
@@ -45,29 +46,12 @@ interface ProgresoScreenProps {
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
 }
 
-// ── useWindowSize Hook ────────────────────────────────────────────────────────
-function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Return desktop width (1024) during SSR/hydration, then switch to actual width
-  return mounted ? windowWidth : 1024;
-}
-
 // ── ProgresoScreen ─────────────────────────────────────────────────────────────
 export function ProgresoScreen({ onNavigate }: ProgresoScreenProps) {
   const [sets, setSets] = useState<SetProgress[]>([]);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [loading, setLoading] = useState(true);
-  const windowWidth = useWindowSize();
+  const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 1024;
 
   useEffect(() => {

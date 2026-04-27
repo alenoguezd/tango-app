@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useRef, useState } from "react";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { AppNav } from "./app-nav";
 import { createClient } from "@/lib/supabase";
-import { tokens } from "@/lib/design-tokens";
-import { PageTitle } from "@/components/ui/page-title";
-
-// ── Design tokens ─────────────────────────────────────────────────────
-const FONT_UI = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
-const BG_PAGE = tokens.color.page;
-const TEXT_PRI = tokens.color.ink;
-const TEXT_SEC = tokens.color.muted;
-const SKY = tokens.color.sky;
-const SKY_LIGHT = tokens.color.bgSkyLight;
-const BORDER = tokens.color.border;
-const H_PAD = tokens.spacing["4"];     // 16px
+import { useWindowWidth } from "@/lib/use-window-width";
 
 type CrearState = "idle" | "loading" | "success";
 
@@ -34,22 +24,6 @@ interface CrearScreenProps {
   onNavigate: (tab: "inicio" | "crear" | "progreso") => void;
 }
 
-// ── useWindowSize Hook ────────────────────────────────────────────────────
-function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return mounted ? windowWidth : 1024;
-}
-
 export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const router = useRouter();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -58,7 +32,7 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
   const [state, setState] = useState<CrearState>("idle");
   const [createError, setCreateError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const windowWidth = useWindowSize();
+  const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 1024;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -154,105 +128,48 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
 
   // ===== Main Content =====
   const mainContent = (
-    <div style={{ padding: `0 ${H_PAD}px` }}>
+    <div className="px-4">
       {/* Title */}
-      <PageTitle>Nuevo set</PageTitle>
+      <h1 className="mb-10 pt-4 text-center text-2xl font-bold leading-tight text-text-primary">
+        Nuevo set
+      </h1>
 
       {/* Upload Zone */}
       <div
         onClick={() => fileInputRef.current?.click()}
-        style={{
-          border: `2px dashed ${SKY}`,
-          borderRadius: "24px",
-          padding: "48px 24px",
-          textAlign: "center",
-          marginBottom: "32px",
-          background: SKY_LIGHT,
-          cursor: "pointer",
-          position: "relative",
-          minHeight: "320px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "20px",
-        }}
+        className="mb-4 flex min-h-[250px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border-default bg-surface px-6 py-8 text-center"
       >
         {!imageUrl ? (
           <>
-            {/* Icon Circle */}
-            <div style={{
-              width: "72px",
-              height: "72px",
-              background: tokens.color.surface,
-              borderRadius: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-            }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ stroke: SKY, strokeWidth: 1.5 }}>
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                <path d="M21 15l-5-5-11 11" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
+            <NextImage
+              src="/Crearcards.svg"
+              alt=""
+              width={118}
+              height={118}
+              className="mb-3 h-[118px] w-[118px] object-contain"
+            />
 
             {/* Text */}
             <div>
-              <h2 style={{
-                fontFamily: FONT_UI,
-                fontSize: "16px",
-                fontWeight: 700,
-                color: tokens.color.sky,
-                margin: "0 0 6px 0",
-              }}>
+              <h2 className="mb-2 text-base font-bold leading-tight text-text-primary">
                 Subir foto
               </h2>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "13px",
-                fontWeight: 400,
-                color: tokens.color.sky,
-                margin: 0,
-              }}>
+              <p className="m-0 text-base font-normal leading-normal text-text-secondary">
                 Kanji, hiragana o rōmaji
               </p>
             </div>
           </>
         ) : (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-          }}>
-            <div style={{
-              width: "56px",
-              height: "56px",
-              background: tokens.color.surface,
-              borderRadius: "12px",
-              flexShrink: 0,
-              backgroundImage: `url(${imageUrl})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }} />
-            <div style={{ flex: 1, textAlign: "left" }}>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "12px",
-                fontWeight: 600,
-                color: tokens.color.textSuccess,
-                margin: "0 0 2px 0",
-              }}>
+          <div className="flex w-full max-w-[260px] items-center gap-3 rounded-md bg-success-bg p-3">
+            <div
+              className="h-14 w-14 shrink-0 rounded-md bg-surface bg-cover bg-center"
+              style={{ backgroundImage: `url(${imageUrl})` }}
+            />
+            <div className="min-w-0 flex-1 text-left">
+              <p className="mb-0.5 text-sm font-semibold leading-normal text-success-text">
                 ✓ Imagen lista
               </p>
-              <p style={{
-                fontFamily: FONT_UI,
-                fontSize: "11px",
-                fontWeight: 400,
-                color: tokens.color.textSuccess,
-                margin: 0,
-              }}>
+              <p className="m-0 truncate text-xs font-normal leading-normal text-success-text">
                 {imageName}
               </p>
             </div>
@@ -261,35 +178,17 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
                 e.stopPropagation();
                 handleRemoveImage();
               }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "24px",
-                height: "24px",
-                padding: 0,
-                color: tokens.color.textSuccess,
-                flexShrink: 0,
-              }}
+              className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-success-text"
+              aria-label="Quitar imagen"
             >
-              <X style={{ width: "20px", height: "20px" }} />
+              <X className="h-5 w-5" />
             </button>
           </div>
         )}
       </div>
 
       {/* Set Name Input */}
-      <label style={{
-        fontFamily: FONT_UI,
-        fontSize: "13px",
-        fontWeight: 700,
-        color: TEXT_PRI,
-        display: "block",
-        marginBottom: "12px",
-      }}>
+      <label className="mb-2 block text-sm font-bold leading-normal text-text-primary">
         Nombre del set
       </label>
       <input
@@ -297,52 +196,20 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         value={setName}
         onChange={(e) => setSetName(e.target.value)}
         placeholder="Nombre del set"
-        style={{
-          width: "100%",
-          fontFamily: FONT_UI,
-          fontSize: "14px",
-          padding: "14px 16px",
-          border: `0.5px solid ${BORDER}`,
-          borderRadius: "12px",
-          boxSizing: "border-box",
-          background: "#fff",
-          color: TEXT_PRI,
-          marginBottom: "32px",
-        }}
+        className="mb-4 w-full rounded-md border border-border-default bg-surface px-4 py-3 text-base text-text-primary placeholder:text-text-secondary"
       />
 
       {/* Generate Button */}
       <button
         onClick={handleGenerate}
         disabled={!canGenerate}
-        style={{
-          width: "100%",
-          background: canGenerate ? TEXT_PRI : tokens.color.bgGrey,
-          border: "none",
-          borderRadius: "16px",
-          padding: "16px 20px",
-          fontFamily: FONT_UI,
-          fontSize: "15px",
-          fontWeight: 700,
-          color: canGenerate ? tokens.color.surface : TEXT_SEC,
-          cursor: canGenerate ? "pointer" : "not-allowed",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-        }}
+        className="flex w-full items-center justify-center gap-2 rounded-sm border-0 bg-text-primary px-5 py-4 text-base font-bold text-white disabled:cursor-not-allowed disabled:bg-grey disabled:text-text-secondary"
       >
         {state === "loading" ? "Procesando..." : "Generar tarjetas →"}
       </button>
 
       {createError && (
-        <p style={{
-          fontSize: "13px",
-          fontWeight: 600,
-          color: tokens.color.textError,
-          textAlign: "center",
-          marginTop: "12px",
-        }}>
+        <p className="mt-3 text-center text-base font-semibold text-error-text">
           {createError}
         </p>
       )}
@@ -352,35 +219,19 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
         type="file"
         accept="image/*"
         onChange={handleFileChange}
-        style={{ display: "none" }}
+        className="hidden"
       />
     </div>
   );
 
   // ===== MOBILE LAYOUT =====
   const mobileContent = (
-    <div style={{
-      height: "100dvh",
-      maxWidth: "375px",
-      margin: "0 auto",
-      background: BG_PAGE,
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <div className="mx-auto flex h-dvh max-w-[390px] flex-col bg-bg-page">
       {/* Safe-area top */}
-      <div aria-hidden style={{
-        flexShrink: 0,
-        height: "max(16px, env(safe-area-inset-top, 0px))",
-      }} />
+      <div aria-hidden className="h-[max(16px,env(safe-area-inset-top,0px))] shrink-0" />
 
       {/* Scrollable content */}
-      <div style={{
-        flex: 1,
-        overflowY: "auto",
-        WebkitOverflowScrolling: "touch",
-        height: "0",
-        paddingBottom: "100px",
-      }}>
+      <div className="h-0 flex-1 overflow-y-auto pb-[100px] [-webkit-overflow-scrolling:touch]">
         {mainContent}
       </div>
 
@@ -388,60 +239,26 @@ export function CrearScreen({ onNavigate }: CrearScreenProps) {
       <AppNav active="crear" onNavigate={onNavigate} />
 
       {/* iOS home indicator */}
-      <div aria-hidden style={{
-        flexShrink: 0,
-        background: "#fff",
-        display: "flex",
-        justifyContent: "center",
-        paddingTop: "4px",
-        paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))",
-      }}>
-        <div style={{
-          width: "134px",
-          height: "5px",
-          borderRadius: "99px",
-          background: tokens.color.progressIndent,
-        }} />
+      <div aria-hidden className="flex shrink-0 justify-center bg-surface pt-1 pb-[max(6px,env(safe-area-inset-bottom,6px))]">
+        <div className="h-1 w-[134px] rounded-full bg-text-primary" />
       </div>
     </div>
   );
 
   // ===== DESKTOP LAYOUT =====
   const desktopContent = (
-    <div style={{
-      height: "100dvh",
-      background: BG_PAGE,
-      display: "flex",
-      flexDirection: "row",
-    }}>
+    <div className="flex h-dvh flex-row bg-bg-page">
       {/* Navigation (renders sidebar on desktop, nothing on mobile) */}
       <AppNav active="crear" onNavigate={onNavigate} />
 
       {/* Sidebar spacer for desktop layout */}
-      <div style={{ display: "none" }} className="hidden lg:block lg:w-64 flex-shrink-0" />
+      <div className="hidden shrink-0 lg:block lg:w-64" />
 
-      <div style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        <div aria-hidden style={{
-          flexShrink: 0,
-          height: "max(16px, env(safe-area-inset-top, 0px))",
-        }} />
+      <div className="flex flex-1 flex-col">
+        <div aria-hidden className="h-[max(16px,env(safe-area-inset-top,0px))] shrink-0" />
 
-        <div style={{
-          flex: 1,
-          overflowY: "scroll",
-          WebkitOverflowScrolling: "touch",
-          height: "100vh",
-          paddingBottom: "40px",
-        }}>
-          <div style={{
-            maxWidth: "680px",
-            margin: "0 auto",
-            width: "100%",
-          }}>
+        <div className="h-screen flex-1 overflow-y-scroll pb-10 [-webkit-overflow-scrolling:touch]">
+          <div className="mx-auto w-full max-w-[430px]">
             {mainContent}
           </div>
         </div>

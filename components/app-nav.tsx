@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Home, Camera, BarChart3, User } from "lucide-react";
 import { tokens } from "@/lib/design-tokens";
+import { useWindowWidth } from "@/lib/use-window-width";
 
 interface AppNavProps {
   active: "inicio" | "crear" | "progreso" | "perfil";
@@ -24,18 +24,7 @@ const NAV_LABELS = {
 };
 
 export function AppNav({ active, onNavigate }: AppNavProps) {
-  const [isMobile, setIsMobile] = useState(true);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  if (!mounted) return null;
+  const isMobile = useWindowWidth() < 1024;
 
   // Mobile: Bottom navigation
   if (isMobile) {
