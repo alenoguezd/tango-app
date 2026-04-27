@@ -1,75 +1,65 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { HomeScreen } from "@/components/home-screen";
-import { createClient } from "@/lib/supabase";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
 import { rowToCardProgress } from "@/lib/sm2";
+import { CURATED_PUBLIC_SETS } from "@/lib/curated-public-sets";
 import type { Database } from "@/lib/database.types";
 import type { DeckSet, PublicSet } from "@/components/home-screen";
 
 type ProgressRow = Database["public"]["Tables"]["user_progress"]["Row"];
+const FALLBACK_PUBLIC_SETS: PublicSet[] = CURATED_PUBLIC_SETS.map(({ id, name, cards }) => ({
+  id,
+  name,
+  cards: cards as unknown as Array<Record<string, unknown>>,
+}));
 
 export default function InicioPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [sets, setSets] = useState<DeckSet[]>([]);
-  const [publicSets, setPublicSets] = useState<PublicSet[]>([]);
+  const [publicSets, setPublicSets] = useState<PublicSet[]>(FALLBACK_PUBLIC_SETS);
   const [loading, setLoading] = useState(true);
   const [dailyGoal, setDailyGoal] = useState<{ newPerDay: number; reviewPerDay: number }>({
     newPerDay: 10,
     reviewPerDay: 40,
   });
-
-  useEffect(() => {
-    checkAuthAndLoadSets();
-
-    // Reload when user returns from a study session
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        const uid = localStorage.getItem("current_user_id");
-        if (uid) loadSets(uid);
+  const loadPublicSets = useCallback(async (userId: string) => {
+    try {
+      if (!hasSupabaseConfig()) {
+        setPublicSets(FALLBACK_PUBLIC_SETS);
+        return;
       }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
 
-  const checkAuthAndLoadSets = async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error || !user) { router.push("/"); return; }
-
-      if (!user.user_metadata?.daily_goal) { router.push("/onboarding"); return; }
-
-      const goal = user.user_metadata.daily_goal as { newPerDay: number; reviewPerDay: number };
-      setDailyGoal({ newPerDay: goal.newPerDay ?? 10, reviewPerDay: goal.reviewPerDay ?? 40 });
-
-      localStorage.setItem("current_user_id", user.id);
-      loadSets(user.id);
-      loadPublicSets();
-    } catch {
-      router.push("/");
-    }
-  };
-
-  const loadPublicSets = async () => {
-    try {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from("sets")
-        .select("id, name, cards")
-        .eq("is_public", true)
-        .is("user_id", null);
-      if (!error && data) {
-        setPublicSets((data as PublicSet[]).filter((s) => Array.isArray(s.cards)));
+        .select("id, name, cards, user_id")
+        .eq("is_public", true);
+      if (error || !data) {
+        setPublicSets(FALLBACK_PUBLIC_SETS);
+        return;
       }
-    } catch {
-      // non-fatal
-    }
-  };
 
-  const loadSets = async (userId: string) => {
+      const fetchedSets = (data as Array<PublicSet & { user_id: string | null }>)
+        .filter((s) => s.user_id !== userId && Array.isArray(s.cards))
+        .map(({ id, name, cards }) => ({ id, name, cards }));
+      setPublicSets(fetchedSets.length > 0 ? fetchedSets : FALLBACK_PUBLIC_SETS);
+    } catch {
+      setPublicSets(FALLBACK_PUBLIC_SETS);
+    }
+  }, []);
+
+  const loadSets = useCallback(async (userId: string) => {
     try {
+      if (!hasSupabaseConfig()) {
+        setPublicSets(FALLBACK_PUBLIC_SETS);
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
       // Parallel fetch: user-owned sets + all their SM-2 progress rows
       const [setsResult, progressResult] = await Promise.all([
         supabase.from("sets").select("*").eq("user_id", userId),
@@ -132,7 +122,46 @@ export default function InicioPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const checkAuthAndLoadSets = useCallback(async () => {
+    try {
+      if (!hasSupabaseConfig()) {
+        setPublicSets(FALLBACK_PUBLIC_SETS);
+        setLoading(false);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) { router.push("/"); return; }
+
+      if (!user.user_metadata?.daily_goal) { router.push("/onboarding"); return; }
+
+      const goal = user.user_metadata.daily_goal as { newPerDay: number; reviewPerDay: number };
+      setDailyGoal({ newPerDay: goal.newPerDay ?? 10, reviewPerDay: goal.reviewPerDay ?? 40 });
+
+      localStorage.setItem("current_user_id", user.id);
+      loadSets(user.id);
+      loadPublicSets(user.id);
+    } catch {
+      router.push("/");
+    }
+  }, [loadPublicSets, loadSets, router]);
+
+  useEffect(() => {
+    checkAuthAndLoadSets();
+
+    // Reload when user returns from a study session
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        const uid = localStorage.getItem("current_user_id");
+        if (uid) loadSets(uid);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [checkAuthAndLoadSets, loadSets]);
 
   const handleNavigate = (tab: "inicio" | "crear" | "progreso" | "perfil") => {
     if (tab === "progreso") router.push("/progreso");

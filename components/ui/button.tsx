@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-type ButtonVariant = "default" | "outline" | "ghost" | "secondary"
+type ButtonVariant = "default" | "outline" | "ghost" | "secondary" | "highlight" | "session"
 type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,10 +13,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className = "", variant = "default", size = "default", ...props }, ref) => {
     const variantClasses = {
-      default: "bg-[#1A1A1A] text-white hover:opacity-90",
-      outline: "border border-[#EEEBE6] bg-transparent text-[#1A1A1A] hover:bg-[#F5F5F5]",
-      ghost: "bg-transparent text-[#1A1A1A] hover:bg-[#F5F5F5]",
-      secondary: "bg-[#A8C87A] text-[#1A1A1A] hover:opacity-90",
+      default: "bg-[var(--color-text-primary)] text-[var(--color-bg-surface)] hover:opacity-90",
+      outline: "border border-[var(--color-border)] bg-transparent text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]",
+      ghost: "bg-transparent text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]",
+      secondary: "bg-[var(--color-sage)] text-[var(--color-text-primary)] hover:opacity-90",
+      highlight: "bg-[var(--color-butter)] text-[var(--color-warning-text)] hover:opacity-90",
+      session: "bg-[var(--session-cta-bg)] text-[var(--session-cta-fg)] hover:opacity-90",
     }
 
     const sizeClasses = {

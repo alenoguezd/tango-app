@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { Flashcard, type VocabCard } from "@/components/flashcard";
 import { SessionComplete } from "@/components/session-complete";
 import { AppNav } from "@/components/app-nav";
-import { createClient } from "@/lib/supabase";
+import { createClient, hasSupabaseConfig } from "@/lib/supabase";
+import { useWindowWidth } from "@/lib/use-window-width";
+import { getCuratedPublicSet } from "@/lib/curated-public-sets";
 import type { Json } from "@/lib/database.types";
 import {
   type CardProgress,
@@ -26,22 +28,6 @@ interface StudySet {
   userId?: string;
 }
 
-function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  // Return desktop width (1024) during SSR/hydration, then switch to actual width
-  return mounted ? windowWidth : 1024;
-}
-
 // Migrate cards without IDs
 function migrateCards(cards: VocabCard[]): VocabCard[] {
   return cards.map((card, index) => ({
@@ -53,9 +39,8 @@ function migrateCards(cards: VocabCard[]): VocabCard[] {
 export default function EstudiarPage() {
   const params = useParams();
   const router = useRouter();
-  const supabase = createClient();
   const setId = params.id as string;
-  const windowWidth = useWindowSize();
+  const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 1024;
 
   const [set, setSet] = useState<StudySet | null>(null);
@@ -80,6 +65,13 @@ export default function EstudiarPage() {
 
   const checkAuthAndLoadSet = async () => {
     try {
+      if (!hasSupabaseConfig()) {
+        setCurrentUserId("local");
+        loadFallbackSet(dailyGoal);
+        return;
+      }
+
+      const supabase = createClient();
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
@@ -100,12 +92,43 @@ export default function EstudiarPage() {
       setDailyGoal(resolvedGoal);
       loadSetData(user.id, resolvedGoal);
     } catch (error) {
-      router.push("/");
+      if (!loadFallbackSet(dailyGoal)) router.push("/");
     }
+  };
+
+  const loadFallbackSet = (goal: { newPerDay: number; reviewPerDay: number }) => {
+    const fallbackSet = getCuratedPublicSet(setId);
+    if (!fallbackSet) {
+      setLoading(false);
+      return false;
+    }
+
+    const cards = migrateCards(fallbackSet.cards);
+    const found: StudySet = {
+      id: fallbackSet.id,
+      title: fallbackSet.name,
+      cardCount: cards.length,
+      progress: [],
+      lastStudied: new Date().toISOString(),
+      cards,
+    };
+
+    setPreviousMastery(0);
+    setOriginalSetName(fallbackSet.name);
+    setSet(found);
+    calculateAndSetDueCards(found, goal);
+    setLoading(false);
+    return true;
   };
 
   const loadSetData = async (userId: string, goal: { newPerDay: number; reviewPerDay: number }) => {
     try {
+      if (!hasSupabaseConfig()) {
+        loadFallbackSet(goal);
+        return;
+      }
+
+      const supabase = createClient();
       // 1. Try loading by set ID
       let setData: Record<string, unknown> | null = null;
       const { data, error } = await supabase
@@ -128,6 +151,7 @@ export default function EstudiarPage() {
       }
 
       if (!setData) {
+        if (loadFallbackSet(goal)) return;
         setLoading(false);
         return;
       }
@@ -145,7 +169,7 @@ export default function EstudiarPage() {
       setSet(found);
       calculateAndSetDueCards(found, goal);
     } catch {
-      // ignore — set will stay null and show not-found state
+      loadFallbackSet(goal);
     } finally {
       setLoading(false);
     }
@@ -230,6 +254,9 @@ export default function EstudiarPage() {
     calculateAndSetDueCards(updatedSet);
 
     // Upsert one row to user_progress (fire-and-forget)
+    if (!hasSupabaseConfig()) return;
+
+    const supabase = createClient();
     supabase
       .from("user_progress")
       .upsert(cardProgressToRow(newCardProgress, currentUserId, set.id), {
@@ -249,6 +276,13 @@ export default function EstudiarPage() {
 
 
     try {
+      if (!hasSupabaseConfig()) {
+        setSaveMessage("Supabase no está configurado en este entorno local.");
+        setTimeout(() => setSaveMessage(null), 3000);
+        return;
+      }
+
+      const supabase = createClient();
       const newSetId = crypto.randomUUID();
 
       // Create a copy of the set with the new user as owner

@@ -29,6 +29,7 @@
   --color-sky: #b8ceea;            /* Blue accent */
   --color-rose: #f2b8cd;           /* Pink accent */
   --color-orange: #f5a623;         /* Streak indicator */
+  --color-navy: #1d2a62;           /* Strong CTA/progress accent */
 
   /* Semantic Status Colors */
   --color-success-bg: #dcfce7;
@@ -156,6 +157,18 @@
   --button-radius: var(--radius-sm);
   --button-padding-y: 8px;
   --button-padding-x: 16px;
+
+  /* Today/session card */
+  --session-card-bg: #e8eef8;
+  --session-progress-track: var(--color-bg-surface);
+  --session-progress-fill: var(--color-navy);
+  --session-cta-bg: var(--color-navy);
+  --session-cta-fg: var(--color-bg-surface);
+  --session-card-padding: var(--spacing-4);
+  --session-card-inline-inset: var(--spacing-3);
+  --session-card-gap: var(--spacing-4);
+  --session-title-size: 12px;
+  --session-title-line-height: var(--spacing-4);
 
   /* Badge styling */
   --badge-radius: var(--radius-xs);

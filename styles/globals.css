@@ -31,6 +31,7 @@
   --color-rose: #F2B8CD;
   --color-butter: #F5DC7A;
   --color-sky: #B8CEEA;
+  --color-navy: #1D2A62;
   --color-ink: #1A1A1A;
   --color-muted: #8A7F74;
   --color-border: #EEEBE6;
@@ -153,6 +154,7 @@
   --color-sky: var(--color-sky);
   --color-rose: var(--color-rose);
   --color-orange: var(--color-orange);
+  --color-navy: var(--color-navy);
   --color-success-bg: var(--color-success-bg);
   --color-success-text: var(--color-success-text);
   --color-success-soft: var(--color-success-soft);
@@ -172,6 +174,11 @@
   --color-border-default: var(--color-border);
   --color-nav-pill: var(--color-nav-pill);
   --color-progress-track: var(--color-progress-track);
+  --color-session-card: var(--session-card-bg);
+  --color-session-progress-track: var(--session-progress-track);
+  --color-session-progress: var(--session-progress-fill);
+  --color-session-cta: var(--session-cta-bg);
+  --color-session-cta-foreground: var(--session-cta-fg);
 
   /* Extended Typography Sizes */
   --text-xs: var(--text-xs);

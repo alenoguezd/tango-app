@@ -5,6 +5,7 @@ import { MoreVertical, Flame } from "lucide-react";
 import { type VocabCard } from "@/components/flashcard";
 import { createClient } from "@/lib/supabase";
 import { buildDailyQueue, getDueCards, type CardProgress } from "@/lib/sm2";
+import { useWindowWidth } from "@/lib/use-window-width";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -102,20 +103,16 @@ function badgeVariant(label: BadgeLabel): "default" | "secondary" | "destructive
   }
 }
 
-// ── useWindowSize Hook ────────────────────────────────────────────────────────
-function useWindowSize() {
-  const [windowWidth, setWindowWidth] = useState<number>(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return mounted ? windowWidth : 1024;
+function publicSetToDeckSet(set: PublicSet): DeckSet {
+  return {
+    id: set.id,
+    title: set.name,
+    cardCount: set.cards.length,
+    progress: [],
+    lastStudied: "",
+    cards: set.cards as unknown as VocabCard[],
+    is_public: true,
+  };
 }
 
 // ── HomeScreen ────────────────────────────────────────────────────────────────────
@@ -131,7 +128,9 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
 
   // Keep localSets in sync when the page reloads sets (e.g. after returning from study)
   useEffect(() => {
-    setLocalSets(propSets || []);
+    if (!propSets) return;
+    const syncSets = window.setTimeout(() => setLocalSets(propSets), 0);
+    return () => window.clearTimeout(syncSets);
   }, [propSets]);
 
   // Fetch user name on mount
@@ -341,7 +340,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
   const totalDueCards = Math.min(totalNewRaw, goal.newPerDay) + Math.min(totalReviewRaw, goal.reviewPerDay);
   const dailyTarget = goal.newPerDay + goal.reviewPerDay;
 
-  const windowWidth = useWindowSize();
+  const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 1024;
 
   // Get first due set for "Estudiar" button
@@ -349,6 +348,7 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
     const stat = setStats.find(s => s.setId === set.id);
     return stat && stat.dueCount > 0;
   });
+  const firstStudySet = firstDueSet ?? (publicSets[0] ? publicSetToDeckSet(publicSets[0]) : undefined);
 
   // ===== MOBILE LAYOUT =====
   if (isMobile) {
@@ -382,52 +382,37 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
             <span>Racha de 7 días</span>
           </div>
 
-          {/* Today Card (Dark Banner) */}
-          <div className="mx-4 mb-6 rounded-lg p-5 bg-text-primary text-white relative">
-            <div className="mb-4">
-              <p className="text-xs font-bold text-text-secondary">
-                Today
-              </p>
-              <p className="text-2xl font-bold leading-none mt-1">
-                {totalDueCards}
-              </p>
-            </div>
-            {/* Progress Bar */}
-            <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-butter transition-normal"
-                style={{
-                  width: `${Math.min(100, Math.round((totalDueCards / dailyTarget) * 100))}%`,
-                }}
-              />
-            </div>
-            {/* Estudiar Button */}
-            {firstDueSet && (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStudy(firstDueSet);
-                }}
-                className="absolute top-3 right-3 bg-butter text-text-primary px-3 py-1 text-xs font-bold hover:opacity-90 rounded-sm"
-              >
-                Estudiar
-              </Button>
-            )}
-          </div>
+          <TodaySessionCard
+            totalDueCards={totalDueCards}
+            dailyTarget={dailyTarget}
+            studySet={firstStudySet}
+            onStudy={onStudy}
+            className="mx-[var(--session-card-inline-inset)] mb-4"
+          />
 
           {/* Public sets grouped by category */}
+          {publicSets.length > 0 && (
+            <div className="mb-2 flex items-center justify-between px-3">
+              <h2 className="text-base font-bold leading-tight text-text-primary">
+                Sets
+              </h2>
+              <button className="text-xs font-medium text-text-secondary" type="button">
+                See all
+              </button>
+            </div>
+          )}
           {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
             <div key={category} className="mb-6">
-              <h2 className="px-4 text-base font-bold text-text-primary mb-3">
+              <h3 className="px-3 text-xs font-medium text-text-primary mb-2">
                 {category}
-              </h2>
-              <div className="flex gap-3 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2 px-4">
+              </h3>
+              <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] pb-2 px-3">
                 {sets.map((set) => {
                   const meta = getSetMeta(set.name);
                   return (
                     <button
                       key={set.id}
-                      onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as unknown as VocabCard[] })}
+                      onClick={() => onStudy(publicSetToDeckSet(set))}
                       className="w-[160px] shrink-0 bg-surface border border-border-default rounded-lg p-4 flex flex-col gap-4 text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                     >
                       {/* Icon row: emoji left, badge right */}
@@ -455,8 +440,8 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
 
           {/* User sets ("Creados por mi") — excludes public sets the user has only studied */}
           {localSets.some(s => !s.is_public) && (
-            <div className="px-4 mb-6">
-              <h2 className="text-lg font-bold leading-tight text-text-primary mb-3">
+            <div className="px-3 mb-6">
+              <h2 className="text-xs font-medium leading-tight text-text-primary mb-2">
                 Creados por mi
               </h2>
               <div className="grid grid-cols-2 gap-2">
@@ -532,52 +517,37 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
         <span>Racha de 7 días</span>
       </div>
 
-      {/* Today Card */}
-      <div className="rounded-lg p-8 mb-8 text-white bg-text-primary relative">
-        <div className="mb-6">
-          <p className="text-xs font-bold text-text-secondary">
-            Today
-          </p>
-          <p className="text-4xl font-bold leading-none mt-2">
-            {totalDueCards}
-          </p>
-        </div>
-        {/* Progress Bar */}
-        <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-butter transition-normal"
-            style={{
-              width: `${Math.min(100, Math.round((totalDueCards / dailyTarget) * 100))}%`,
-            }}
-          />
-        </div>
-        {/* Estudiar Button */}
-        {firstDueSet && (
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              onStudy(firstDueSet);
-            }}
-            className="absolute top-8 right-8 bg-butter text-text-primary px-4 py-2 text-sm font-bold hover:opacity-90 rounded-sm"
-          >
-            Estudiar
-          </Button>
-        )}
-      </div>
+      <TodaySessionCard
+        totalDueCards={totalDueCards}
+        dailyTarget={dailyTarget}
+        studySet={firstStudySet}
+        onStudy={onStudy}
+        className="mb-8"
+      />
 
       {/* Public sets grouped by category */}
+      {publicSets.length > 0 && (
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-text-primary">
+            Sets
+          </h2>
+          <button className="text-xs font-medium text-text-secondary" type="button">
+            See all
+          </button>
+        </div>
+      )}
       {groupPublicSetsByCategory(publicSets).map(([category, sets]) => (
         <div key={category} className="mb-8">
-          <h2 className="text-base font-bold mb-4 text-text-primary">
+          <h3 className="text-base font-bold mb-4 text-text-primary">
             {category}
-          </h2>
+          </h3>
           <div className="grid grid-cols-3 gap-4">
             {sets.map((set) => {
               const meta = getSetMeta(set.name);
               return (
                 <button
                   key={set.id}
-                  onClick={() => onStudy({ id: set.id, title: set.name, cardCount: set.cards.length, progress: [], lastStudied: "", cards: set.cards as unknown as VocabCard[] })}
+                  onClick={() => onStudy(publicSetToDeckSet(set))}
                   className="bg-surface rounded-lg p-4 flex flex-col gap-4 border border-border-default text-left cursor-pointer hover:bg-bg-subtle transition-colors"
                 >
                   {/* Icon row: emoji left, badge right */}
@@ -640,6 +610,58 @@ export function HomeScreen({ publicSets = [], sets: propSets, dailyGoal, onStudy
       )}
       </main>
     </div>
+  );
+}
+
+function TodaySessionCard({
+  totalDueCards,
+  dailyTarget,
+  studySet,
+  onStudy,
+  className = "",
+}: {
+  totalDueCards: number;
+  dailyTarget: number;
+  studySet?: DeckSet;
+  onStudy: (set: DeckSet) => void;
+  className?: string;
+}) {
+  const progressPercent = dailyTarget > 0
+    ? Math.min(100, Math.round((totalDueCards / dailyTarget) * 100))
+    : 0;
+
+  return (
+    <section className={`rounded-lg bg-session-card p-[var(--session-card-padding)] text-text-primary ${className}`}>
+      <p className="text-[var(--session-title-size)] font-normal leading-[var(--session-title-line-height)]">
+        Sesión de hoy
+      </p>
+
+      <p className="mt-[var(--session-card-gap)] text-lg font-medium leading-tight">
+        <span>{totalDueCards}</span>
+        <span className="text-sm"> / {dailyTarget} tarjetas completadas</span>
+      </p>
+
+      <div className="mt-[var(--session-card-gap)] h-2 w-full overflow-hidden rounded-full bg-session-progress-track">
+        <div
+          className="h-full rounded-full bg-session-progress transition-normal"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+
+      {studySet && (
+        <Button
+          variant="session"
+          size="lg"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStudy(studySet);
+          }}
+          className="mt-[var(--session-card-gap)] min-h-8 w-full rounded-md text-xs font-medium"
+        >
+          Empezar
+        </Button>
+      )}
+    </section>
   );
 }
 
